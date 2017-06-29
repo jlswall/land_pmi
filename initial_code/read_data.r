@@ -29,3 +29,9 @@ simplifiedColumnC <- gsub(pattern="p__", replacement="", phylumAllDF[,3] )
 simplifiedColumnC <- gsub(pattern="k__", replacement="", simplifiedColumnC)
 simplifiedColumnC <- gsub(pattern="unclassified", replacement="Unclassified", simplifiedColumnC)
 identical(simplifiedColumnC, phylumAllDF[,118])
+
+## Let's isolate these rows and columns.
+smallDF <- phylumAllDF[,118:134]
+## rownames(smallDF) <- phylumAllDF[,118]
+
+library("ggplot2")
