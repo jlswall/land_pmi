@@ -36,19 +36,27 @@ rawDF <- phylumAllDF[,1:114]
 
 ## Identify column names starting with "A".
 namesA <- colnames(rawDF)[substring(first=1, last=1, colnames(rawDF))=="A"]
-wideIndivDF <- rawDF[,namesA]
+wideIndivDF <- rawDF[,c("taxon", namesA)]
 rm(namesA)
 
 ## Identify column names starting with "T".  These are the averages of
 ## the individual pigs at each time point.
 namesT <- colnames(rawDF)[substring(first=1, last=1, colnames(rawDF))=="T"]
-wideAvgsDF <- rawDF[,namesT]
+wideAvgsDF <- rawDF[,c("taxon", namesT)]
 rm(namesT)
+
+rm(rawDF)
 ## ##################################################
 
 
+
+## ##################################################
+## Try to go from wide format to long format.
+
 library("tidyr")
-help("separate"
+
+gatherDF <- gather(wideIndivDF, taxon)
+help("separate")
 ## http://www.milanor.net/blog/reshape-data-r-tidyr-vs-reshape2/
 
 ## ##################################################
