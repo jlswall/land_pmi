@@ -1,17 +1,22 @@
-library("openxlsx")
+library("readxl")
+library("tidyr")
+
+
+## library("openxlsx")
 fileNm <- "../orig_data/Shane_all_skin_samples_taxo_bs_05_05_2017.xlsx"
-phylumAllDF <- read.xlsx(fileNm, sheet="Phylum_all", skipEmptyCols=FALSE)
+## phylumAllT <- read.xlsx(fileNm, sheet="Phylum_all", skipEmptyCols=FALSE)
+rawAllT <- read_excel(path=fileNm, sheet="Phylum_all")
 
 ## Some of these column names are duplicated.
-duplicated(colnames(phylumAllDF))
+## duplicated(colnames(phylumAllDF))
 ## This first happens at column 116.
-min(which(duplicated(colnames(phylumAllDF))))
+## min(which(duplicated(colnames(phylumAllDF))))
 
 
 ## The first column contains "2"s for all the rows, except the very
 ## last row (row #36).
-unique(phylumAllDF[1:35,1])
-phylumAllDF[36, 1]
+unique(rawAllT[1:35,1])
+rawAllT[36, 1]
 ## The last row appears to be at the kingdom level, while the
 ## preceding rows were at the phylum level.
 
@@ -32,20 +37,20 @@ phylumAllDF[36, 1]
 ## of the observed counts over all pigs at the various times.
 
 ## We're ignoring columns past 114.
-rawDF <- phylumAllDF[,1:114]
+mainT <- rawAllT[,1:114]
 
 ## Identify column names starting with "A".
-namesA <- colnames(rawDF)[substring(first=1, last=1, colnames(rawDF))=="A"]
-wideIndivDF <- rawDF[,c("taxon", namesA)]
+namesA <- colnames(mainT)[substring(first=1, last=1, colnames(mainT))=="A"]
+wideIndivT <- mainT[,c("taxon", namesA)]
 rm(namesA)
 
 ## Identify column names starting with "T".  These are the averages of
 ## the individual pigs at each time point.
-namesT <- colnames(rawDF)[substring(first=1, last=1, colnames(rawDF))=="T"]
-wideAvgsDF <- rawDF[,c("taxon", namesT)]
+namesT <- colnames(mainT)[substring(first=1, last=1, colnames(mainT))=="T"]
+wideAvgsT <- mainT[,c("taxon", namesT)]
 rm(namesT)
 
-rm(rawDF)
+rm(mainT)
 ## ##################################################
 
 
@@ -53,12 +58,14 @@ rm(rawDF)
 ## ##################################################
 ## Try to go from wide format to long format.
 
-library("tidyr")
+indivT <- wideIndivT %>%
+  gather(indiv_time, counts, -taxon) %>%
+  separate(indiv_time, into=c("subj", "time"))
+## To see more info about how this works, see:
+##   http://www.milanor.net/blog/reshape-data-r-tidyr-vs-reshape2/
 
-gatherDF <- gather(wideIndivDF, taxon)
-help("separate")
-## http://www.milanor.net/blog/reshape-data-r-tidyr-vs-reshape2/
-
+## Next thing to check is whether we can get back the values in
+## wideAvgsT when we do a summary for indivT.
 ## ##################################################
 
 ## Colums DN (phylum names, column 118) and DO-ED (columns 119-134)
