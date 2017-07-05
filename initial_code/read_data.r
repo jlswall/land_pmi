@@ -1,10 +1,12 @@
 library("readxl")
 library("tidyr")
-
+library("tibble")
+library("dplyr")
+library("stringr")
 
 ## library("openxlsx")
-fileNm <- "../orig_data/Shane_all_skin_samples_taxo_bs_05_05_2017.xlsx"
 ## phylumAllT <- read.xlsx(fileNm, sheet="Phylum_all", skipEmptyCols=FALSE)
+fileNm <- "../orig_data/Shane_all_skin_samples_taxo_bs_05_05_2017.xlsx"
 rawAllT <- read_excel(path=fileNm, sheet="Phylum_all")
 
 ## Some of these column names are duplicated.
@@ -34,23 +36,35 @@ rawAllT[36, 1]
 ##    columns whose names start with "A#" - These are the observed
 ## counts for the individual pigs at the various times.
 ##    columns whose names start with "T#" - These are the averages
-## of the observed counts over all pigs at the various times.
+## of the observed counts over all pigs at the various times.  The
+## names of these columns are in form T#days_#accumulatedDegreeDays.
 
 ## We're ignoring columns past 114.
 mainT <- rawAllT[,1:114]
 
+
 ## Identify column names starting with "A".
 namesA <- colnames(mainT)[substring(first=1, last=1, colnames(mainT))=="A"]
 wideIndivT <- mainT[,c("taxon", namesA)]
-rm(namesA)
 
-## Identify column names starting with "T".  These are the averages of
-## the individual pigs at each time point.
+
+## Identify column names starting with "T".  The values in these
+## columsn are the averages of the individual pigs at each time point.
+## The names of these columns contain the number of days since death
+## and the accumulated degree days.  The number of days since death
+## immediately follows the "T", and the number of accumulated degree
+## days follows the "_".
 namesT <- colnames(mainT)[substring(first=1, last=1, colnames(mainT))=="T"]
-wideAvgsT <- mainT[,c("taxon", namesT)]
-rm(namesT)
+## Separate the days from the accumulated degree days.
+timeDF <- separate(data.frame(x=substring(namesT, first=2),
+                              stringsAsFactors=F),
+                   x, sep="_", into=c("days", "degdays"), convert=T)
 
-rm(mainT)
+## Extract the columns with the phylum names and the average counts
+## across pigs for each time point.
+wideAvgsT <- mainT[,c("taxon", namesT)]
+
+rm(namesA, namesT, mainT)
 ## ##################################################
 
 
@@ -60,13 +74,35 @@ rm(mainT)
 
 indivT <- wideIndivT %>%
   gather(indiv_time, counts, -taxon) %>%
-  separate(indiv_time, into=c("subj", "time"))
+  separate(indiv_time, sep="_T", into=c("subj", "days"), convert=T) %>%
+  complete(taxon, days, subj)
 ## To see more info about how this works, see:
 ##   http://www.milanor.net/blog/reshape-data-r-tidyr-vs-reshape2/
 
+
 ## Next thing to check is whether we can get back the values in
 ## wideAvgsT when we do a summary for indivT.
+chkAvgsT <- indivT %>%
+  select(taxon, days, counts) %>%
+  group_by(taxon, days) %>%
+  summarize(avgs=mean(counts, na.rm=TRUE)) %>%
+  spread(key=days,  value=avgs)
+## Match the names to the timeDF frame.
+matchNamesV <- na.omit(match(colnames(chkAvgsT), as.character(timeDF$days)))
+chkNamesV <- paste(timeDF[matchNamesV,1], timeDF[matchNamesV,2], sep="_")
+colnames(chkAvgsT) <- c("taxon", paste0("T", chkNamesV))
+## Order this in the same order as what I read in from the sheet.
+reorderChkT <- chkAvgsT[match(wideAvgsT$taxon, chkAvgsT$taxon), colnames(wideAvgsT)]
+## Compare with the averages I read in from the sheet.
+all.equal(wideAvgsT[,1], reorderChkT[,1])  ## Ensure taxons in same order.
+summary(as.vector(wideAvgsT[,-1] - reorderChkT[,-1]))
+## There is a problem with column T1_27.
+subset(indivT, (days==1) & (taxon=="p__Firmicutes"), "counts")
+apply(subset(indivT, (days==1) & (taxon=="p__Firmicutes"), "counts"), 2, mean)
 ## ##################################################
+
+
+
 
 ## Colums DN (phylum names, column 118) and DO-ED (columns 119-134)
 ## seem to be averages from the earlier columns.
