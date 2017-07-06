@@ -3,6 +3,8 @@ library("tidyr")
 library("tibble")
 library("dplyr")
 library("stringr")
+library("ggplot2")
+
 
 ## library("openxlsx")
 ## phylumAllT <- read.xlsx(fileNm, sheet="Phylum_all", skipEmptyCols=FALSE)
@@ -93,41 +95,77 @@ chkNamesV <- paste(timeDF[matchNamesV,1], timeDF[matchNamesV,2], sep="_")
 colnames(chkAvgsT) <- c("taxon", paste0("T", chkNamesV))
 ## Order this in the same order as what I read in from the sheet.
 reorderChkT <- chkAvgsT[match(wideAvgsT$taxon, chkAvgsT$taxon), colnames(wideAvgsT)]
+
 ## Compare with the averages I read in from the sheet.
 all.equal(wideAvgsT[,1], reorderChkT[,1])  ## Ensure taxons in same order.
-summary(as.vector(wideAvgsT[,-1] - reorderChkT[,-1]))
-## There is a problem with column T1_27.
+## Now check the counts, not the taxa names.
+apply(wideAvgsT[,-1] - reorderChkT[,-1], 2, summary)
+## There is a problem with column T1_27.  As an example, consider the
+## row for p__Firmicutes.
 subset(indivT, (days==1) & (taxon=="p__Firmicutes"), "counts")
 apply(subset(indivT, (days==1) & (taxon=="p__Firmicutes"), "counts"), 2, mean)
+subset(wideAvgsT, (taxon=="p__Firmicutes"), "T1_27")
+## Look at all the values for "T1_27".
+cbind(reorderChkT[,"T1_27"], wideAvgsT[,"T1_27"], reorderChkT[,"T1_27"]- wideAvgsT[,"T1_27"] )
+
+rm(chkAvgsT, matchNamesV, chkNamesV)
+## ##################################################
+
+
+
+## ##################################################
+## Check that all the phylum counts add up to the k__Bacteria counts.
+
+tmp1 <- indivT %>%
+  filter(taxon!="k__Bacteria") %>%
+  group_by(days, subj) %>%
+  summarize(counts=sum(counts))
+
+tmp2 <- subset(indivT, taxon=="k__Bacteria", c("days", "subj", "counts"))
+
+all.equal(tmp1, tmp2)
+
+rm(tmp1, tmp2)
+## ##################################################
+
+
+
+## ##################################################
+## Make some exploratory graphics.
+
+## Include accum. degree days in the tibble.
+indivT <- indivT %>%
+  filter(taxon!="k__Bacteria") %>%
+  left_join(timeDF, by="days")
+
+## Make a new species column by stripping the "p__" from the beginning
+## of each taxon name.
+indivT$species <- gsub(indivT$taxon, pattern="p__", replacement="")
+
+## Number of days and accum. degree days are strongly correlated.
+with(indivT, cor(degdays, days))
+
+## For each bacteria, plot counts for each pig vs. accum. degree days.
+ggplot(indivT, aes(degdays, counts)) +
+  geom_point() +
+  facet_wrap(~species)
+
+## Find species that have any day at which the count is over
+## 479, which is the top 10% of counts.
+commonSpecies <- indivT %>%
+  filter(counts > 479) %>%
+  select(species) %>%
+  distinct(species) %>%
+  unlist()
+
+## For each bacteria, plot counts for each pig vs. accum. degree days.
+ggplot(subset(indivT, species %in% commonSpecies), aes(degdays, counts)) +
+  geom_point() +
+  facet_wrap(~species)
+
 ## ##################################################
 
 
 
 
-## Colums DN (phylum names, column 118) and DO-ED (columns 119-134)
-## seem to be averages from the earlier columns.
-phylumAllDF[1:5, 118:134]
-## Column L matches column DO.
-identical(phylumAllDF[,12], phylumAllDF[,119])
-## Column S matches column DP.
-identical(phylumAllDF[,19], phylumAllDF[,120])
-## Column Z matches column DQ.
-identical(phylumAllDF[,26], phylumAllDF[,121])
-## Column DJ matches column ED.
-identical(phylumAllDF[,114], phylumAllDF[,134])
 
-## Names of phylums are almost same from column C to DN (118).  In
-## column C, the names start with "p__", except for "unclassified" and
-## "k__Bacteria".  So we remove "p__" and "k__" from those strings.
-## We also capitalize "unclassifed" to that it will match
-## "Unclassified) in column DN.
-simplifiedColumnC <- gsub(pattern="p__", replacement="", phylumAllDF[,3] )
-simplifiedColumnC <- gsub(pattern="k__", replacement="", simplifiedColumnC)
-simplifiedColumnC <- gsub(pattern="unclassified", replacement="Unclassified", simplifiedColumnC)
-identical(simplifiedColumnC, phylumAllDF[,118])
-
-## Let's isolate these rows and columns.
-smallDF <- phylumAllDF[,118:134]
-## rownames(smallDF) <- phylumAllDF[,118]
-
-library("ggplot2")
