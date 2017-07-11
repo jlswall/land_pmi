@@ -4,6 +4,7 @@ library("tibble")
 library("dplyr")
 library("stringr")
 library("ggplot2")
+library("vegan")
 
 
 ## library("openxlsx")
@@ -162,9 +163,34 @@ commonSpecies <- indivT %>%
 ggplot(subset(indivT, species %in% commonSpecies), aes(degdays, counts)) +
   geom_point() +
   facet_wrap(~species)
-
 ## ##################################################
 
+
+
+## ##################################################
+## Treat each pig as a "site"/"community" and each day as a time step.
+## The repsonse is multivariate because there are counts for many
+## different phyla.
+
+## We need to get the data into "community matrix format", which is
+## basically a wide format.
+wideindivT <- indivT %>%
+  select(days, degdays, subj, species, counts) %>%
+  spread(species, counts)
+## Now, break this into 2 pieces.  One piece is the "community
+## matrix", which has a column for each phylum and with the count for
+## that phylum for a given day and subject.  The second piece is the
+## covariates (subject and day).
+communityCovariates <- wideindivT[,1:3]
+communityCounts <- wideindivT[,-c(1:3)]
+## If the count is NA, make it zero.
+communityCounts[is.na(communityCounts)] <- 0
+## Get rid of rows which have zero totals.
+zeroRows <- apply(communityCounts, 1, sum)==0
+
+try1 <- adonis(communityCounts[!zeroRows,] ~ as.factor(days) + subj, data=communityCovariates[!zeroRows,])
+
+## ##################################################
 
 
 
