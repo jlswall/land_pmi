@@ -5,6 +5,7 @@ library("dplyr")
 library("stringr")
 library("ggplot2")
 library("vegan")
+library("colorspace")
 
 
 ## library("openxlsx")
@@ -208,12 +209,19 @@ rareT <- indivT %>%
     filter(freq < 0.03) %>%
     select(taxa)
 barchartT <- indivT
-barchartT[barchartT$taxa %in% rareT[[1]], "taxa"] <- "rare taxa (< 3%)" 
-## Make the stacked bar chart.
+barchartT[barchartT$taxa %in% rareT[[1]], "taxa"] <- "unclassified/rare taxa" 
+## Make the stacked bar chart using raw counts by degree days.
 ggplot(barchartT, aes(degdays)) +
   geom_bar(aes(weight=counts, fill=taxa))
 rm(rareT)
 
+## ######### WORKING HERE!
+## working on code to make it percentages in each bar, based on the
+## total count for that day across all pigs.
+barchartT %>%
+  group_by(degdays, taxa) %>%
+  summarize(taxadaytotal = sum(counts, na.rm=TRUE)) %>%
+  left_join(barchartT %>% )
 
 ## Find taxa that have any day at which the count is over
 ## 479, which is the top 10% of counts.
