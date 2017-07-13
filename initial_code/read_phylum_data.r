@@ -128,9 +128,9 @@ indivT <- indivT %>%
   left_join(timeDF, by="days")
 
 
-## Make a new, more readable species column by stripping the "p__"
+## Make a new, more readable taxa column by stripping the "p__"
 ## from the beginning of each taxon name.
-indivT$species <- gsub(indivT$taxon, pattern="p__", replacement="")
+indivT$taxa <- gsub(indivT$taxon, pattern="p__", replacement="")
 ## ##################################################
 
 
@@ -143,8 +143,8 @@ indivT$species <- gsub(indivT$taxon, pattern="p__", replacement="")
 ## We need to get the data into "community matrix format", which is
 ## basically a wide format.
 wideindivT <- indivT %>%
-  select(days, degdays, subj, species, counts) %>%
-  spread(species, counts)
+  select(days, degdays, subj, taxa, counts) %>%
+  spread(taxa, counts)
 ## Now, break this into 2 pieces.  One piece is the "community
 ## matrix", which has a column for each phylum and with the count for
 ## that phylum for a given day and subject.  The second piece is the
@@ -169,10 +169,18 @@ trystrata <- adonis(communityCounts ~ as.factor(days), data=communityCovariates,
 
 ## Try using nonmetric multidimensional scaling.
 trymds <- metaMDS(communityCounts, k=2, trymax=1000)
+stressplot(trymds)
 plot(trymds)
 ordiplot(trymds,type="n")
-orditorp(trymds, display="species", col="red", air=0.01)
-orditorp(example_NMDS,display="sites",cex=1.25,air=0.01)
+orditorp(trymds, display="species", col="red", air=0.01,
+         labels=make.cepnames(names(communityCounts)))
+## Make colors.
+myColors <- diverge_hcl(length(unique(communityCovariates$days)))
+orditorp(trymds, display="sites", air=0.01, col=myColors[as.numeric(as.factor(communityCovariates$days))], labels=as.character(communityCovariates$days))
+## ordihull(trymds, groups=communityCovariates$days, draw="polygon", col=myColors)
+rm(myColors)
+
+rm(trystrata, trymds)
 ## ##################################################
 
 
@@ -187,18 +195,36 @@ with(indivT, cor(degdays, days))
 ## For each bacteria, plot counts for each pig vs. accum. degree days.
 ggplot(indivT, aes(degdays, counts)) +
   geom_point() +
-  facet_wrap(~species)
+  facet_wrap(~taxa)
 
-## Find species that have any day at which the count is over
+
+## For each day, make stacked bar with layer for each phylum.
+## To make this easier to read, any taxa that represent less than 3%
+## of the total will be classified as "rare taxa".
+rareT <- indivT %>%
+    group_by(taxa) %>%
+    summarize(taxatotal = sum(counts, na.rm=TRUE)) %>%
+    mutate(freq = taxatotal/sum(taxatotal)) %>%
+    filter(freq < 0.03) %>%
+    select(taxa)
+barchartT <- indivT
+barchartT[barchartT$taxa %in% rareT[[1]], "taxa"] <- "rare taxa (< 3%)" 
+## Make the stacked bar chart.
+ggplot(barchartT, aes(degdays)) +
+  geom_bar(aes(weight=counts, fill=taxa))
+rm(rareT)
+
+
+## Find taxa that have any day at which the count is over
 ## 479, which is the top 10% of counts.
-commonSpecies <- indivT %>%
+commonTaxa <- indivT %>%
   filter(counts > 479) %>%
-  select(species) %>%
-  distinct(species) %>%
+  select(taxa) %>%
+  distinct(taxa) %>%
   unlist()
 
 ## For each bacteria, plot counts for each pig vs. accum. degree days.
-ggplot(subset(indivT, species %in% commonSpecies), aes(degdays, counts)) +
+ggplot(subset(indivT, taxa %in% commonTaxa), aes(degdays, counts)) +
   geom_point() +
-  facet_wrap(~species)
+  facet_wrap(~taxa)
 ## ##################################################
