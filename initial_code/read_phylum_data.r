@@ -18,13 +18,6 @@ rawAllT <- read_excel(path=fileNm, sheet="Phylum_all")
 ## min(which(duplicated(colnames(phylumAllDF))))
 
 
-## The first column contains "2"s for all the rows, except the very
-## last row (row #36).
-unique(rawAllT[1:35,1])
-rawAllT[36, 1]
-## The last row appears to be at the kingdom level, while the
-## preceding rows were at the phylum level.
-
 
 ## ##################################################
 ## Extract raw data for each pig in wide format.
@@ -107,7 +100,7 @@ subset(indivT, (days==1) & (taxon=="p__Firmicutes"), "counts")
 apply(subset(indivT, (days==1) & (taxon=="p__Firmicutes"), "counts"), 2, mean)
 subset(wideAvgsT, (taxon=="p__Firmicutes"), "T1_27")
 ## Look at all the values for "T1_27".
-cbind(reorderChkT[,"T1_27"], wideAvgsT[,"T1_27"], reorderChkT[,"T1_27"]- wideAvgsT[,"T1_27"] )
+## cbind(reorderChkT[,"T1_27"], wideAvgsT[,"T1_27"], reorderChkT[,"T1_27"]- wideAvgsT[,"T1_27"] )
 
 rm(chkAvgsT, matchNamesV, chkNamesV)
 ## ##################################################
@@ -115,54 +108,29 @@ rm(chkAvgsT, matchNamesV, chkNamesV)
 
 
 ## ##################################################
-## Check that all the phylum counts add up to the k__Bacteria counts.
+## Make other adjustments to the dataset so that it's easier to use.
 
+## Check that all the phylum counts add up to the k__Bacteria counts.
 tmp1 <- indivT %>%
   filter(taxon!="k__Bacteria") %>%
   group_by(days, subj) %>%
   summarize(counts=sum(counts))
-
 tmp2 <- subset(indivT, taxon=="k__Bacteria", c("days", "subj", "counts"))
-
-all.equal(tmp1, tmp2)
-
+if (!all.equal(tmp1, tmp2))
+  stop("Phylum counts don't add up to k__Bacteria counts")
 rm(tmp1, tmp2)
-## ##################################################
 
 
-
-## ##################################################
-## Make some exploratory graphics.
-
-## Include accum. degree days in the tibble.
+## Remove the k__Backteria row, since it is just the totals of the
+## phyla.  Also, include accum. degree days in the tibble.
 indivT <- indivT %>%
   filter(taxon!="k__Bacteria") %>%
   left_join(timeDF, by="days")
 
-## Make a new species column by stripping the "p__" from the beginning
-## of each taxon name.
+
+## Make a new, more readable species column by stripping the "p__"
+## from the beginning of each taxon name.
 indivT$species <- gsub(indivT$taxon, pattern="p__", replacement="")
-
-## Number of days and accum. degree days are strongly correlated.
-with(indivT, cor(degdays, days))
-
-## For each bacteria, plot counts for each pig vs. accum. degree days.
-ggplot(indivT, aes(degdays, counts)) +
-  geom_point() +
-  facet_wrap(~species)
-
-## Find species that have any day at which the count is over
-## 479, which is the top 10% of counts.
-commonSpecies <- indivT %>%
-  filter(counts > 479) %>%
-  select(species) %>%
-  distinct(species) %>%
-  unlist()
-
-## For each bacteria, plot counts for each pig vs. accum. degree days.
-ggplot(subset(indivT, species %in% commonSpecies), aes(degdays, counts)) +
-  geom_point() +
-  facet_wrap(~species)
 ## ##################################################
 
 
@@ -187,11 +155,50 @@ communityCounts <- wideindivT[,-c(1:3)]
 communityCounts[is.na(communityCounts)] <- 0
 ## Get rid of rows which have zero totals.
 zeroRows <- apply(communityCounts, 1, sum)==0
+communityCounts <- communityCounts[!zeroRows,]
+communityCovariates <- communityCovariates[!zeroRows,]
+rm(zeroRows)
 
-try1 <- adonis(communityCounts[!zeroRows,] ~ as.factor(days) + subj, data=communityCovariates[!zeroRows,])
+## Fit the PERMANOVA model
+## First without strata:
+## trynostrata <- adonis(communityCounts ~ as.factor(days), data=communityCovariates, permutations=5000)
+## Then, with strata.  (See
+## http://cc.oulu.fi/~jarioksa/softhelp/vegan/html/adonis.html).
+trystrata <- adonis(communityCounts ~ as.factor(days), data=communityCovariates, strata=communityCovariates$subj, permutations=5000)
 
+
+## Try using nonmetric multidimensional scaling.
+trymds <- metaMDS(communityCounts, k=2, trymax=1000)
+plot(trymds)
+ordiplot(trymds,type="n")
+orditorp(trymds, display="species", col="red", air=0.01)
+orditorp(example_NMDS,display="sites",cex=1.25,air=0.01)
 ## ##################################################
 
 
 
 
+## ##################################################
+## Make some exploratory graphics.
+
+## Number of days and accum. degree days are strongly correlated.
+with(indivT, cor(degdays, days))
+
+## For each bacteria, plot counts for each pig vs. accum. degree days.
+ggplot(indivT, aes(degdays, counts)) +
+  geom_point() +
+  facet_wrap(~species)
+
+## Find species that have any day at which the count is over
+## 479, which is the top 10% of counts.
+commonSpecies <- indivT %>%
+  filter(counts > 479) %>%
+  select(species) %>%
+  distinct(species) %>%
+  unlist()
+
+## For each bacteria, plot counts for each pig vs. accum. degree days.
+ggplot(subset(indivT, species %in% commonSpecies), aes(degdays, counts)) +
+  geom_point() +
+  facet_wrap(~species)
+## ##################################################
