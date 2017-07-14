@@ -199,6 +199,9 @@ ggplot(indivT, aes(degdays, counts)) +
   facet_wrap(~taxa)
 
 
+## #####################
+## Make various stacked bar charts.
+
 ## For each day, make stacked bar with layer for each phylum.
 ## To make this easier to read, any taxa that represent less than 3%
 ## of the total will be classified as "rare taxa".
@@ -208,28 +211,53 @@ rareT <- indivT %>%
     mutate(freq = taxatotal/sum(taxatotal)) %>%
     filter(freq < 0.03) %>%
     select(taxa)
-barchartT <- indivT
-barchartT[barchartT$taxa %in% rareT[[1]], "taxa"] <- "unclassified/rare taxa" 
-## Make the stacked bar chart using raw counts by degree days.
-ggplot(barchartT, aes(degdays)) +
-  geom_bar(aes(weight=counts, fill=taxa))
+## Rename taxa that occur less than 3% of the time to
+## "rare/unclassif. taxa".  The sum the counts for all these
+## rare/unclassif. taxa into one row.
+renameT <- indivT
+renameT[renameT$taxa %in% rareT[[1]], "taxa"] <- "Rare/unclassif. taxa"
+renameT <- renameT %>%
+  group_by(days, degdays, subj, taxa) %>%
+  summarize(counts = sum(counts, na.rm=TRUE))
 rm(rareT)
 
-## ######### WORKING HERE!
-## working on code to make it percentages in each bar, based on the
-## total count for that day across all pigs.
-barchartT %>%
-  group_by(degdays, taxa) %>%
+## Now summarize the counts by day and by day-taxa.
+barchartT <- renameT %>%
+  group_by(days, degdays, taxa) %>%
   summarize(taxadaytotal = sum(counts, na.rm=TRUE)) %>%
-  left_join(barchartT %>% )
+  left_join(
+      renameT %>%
+      group_by(degdays) %>%
+      summarize(daytotal = sum(counts, na.rm=TRUE)),
+      by = "degdays"
+  ) %>%
+  mutate(perctaxaday = taxadaytotal / daytotal)
 
-## Find taxa that have any day at which the count is over
-## 479, which is the top 10% of counts.
-commonTaxa <- indivT %>%
-  filter(counts > 479) %>%
-  select(taxa) %>%
-  distinct(taxa) %>%
-  unlist()
+## Make the stacked bar chart using raw counts by degree days.
+ggplot(renameT, aes(degdays)) +
+  geom_bar(aes(weight=counts, fill=taxa))
+
+## Make stacked bar chart using percentages of taxa for each degree
+## day based on the total count for that day across all pigs.
+ggplot(barchartT, aes(degdays)) +
+  geom_bar(aes(weight=perctaxaday, fill=taxa)) +
+  labs(x="Accum. degree days", y="Relative abundance (%)")
+
+## Make stacked bar chart to compare with Figure 1 in Pechal et al
+## (2013).
+ggplot(subset(barchartT, days <= 5), aes(days)) +
+  geom_bar(aes(weight=perctaxaday, fill=taxa)) +
+  labs(x="Days", y="Relative abundance (%)")
+
+
+## Assess variability among pigs on the first few days.
+ggplot(subset(renameT, days <= 5), aes(x=subj, y=counts, fill=taxa)) +
+  geom_bar(stat="identity", position="stack") +
+  facet_grid(~days)
+
+rm(barchartT)
+## #####################
+
 
 ## For each bacteria, plot counts for each pig vs. accum. degree days.
 ggplot(subset(indivT, taxa %in% commonTaxa), aes(degdays, counts)) +
