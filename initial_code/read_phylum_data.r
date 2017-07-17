@@ -135,6 +135,17 @@ indivT$taxa <- gsub(indivT$taxon, pattern="p__", replacement="")
 ## ##################################################
 
 
+## ##################################################
+## For each individual pig and each day, find the percentage of all
+## counts represented by each taxa.
+
+ctsByDaySubjT <- indivT %>%
+  group_by(days, degdays, subj, taxon) %>%
+  mutate(totalByDaySubj = sum(counts)
+
+## ##################################################
+
+
 
 ## ##################################################
 ## Treat each pig as a "site"/"community" and each day as a time step.
