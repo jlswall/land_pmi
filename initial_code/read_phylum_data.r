@@ -13,6 +13,11 @@ library("colorspace")
 fileNm <- "../orig_data/Shane_all_skin_samples_taxo_bs_05_05_2017.xlsx"
 rawAllT <- read_excel(path=fileNm, sheet="Phylum_all")
 
+## The taxon column contains names of the form "p__name" or "k_name",
+## and I will want to make a new column without the "p__" suffix
+## later.  So, I rename this column now to avoid confusion later.
+colnames(rawAllT)[colnames(rawAllT)=="taxon"] <- "taxonName"
+
 ## Some of these column names are duplicated.
 ## duplicated(colnames(phylumAllDF))
 ## This first happens at column 116.
@@ -27,7 +32,7 @@ rawAllT <- read_excel(path=fileNm, sheet="Phylum_all")
 ## ("daughterlevels").  I'm also going to ignore columsn beyond column
 ## "DJ" (column 114).  These appear to be summary columns.
 ## The columns I want to focus on are:
-## column 3: "taxon"
+## column 3: "taxonName"
 ## column 5: "total" - to check that the other numbers are correct.
 ## columns 6-114
 ##    columns whose names start with "A#" - These are the observed
@@ -42,7 +47,7 @@ mainT <- rawAllT[,1:114]
 
 ## Identify column names starting with "A".
 namesA <- colnames(mainT)[substring(first=1, last=1, colnames(mainT))=="A"]
-wideIndivT <- mainT[,c("taxon", namesA)]
+wideIndivT <- mainT[,c("taxonName", namesA)]
 
 
 ## Identify column names starting with "T".  The values in these
@@ -59,7 +64,7 @@ timeDF <- separate(data.frame(x=substring(namesT, first=2),
 
 ## Extract the columns with the phylum names and the average counts
 ## across pigs for each time point.
-wideAvgsT <- mainT[,c("taxon", namesT)]
+wideAvgsT <- mainT[,c("taxonName", namesT)]
 
 rm(namesA, namesT, mainT)
 ## ##################################################
@@ -70,9 +75,9 @@ rm(namesA, namesT, mainT)
 ## Try to go from wide format to long format.
 
 indivT <- wideIndivT %>%
-  gather(indiv_time, counts, -taxon) %>%
+  gather(indiv_time, counts, -taxonName) %>%
   separate(indiv_time, sep="_T", into=c("subj", "days"), convert=T) %>%
-  complete(taxon, days, subj)
+  complete(taxonName, days, subj)
 ## To see more info about how this works, see:
 ##   http://www.milanor.net/blog/reshape-data-r-tidyr-vs-reshape2/
 
@@ -80,26 +85,26 @@ indivT <- wideIndivT %>%
 ## Next thing to check is whether we can get back the values in
 ## wideAvgsT when we do a summary for indivT.
 chkAvgsT <- indivT %>%
-  select(taxon, days, counts) %>%
-  group_by(taxon, days) %>%
+  select(taxonName, days, counts) %>%
+  group_by(taxonName, days) %>%
   summarize(avgs=mean(counts, na.rm=TRUE)) %>%
   spread(key=days,  value=avgs)
 ## Match the names to the timeDF frame.
 matchNamesV <- na.omit(match(colnames(chkAvgsT), as.character(timeDF$days)))
 chkNamesV <- paste(timeDF[matchNamesV,1], timeDF[matchNamesV,2], sep="_")
-colnames(chkAvgsT) <- c("taxon", paste0("T", chkNamesV))
+colnames(chkAvgsT) <- c("taxonName", paste0("T", chkNamesV))
 ## Order this in the same order as what I read in from the sheet.
-reorderChkT <- chkAvgsT[match(wideAvgsT$taxon, chkAvgsT$taxon), colnames(wideAvgsT)]
+reorderChkT <- chkAvgsT[match(wideAvgsT$taxonName, chkAvgsT$taxonName), colnames(wideAvgsT)]
 
 ## Compare with the averages I read in from the sheet.
-all.equal(wideAvgsT[,1], reorderChkT[,1])  ## Ensure taxons in same order.
+all.equal(wideAvgsT[,1], reorderChkT[,1])  ## Ensure taxonNames in same order.
 ## Now check the counts, not the taxa names.
 apply(wideAvgsT[,-1] - reorderChkT[,-1], 2, summary)
 ## There is a problem with column T1_27.  As an example, consider the
 ## row for p__Firmicutes.
-subset(indivT, (days==1) & (taxon=="p__Firmicutes"), "counts")
-apply(subset(indivT, (days==1) & (taxon=="p__Firmicutes"), "counts"), 2, mean)
-subset(wideAvgsT, (taxon=="p__Firmicutes"), "T1_27")
+subset(indivT, (days==1) & (taxonName=="p__Firmicutes"), "counts")
+apply(subset(indivT, (days==1) & (taxonName=="p__Firmicutes"), "counts"), 2, mean)
+subset(wideAvgsT, (taxonName=="p__Firmicutes"), "T1_27")
 ## Look at all the values for "T1_27".
 ## cbind(reorderChkT[,"T1_27"], wideAvgsT[,"T1_27"], reorderChkT[,"T1_27"]- wideAvgsT[,"T1_27"] )
 
@@ -113,10 +118,10 @@ rm(chkAvgsT, matchNamesV, chkNamesV)
 
 ## Check that all the phylum counts add up to the k__Bacteria counts.
 tmp1 <- indivT %>%
-  filter(taxon!="k__Bacteria") %>%
+  filter(taxonName!="k__Bacteria") %>%
   group_by(days, subj) %>%
   summarize(counts=sum(counts))
-tmp2 <- subset(indivT, taxon=="k__Bacteria", c("days", "subj", "counts"))
+tmp2 <- subset(indivT, taxonName=="k__Bacteria", c("days", "subj", "counts"))
 if (!all.equal(tmp1, tmp2))
   stop("Phylum counts don't add up to k__Bacteria counts")
 rm(tmp1, tmp2)
@@ -125,14 +130,18 @@ rm(tmp1, tmp2)
 ## Remove the k__Backteria row, since it is just the totals of the
 ## phyla.  Also, include accum. degree days in the tibble.
 indivT <- indivT %>%
-  filter(taxon!="k__Bacteria") %>%
+  filter(taxonName!="k__Bacteria") %>%
   left_join(timeDF, by="days")
 
 
 ## Make a new, more readable taxa column by stripping the "p__"
 ## from the beginning of each taxon name.
-indivT$taxa <- gsub(indivT$taxon, pattern="p__", replacement="")
+indivT$taxa <- gsub(indivT$taxonName, pattern="p__", replacement="")
+## Remova the taxonName column from the tibble to avoid confusion with
+## the next taxa column.
+indivT <- indivT %>% select(-taxonName)
 ## ##################################################
+
 
 
 ## ##################################################
@@ -140,9 +149,13 @@ indivT$taxa <- gsub(indivT$taxon, pattern="p__", replacement="")
 ## counts represented by each taxa.
 
 ctsByDaySubjT <- indivT %>%
-  group_by(days, degdays, subj, taxon) %>%
-  mutate(totalByDaySubj = sum(counts)
+  group_by(days, degdays, subj) %>%
+  summarize(totals = sum(counts))
 
+indivT <- indivT %>%
+  left_join(ctsByDaySubjT) %>%
+  mutate(percByDaySubj=counts/totals) %>%
+  select(days, degdays, subj, taxa, counts, percByDaySubj)
 ## ##################################################
 
 
