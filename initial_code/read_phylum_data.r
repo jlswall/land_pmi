@@ -279,7 +279,24 @@ ggplot(subset(renameT, days <= 5), aes(x=subj, y=counts, fill=taxa)) +
   geom_bar(stat="identity", position="stack") +
   facet_grid(~days)
 
-rm(barchartT)
+## The counts for each day and each subject are really different, so
+## we plot these in terms of the proportion per days.
+## First find out which taxa aren't considered "rare"; i.e. have more
+## than 3% for at least one subject and one day.
+commontaxaT <- indivT %>%
+  filter(percByDaySubj >= 0.03) %>%
+  distinct(taxa)
+renameT <- indivT
+renameT[!(renameT$taxa %in% commontaxaT[[1]]), "taxa"] <- "Rare taxa"
+ggplot(renameT %>%
+       group_by(days, degdays, subj, taxa) %>%
+       summarize(perc=sum(percByDaySubj)) %>%
+       filter(days <= 5),
+       aes(x=subj, y=perc, fill=taxa)) +
+  geom_bar(stat="identity", position="stack") +
+  facet_grid(~days)
+  
+rm(barchartT, renameT)
 ## #####################
 
 
