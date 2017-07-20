@@ -6,6 +6,7 @@ library("stringr")
 library("ggplot2")
 library("vegan")
 library("colorspace")
+library("randomForest")
 
 
 ## library("openxlsx")
@@ -137,6 +138,10 @@ indivT <- indivT %>%
 ## Make a new, more readable taxa column by stripping the "p__"
 ## from the beginning of each taxon name.
 indivT$taxa <- gsub(indivT$taxonName, pattern="p__", replacement="")
+## The column name "[Thermi]" causes problems for functions expecting
+## traditional data frame column names.
+indivT$taxa <- gsub(indivT$taxa, pattern="[", replacement="")
+indivT$taxa <- gsub(indivT$taxa, pattern="]", replacement="")
 ## Remova the taxonName column from the tibble to avoid confusion with
 ## the next taxa column.
 indivT <- indivT %>% select(-taxonName)
@@ -299,9 +304,23 @@ ggplot(renameT %>%
 rm(barchartT, renameT)
 ## #####################
 
-
-## For each bacteria, plot counts for each pig vs. accum. degree days.
-ggplot(subset(indivT, taxa %in% commonTaxa), aes(degdays, counts)) +
-  geom_point() +
-  facet_wrap(~taxa)
 ## ##################################################
+
+
+
+## ##################################################
+## Try random forests.
+
+## Move back to wide format, removing rows with all missing data.
+widePercT <- indivT %>%
+  select(degdays, subj, taxa, percByDaySubj) %>%
+  spread(taxa, percByDaySubj) %>%
+  filter(!is.na(Firmicutes))
+
+
+rf <- randomForest(degdays ~ ., data=widePercT)
+
+## ##################################################
+
+
+
