@@ -77,10 +77,11 @@ rm(namesA, namesT, mainT)
 
 indivT <- wideIndivT %>%
   gather(indiv_time, counts, -taxonName) %>%
-  separate(indiv_time, sep="_T", into=c("subj", "days"), convert=T) %>%
-  complete(taxonName, days, subj)
-## To see more info about how this works, see:
-##   http://www.milanor.net/blog/reshape-data-r-tidyr-vs-reshape2/
+  separate(indiv_time, sep="_T", into=c("subj", "days"), convert=T)
+  ## To add rows of missing values for combinations of days and
+  ## subjects on which no samples are available (some subjects
+  ## were not observed on certain days), add %>% and then this:
+  ## complete(taxonName, days, subj)
 
 
 ## Next thing to check is whether we can get back the values in
@@ -105,6 +106,9 @@ apply(wideAvgsT[,-1] - reorderChkT[,-1], 2, summary)
 ## row for p__Firmicutes.
 subset(indivT, (days==1) & (taxonName=="p__Firmicutes"), "counts")
 apply(subset(indivT, (days==1) & (taxonName=="p__Firmicutes"), "counts"), 2, mean)
+subset(wideAvgsT, (taxonName=="p__Firmicutes"), "T1_27")
+## It looks like they took the sum, not the mean.
+apply(subset(indivT, (days==1) & (taxonName=="p__Firmicutes"), "counts"), 2, sum)
 subset(wideAvgsT, (taxonName=="p__Firmicutes"), "T1_27")
 ## Look at all the values for "T1_27".
 ## cbind(reorderChkT[,"T1_27"], wideAvgsT[,"T1_27"], reorderChkT[,"T1_27"]- wideAvgsT[,"T1_27"] )
@@ -311,14 +315,31 @@ rm(barchartT, renameT)
 ## ##################################################
 ## Try random forests.
 
-## Move back to wide format, removing rows with all missing data.
+## Move back to wide format. Removing rows with all missing data -
+## these subjects were not sampled on these days.
+
 widePercT <- indivT %>%
   select(degdays, subj, taxa, percByDaySubj) %>%
-  spread(taxa, percByDaySubj) %>%
-  filter(!is.na(Firmicutes))
+  spread(taxa, percByDaySubj)
+
 
 ## If the maximum percentage (among all days and subjects) is less
-## than 0.001 (less than 0.1%), then exclude that taxa.
+## than 0.0001 (less than 0.01%), then exclude that taxa.
+rareTaxa <- unlist(indivT %>%
+                   group_by(taxa) %>%
+                   summarize(maxPercByDaySubj = max(percByDaySubj, na.rm=T)) %>%
+                   filter(maxPercByDaySubj < 0.0001) %>%
+                   select(taxa)
+                   )
+widePercT %>%
+  select(-one_of(rareTaxa))
+
+  anti_join(indivT %>%
+            group_by(degdays, subj) %>%
+            summarize(numNonMiss = sum(!is.na(percByDaySubj))) %>%
+            filter(numNonMiss == 0) %>%
+            select(degdays, subj)
+            ) %>%
 
 
 
