@@ -140,7 +140,7 @@ indivT <- indivT %>%
 indivT$taxa <- gsub(indivT$taxonName, pattern="p__", replacement="")
 ## The column name "[Thermi]" causes problems for functions expecting
 ## traditional data frame column names.
-indivT$taxa <- gsub(indivT$taxa, pattern="[", replacement="")
+indivT$taxa <- gsub(indivT$taxa, pattern="\\[", replacement="")
 indivT$taxa <- gsub(indivT$taxa, pattern="]", replacement="")
 ## Remova the taxonName column from the tibble to avoid confusion with
 ## the next taxa column.
@@ -317,10 +317,12 @@ widePercT <- indivT %>%
   spread(taxa, percByDaySubj) %>%
   filter(!is.na(Firmicutes))
 
+## If the maximum percentage (among all days and subjects) is less
+## than 0.001 (less than 0.1%), then exclude that taxa.
 
-rf <- randomForest(degdays ~ ., data=widePercT)
+
+
+rf <- randomForest(degdays ~ Actinobacteria + MVP-21, data=widePercT)
 
 ## ##################################################
-
-
 
