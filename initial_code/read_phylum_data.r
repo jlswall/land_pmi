@@ -315,13 +315,18 @@ rm(barchartT, renameT)
 ## ##################################################
 ## Try random forests.
 
-## Move back to wide format. Removing rows with all missing data -
-## these subjects were not sampled on these days.
-
+## Move back to wide format.
 widePercT <- indivT %>%
   select(degdays, subj, taxa, percByDaySubj) %>%
   spread(taxa, percByDaySubj)
 
+
+## Use the following to see the maximum percentage obtained by each
+## taxa.
+indivT %>%
+  group_by(taxa) %>%
+  summarize(maxPercByDaySubj = max(percByDaySubj, na.rm=T)) %>%
+  arrange(desc(maxPercByDaySubj))
 
 ## If the maximum percentage (among all days and subjects) is less
 ## than 0.0001 (less than 0.01%), then exclude that taxa.
@@ -331,19 +336,31 @@ rareTaxa <- unlist(indivT %>%
                    filter(maxPercByDaySubj < 0.0001) %>%
                    select(taxa)
                    )
-widePercT %>%
+nonrareTaxa <- widePercT %>%
   select(-one_of(rareTaxa))
 
-  anti_join(indivT %>%
-            group_by(degdays, subj) %>%
-            summarize(numNonMiss = sum(!is.na(percByDaySubj))) %>%
-            filter(numNonMiss == 0) %>%
-            select(degdays, subj)
-            ) %>%
+## Some of the taxa names have "-" (dashes) in them, which can cause
+## problems when the tibble is converted to a data.frame.
+colnames(nonrareTaxa) <- gsub(colnames(nonrareTaxa), pattern="-", replacement="_")
+rm(rareTaxa)
 
 
+## Pick subset of the data to train on.
+trainingIndices <- sort(sample(1:nrow(nonrareTaxa), size=69, replace=F))
+rf <- randomForest(degdays ~ . - subj, data=nonrareTaxa[trainingIndices,])
+varImpPlot(rf)
+## Firmicutes always strongest.  Less strong are: Chloroflexi,
+## Thermi, Actinobacteria, Proteobacteria
 
-rf <- randomForest(degdays ~ Actinobacteria + MVP-21, data=widePercT)
+## Now try to predict for those observations not in the training set.
+yhatTest <- predict(rf, newdata=nonrareTaxa[-trainingIndices,])
+mean((yhatTest - nonrareTaxa[-trainingIndices,"degdays"])^2)
+## ##################################################
+
 
 ## ##################################################
+library("gam")
+
+gam.fit <- gam(degdays ~ s(Firmicutes) + s(Chloroflexi) + s(Thermi) + s(Actinobacteria) + s(Proteobacteria), data=nonrareTaxa[trainingIndices,])
+summary(gam.fit)
 
