@@ -7,6 +7,7 @@ library("ggplot2")
 library("vegan")
 library("colorspace")
 library("randomForest")
+library("gam")
 
 
 ## library("openxlsx")
@@ -63,7 +64,7 @@ timeDF <- separate(data.frame(x=substring(namesT, first=2),
                               stringsAsFactors=F),
                    x, sep="_", into=c("days", "degdays"), convert=T)
 ## Note: number of days and accum. degree days are strongly correlated.
-with(indivT, cor(degdays, days))
+with(timeDF, cor(degdays, days))
 
 
 
@@ -329,7 +330,7 @@ ggplot(commontaxaT, aes(degdays)) +
   ylab("Counts by degree day and taxa, combined over subjects")
 
 
-## Assess variability among pigs on the first few days.
+## Assess variability among pigs on the first few days, in terms of counts.
 ggplot(subset(commontaxaT, days <= 5), aes(x=subj, y=counts, fill=taxa)) +
   geom_bar(stat="identity", position="stack") +
   facet_grid(~days)
@@ -366,41 +367,14 @@ ggplot(subset(bydayT, days <= 5), aes(days)) +
   geom_bar(aes(weight=fracByDayTaxa, fill=taxa)) +
   labs(x="Days", y="Relative abundance")
 
-## ##################################################
 
-
-
-
-## ##################################################
-## #####################
-## Make various stacked bar charts.
-
-## Assess variability among pigs on the first few days.
-ggplot(subset(commontaxaT, days <= 5), aes(x=subj, y=counts, fill=taxa)) +
+## Assess variability among pigs on the first few days, using fractions.
+ggplot(subset(commontaxaT, days <= 5),
+       aes(x=subj, y=fracByDaySubj, fill=taxa)) +
   geom_bar(stat="identity", position="stack") +
   facet_grid(~days)
-
-## The counts for each day and each subject are really different, so
-## we plot these in terms of the proportion per days.
-## First find out which taxa aren't considered "rare"; i.e. have more
-## than 3% for at least one subject and one day.
-commontaxaT <- indivT %>%
-  filter(fracByDaySubj >= 0.03) %>%
-  distinct(taxa)
-commontaxaT <- indivT
-commontaxaT[!(commontaxaT$taxa %in% commontaxaT[[1]]), "taxa"] <- "Rare taxa"
-ggplot(commontaxaT %>%
-       group_by(days, degdays, subj, taxa) %>%
-       summarize(perc=sum(fracByDaySubj)) %>%
-       filter(days <= 5),
-       aes(x=subj, y=perc, fill=taxa)) +
-  geom_bar(stat="identity", position="stack") +
-  facet_grid(~days)
-  
-rm(barchartT, commontaxaT)
-## #####################
-
 ## ##################################################
+
 
 
 
@@ -409,50 +383,50 @@ rm(barchartT, commontaxaT)
 
 ## Move back to wide format.
 widePercT <- commontaxaT %>%
+  ungroup() %>%
   select(degdays, subj, taxa, fracByDaySubj) %>%
   spread(taxa, fracByDaySubj)
-
-
-## Use the following to see the maximum percentage obtained by each
-## taxa.
-indivT %>%
-  group_by(taxa) %>%
-  summarize(maxPercByDaySubj = max(fracByDaySubj, na.rm=T)) %>%
-  arrange(desc(maxPercByDaySubj))
-
-## If the maximum percentage (among all days and subjects) is less
-## than 0.0001 (less than 0.01%), then exclude that taxa.
-rareTaxa <- unlist(indivT %>%
-                   group_by(taxa) %>%
-                   summarize(maxPercByDaySubj = max(fracByDaySubj, na.rm=T)) %>%
-                   filter(maxPercByDaySubj < 0.0001) %>%
-                   select(taxa)
-                   )
-nonrareTaxa <- widePercT %>%
-  select(-one_of(rareTaxa))
-
-## Some of the taxa names have "-" (dashes) in them, which can cause
+## One group ("rare or uncl.") has spaces in it, which can cause
 ## problems when the tibble is converted to a data.frame.
-colnames(nonrareTaxa) <- gsub(colnames(nonrareTaxa), pattern="-", replacement="_")
-rm(rareTaxa)
-
+colnames(widePercT) <- gsub(colnames(widePercT), pattern=" ", replacement="_")
+    
 
 ## Pick subset of the data to train on.
-trainingIndices <- sort(sample(1:nrow(nonrareTaxa), size=69, replace=F))
-rf <- randomForest(degdays ~ . - subj, data=nonrareTaxa[trainingIndices,])
+trainingIndices <- sort(sample(1:nrow(widePercT), size=74, replace=F))
+rf <- randomForest(degdays ~ . -subj -Rare_or_uncl., data=widePercT[trainingIndices,])
 varImpPlot(rf)
-## Firmicutes always strongest.  Less strong are: Chloroflexi,
-## Thermi, Actinobacteria, Proteobacteria
+## For phylum taxa: Firmicutes strongest.  Less strong are:
+## Actinobacteria, Proteobacteria, Bacteroidetes.
 
 ## Now try to predict for those observations not in the training set.
-yhatTest <- predict(rf, newdata=nonrareTaxa[-trainingIndices,])
-mean((yhatTest - nonrareTaxa[-trainingIndices,"degdays"])^2)
+yhatTest <- predict(rf, newdata=widePercT[-trainingIndices,])
+mean((yhatTest - widePercT[-trainingIndices,"degdays"])^2)
 ## ##################################################
+
+
 
 
 ## ##################################################
 library("gam")
 
-gam.fit <- gam(degdays ~ s(Firmicutes) + s(Chloroflexi) + s(Thermi) + s(Actinobacteria) + s(Proteobacteria), data=nonrareTaxa[trainingIndices,])
-summary(gam.fit)
 
+## For each bacteria, plot counts for each pig vs. accum. degree days.
+## Using raw counts, we can see the large variability among individuals.
+ggplot(commontaxaT %>% filter(taxa!="Rare or uncl."),
+      aes(degdays, fracByDaySubj)) +
+  geom_point(aes(color=subj)) +
+  facet_wrap(~taxa) +
+  labs(x="Degree days", y="Fraction by degree day and subject") +
+  labs(color="Subject")
+
+gam.fit <- gam(degdays ~ ns(Firmicutes, df=4) + ns(Actinobacteria, df=4) + ns(Proteobacteria, df=4), data=widePercT[trainingIndices,])
+summary(gam.fit)
+yhatTest <- predict(gam.fit, newdata=widePercT[-trainingIndices,])
+
+## Show fitted values vs. real values.
+plot(unlist(widePercT[trainingIndices, "degdays"]), gam.fit$fitted)
+cor(unlist(widePercT[trainingIndices, "degdays"]), gam.fit$fitted)
+## Show predicted values vs. real values.
+plot(unlist(widePercT[-trainingIndices, "degdays"]), unlist(yhatTest))
+cor(unlist(widePercT[-trainingIndices, "degdays"]), unlist(yhatTest)
+## ##################################################
