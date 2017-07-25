@@ -62,6 +62,10 @@ namesT <- colnames(mainT)[substring(first=1, last=1, colnames(mainT))=="T"]
 timeDF <- separate(data.frame(x=substring(namesT, first=2),
                               stringsAsFactors=F),
                    x, sep="_", into=c("days", "degdays"), convert=T)
+## Note: number of days and accum. degree days are strongly correlated.
+with(indivT, cor(degdays, days))
+
+
 
 ## Extract the columns with the phylum names and the average counts
 ## across pigs for each time point.
@@ -69,6 +73,7 @@ wideAvgsT <- mainT[,c("taxonName", namesT)]
 
 rm(namesA, namesT, mainT)
 ## ##################################################
+
 
 
 
@@ -154,22 +159,6 @@ indivT <- indivT %>% select(-taxonName)
 
 
 ## ##################################################
-## For each individual pig and each day, find the percentage of all
-## counts represented by each taxa.
-
-ctsByDaySubjT <- indivT %>%
-  group_by(days, degdays, subj) %>%
-  summarize(totals = sum(counts))
-
-indivT <- indivT %>%
-  left_join(ctsByDaySubjT) %>%
-  mutate(percByDaySubj=counts/totals) %>%
-  select(days, degdays, subj, taxa, counts, percByDaySubj)
-## ##################################################
-
-
-
-## ##################################################
 ## Treat each pig as a "site"/"community" and each day as a time step.
 ## The repsonse is multivariate because there are counts for many
 ## different phyla.
@@ -221,70 +210,173 @@ rm(trystrata, trymds)
 
 
 ## ##################################################
-## Make some exploratory graphics.
+## For each individual pig and each day, find the percentage of all
+## counts represented by each taxa.
 
-## Number of days and accum. degree days are strongly correlated.
-with(indivT, cor(degdays, days))
+ctsByDaySubjT <- indivT %>%
+  group_by(days, degdays, subj) %>%
+  summarize(totals = sum(counts))
+
+indivT <- indivT %>%
+  left_join(ctsByDaySubjT) %>%
+  mutate(fracByDaySubj=counts/totals) %>%
+  select(-totals)
+## ##################################################
+
+
+
+## ##################################################
+## Some taxa don't occur frequently.  We identify these, classify them
+## as rare, and then reformat the data accordingly.
+## Pechal et al (2013) call "rare" any taxa with <3% of total
+## abundance.
+
+## Find taxa which make up >= 3% of the total counts, over all days
+## and subjects.  These are the "not rare" taxa, which I'll call
+## "common".  Don't include the "unclassified" category of taxa, as
+## unclassified taxa counts/fractions won't be used in the individual
+## models.
+commonByTotalV <- unlist(indivT %>%
+    group_by(taxa) %>%
+    summarize(taxatotal = sum(counts)) %>%
+    mutate(frac = taxatotal/sum(taxatotal)) %>%
+    filter(frac >= 0.03) %>%
+    filter(taxa != "unclassified") %>%
+    select(taxa)
+    )
+## See a list of all taxa percentages sorted in descending order:
+## data.frame( indivT %>%
+##     group_by(taxa) %>%
+##     summarize(taxatotal = sum(counts)) %>%
+##     mutate(frac = taxatotal/sum(taxatotal)) %>%
+##     arrange(desc(frac))
+##     )
+
+
+## Taxa counts can vary widely by day and individual.  So, another way
+## to figure out which taxa are "common" would be to include any taxa
+## making up at least 3% of the total count on at least one particular
+## day for any particular subject.  As above, we don't include the
+## "unclassified" category of taxa.  (For phylum taxa, unclassified
+## does have a maximum fraction of about 0.0343 on day 47, subject A6.
+## For other days and subjects, it's less than 0.02).
+commonByDaySubjV <- unlist(indivT %>%
+                           group_by(taxa) %>%
+                           summarize(maxFracByDaySubj = max(fracByDaySubj)) %>%
+                           filter(maxFracByDaySubj >= 0.03) %>%
+                           filter(taxa != "unclassified") %>%
+                           select(taxa)
+                           )
+## See a list of maximum taxa percentages sorted in descending order:
+## indivT %>%
+##   group_by(taxa) %>%
+##   summarize(maxFracByDaySubj = max(fracByDaySubj)) %>%
+##   arrange(desc(maxFracByDaySubj))
+
+
+## Check whether the "common" taxa are the same whether we use the 3%
+## cutoff as 3% of the taxa totals or 3% of the totals by day and
+## subject.
+{
+if (identical(commonByTotalV, commonByDaySubjV))
+  commonTaxaNamesV <- commonByTotalV
+else
+  stop("Taxa common enough to be included in further analyses are different when calculating for totals vs. for day/subj.")
+}
+rm(commonByTotalV, commonByDaySubjV)
+
+
+
+## Rename unclassified taxa and taxa that occur less than 3% of the
+## time to "rare or uncl.".  Then, sum the counts for all these
+## rare or uncl. taxa into one row.
+commontaxaT <- indivT
+commontaxaT[!(commontaxaT$taxa %in% commonTaxaNamesV), "taxa"] <- "Rare or uncl."
+commontaxaT <- commontaxaT %>%
+  group_by(days, degdays, subj, taxa) %>%
+  summarize(counts = sum(counts), fracByDaySubj=sum(fracByDaySubj))
+rm(commonTaxaNamesV)
+## ##################################################
+
+
+
+
+## ##################################################
+## Graphics illustrating the variability in counts, by individual and
+## by day.
+
+## Counts are highly variable, by individual and by day.
+ggplot(ctsByDaySubjT, aes(degdays, totals)) +
+  geom_point(aes(color=subj)) +
+  xlab("Degree days") +
+  ylab("Total taxa counts by degree day and subject") +
+  labs(color="Subject")
 
 ## For each bacteria, plot counts for each pig vs. accum. degree days.
-ggplot(indivT, aes(degdays, counts)) +
-  geom_point() +
-  facet_wrap(~taxa)
+## Using raw counts, we can see the large variability among individuals.
+ggplot(commontaxaT, aes(degdays, counts)) +
+  geom_point(aes(color=subj)) +
+  facet_wrap(~taxa) +
+  xlab("Degree days") +
+  ylab("Counts by degree day and subject") +
+  labs(color="Subject")
 
-
-## #####################
-## Make various stacked bar charts.
-
-## For each day, make stacked bar with layer for each phylum.
-## To make this easier to read, any taxa that represent less than 3%
-## of the total will be classified as "rare taxa".
-rareT <- indivT %>%
-    group_by(taxa) %>%
-    summarize(taxatotal = sum(counts, na.rm=TRUE)) %>%
-    mutate(freq = taxatotal/sum(taxatotal)) %>%
-    filter(freq < 0.03) %>%
-    select(taxa)
-## Rename taxa that occur less than 3% of the time to
-## "rare/unclassif. taxa".  The sum the counts for all these
-## rare/unclassif. taxa into one row.
-renameT <- indivT
-renameT[renameT$taxa %in% rareT[[1]], "taxa"] <- "Rare/unclassif. taxa"
-renameT <- renameT %>%
-  group_by(days, degdays, subj, taxa) %>%
-  summarize(counts = sum(counts, na.rm=TRUE))
-rm(rareT)
-
-## Now summarize the counts by day and by day-taxa.
-barchartT <- renameT %>%
-  group_by(days, degdays, taxa) %>%
-  summarize(taxadaytotal = sum(counts, na.rm=TRUE)) %>%
-  left_join(
-      renameT %>%
-      group_by(degdays) %>%
-      summarize(daytotal = sum(counts, na.rm=TRUE)),
-      by = "degdays"
-  ) %>%
-  mutate(perctaxaday = taxadaytotal / daytotal)
 
 ## Make the stacked bar chart using raw counts by degree days.
-ggplot(renameT, aes(degdays)) +
-  geom_bar(aes(weight=counts, fill=taxa))
-
-## Make stacked bar chart using percentages of taxa for each degree
-## day based on the total count for that day across all pigs.
-ggplot(barchartT, aes(degdays)) +
-  geom_bar(aes(weight=perctaxaday, fill=taxa)) +
-  labs(x="Accum. degree days", y="Relative abundance (%)")
-
-## Make stacked bar chart to compare with Figure 1 in Pechal et al
-## (2013).
-ggplot(subset(barchartT, days <= 5), aes(days)) +
-  geom_bar(aes(weight=perctaxaday, fill=taxa)) +
-  labs(x="Days", y="Relative abundance (%)")
+ggplot(commontaxaT, aes(degdays)) +
+  geom_bar(aes(weight=counts, fill=taxa)) +
+  xlab("Degree days") +
+  ylab("Counts by degree day and taxa, combined over subjects")
 
 
 ## Assess variability among pigs on the first few days.
-ggplot(subset(renameT, days <= 5), aes(x=subj, y=counts, fill=taxa)) +
+ggplot(subset(commontaxaT, days <= 5), aes(x=subj, y=counts, fill=taxa)) +
+  geom_bar(stat="identity", position="stack") +
+  facet_grid(~days)
+## ##################################################
+
+
+
+## ##################################################
+## Bar charts using fractions associated with each taxa, rather than
+## raw counts.
+
+## Summarize the counts by day and by day-taxa, calculate percentages
+## of each taxa per day (across all pigs).
+bydayT <- commontaxaT %>%
+  group_by(days, degdays, taxa) %>%
+  summarize(ctsByTaxaDay = sum(counts)) %>%
+  left_join(commontaxaT %>%
+              group_by(degdays) %>%
+              summarize(ctsByDay = sum(counts)),
+            by = "degdays"
+  ) %>%
+  mutate(fracByDayTaxa = ctsByTaxaDay / ctsByDay)
+
+
+## Make stacked bar chart using percentages of taxa for each degree
+## day based on the total count for that day across all pigs.
+ggplot(bydayT, aes(degdays)) +
+  geom_bar(aes(weight=fracByDayTaxa, fill=taxa)) +
+  labs(x="Accum. degree days", y="Relative abundance")
+
+## Make stacked bar chart to compare with Figure 1 in Pechal et al
+## (2013).
+ggplot(subset(bydayT, days <= 5), aes(days)) +
+  geom_bar(aes(weight=fracByDayTaxa, fill=taxa)) +
+  labs(x="Days", y="Relative abundance")
+
+## ##################################################
+
+
+
+
+## ##################################################
+## #####################
+## Make various stacked bar charts.
+
+## Assess variability among pigs on the first few days.
+ggplot(subset(commontaxaT, days <= 5), aes(x=subj, y=counts, fill=taxa)) +
   geom_bar(stat="identity", position="stack") +
   facet_grid(~days)
 
@@ -293,19 +385,19 @@ ggplot(subset(renameT, days <= 5), aes(x=subj, y=counts, fill=taxa)) +
 ## First find out which taxa aren't considered "rare"; i.e. have more
 ## than 3% for at least one subject and one day.
 commontaxaT <- indivT %>%
-  filter(percByDaySubj >= 0.03) %>%
+  filter(fracByDaySubj >= 0.03) %>%
   distinct(taxa)
-renameT <- indivT
-renameT[!(renameT$taxa %in% commontaxaT[[1]]), "taxa"] <- "Rare taxa"
-ggplot(renameT %>%
+commontaxaT <- indivT
+commontaxaT[!(commontaxaT$taxa %in% commontaxaT[[1]]), "taxa"] <- "Rare taxa"
+ggplot(commontaxaT %>%
        group_by(days, degdays, subj, taxa) %>%
-       summarize(perc=sum(percByDaySubj)) %>%
+       summarize(perc=sum(fracByDaySubj)) %>%
        filter(days <= 5),
        aes(x=subj, y=perc, fill=taxa)) +
   geom_bar(stat="identity", position="stack") +
   facet_grid(~days)
   
-rm(barchartT, renameT)
+rm(barchartT, commontaxaT)
 ## #####################
 
 ## ##################################################
@@ -316,23 +408,23 @@ rm(barchartT, renameT)
 ## Try random forests.
 
 ## Move back to wide format.
-widePercT <- indivT %>%
-  select(degdays, subj, taxa, percByDaySubj) %>%
-  spread(taxa, percByDaySubj)
+widePercT <- commontaxaT %>%
+  select(degdays, subj, taxa, fracByDaySubj) %>%
+  spread(taxa, fracByDaySubj)
 
 
 ## Use the following to see the maximum percentage obtained by each
 ## taxa.
 indivT %>%
   group_by(taxa) %>%
-  summarize(maxPercByDaySubj = max(percByDaySubj, na.rm=T)) %>%
+  summarize(maxPercByDaySubj = max(fracByDaySubj, na.rm=T)) %>%
   arrange(desc(maxPercByDaySubj))
 
 ## If the maximum percentage (among all days and subjects) is less
 ## than 0.0001 (less than 0.01%), then exclude that taxa.
 rareTaxa <- unlist(indivT %>%
                    group_by(taxa) %>%
-                   summarize(maxPercByDaySubj = max(percByDaySubj, na.rm=T)) %>%
+                   summarize(maxPercByDaySubj = max(fracByDaySubj, na.rm=T)) %>%
                    filter(maxPercByDaySubj < 0.0001) %>%
                    select(taxa)
                    )
