@@ -7,7 +7,6 @@ library("ggplot2")
 library("vegan")
 library("colorspace")
 library("randomForest")
-library("gam")
 
 
 ## library("openxlsx")
@@ -159,6 +158,10 @@ indivT <- indivT %>% select(-taxonName)
 
 
 
+## ##### WORKING HERE: Would like to move this part down so that we'll
+## be working with just the most common taxa.
+
+
 ## ##################################################
 ## Treat each pig as a "site"/"community" and each day as a time step.
 ## The repsonse is multivariate because there are counts for many
@@ -166,7 +169,8 @@ indivT <- indivT %>% select(-taxonName)
 
 ## We need to get the data into "community matrix format", which is
 ## basically a wide format.
-wideindivT <- indivT %>%
+wideindivT <- commontaxaT %>%
+##  wideindivT <- indivT %>%
   select(days, degdays, subj, taxa, counts) %>%
   spread(taxa, counts)
 ## Now, break this into 2 pieces.  One piece is the "community
@@ -393,22 +397,27 @@ colnames(widePercT) <- gsub(colnames(widePercT), pattern=" ", replacement="_")
 
 ## Pick subset of the data to train on.
 trainingIndices <- sort(sample(1:nrow(widePercT), size=74, replace=F))
-rf <- randomForest(degdays ~ . -subj -Rare_or_uncl., data=widePercT[trainingIndices,])
+rf <- randomForest(degdays ~ . -subj -Rare_or_uncl., data=widePercT[trainingIndices,], importance=T)
+imp.rf <- importance(rf)
 varImpPlot(rf)
-## For phylum taxa: Firmicutes strongest.  Less strong are:
-## Actinobacteria, Proteobacteria, Bacteroidetes.
+## For phylum taxa: Firmicutes and Actinobacteria strongest.  Less
+## strong are Proteobacteria and Bacteroidetes.
 
 ## Now try to predict for those observations not in the training set.
 yhatTest <- predict(rf, newdata=widePercT[-trainingIndices,])
 mean((yhatTest - widePercT[-trainingIndices,"degdays"])^2)
+
+impvar <- rownames(imp.rf)[order(imp.rf[,1], decreasing=T)]
+for (i in seq_along(impvar))
+  partialPlot(rf, pred.data=as.data.frame(widePercT[trainingIndices,]), x.var=impvar[i], main=paste("Partial Dependence on", impvar[i]))
+rm(i)
 ## ##################################################
 
 
 
 
 ## ##################################################
-library("gam")
-
+## Try out gam models.
 
 ## For each bacteria, plot counts for each pig vs. accum. degree days.
 ## Using raw counts, we can see the large variability among individuals.
@@ -419,7 +428,18 @@ ggplot(commontaxaT %>% filter(taxa!="Rare or uncl."),
   labs(x="Degree days", y="Fraction by degree day and subject") +
   labs(color="Subject")
 
-gam.fit <- gam(degdays ~ ns(Firmicutes, df=4) + ns(Actinobacteria, df=4) + ns(Proteobacteria, df=4), data=widePercT[trainingIndices,])
+## Try gamsel package.
+trainX <- as.data.frame(widePercT %>%
+                        select(-one_of("degdays", "subj", "Rare_or_uncl."))
+                        )[trainingIndices,]
+trainY <- as.matrix(as.data.frame(widePercT[trainingIndices, "degdays"]))
+gamsel.out <- gamsel(x=trainX, y=trainY, dfs=rep(10, ncol(trainX)))
+summary(gamsel.out)
+gamsel.cv <- cv.gamsel(x=trainX, y=trainY, dfs=rep(10, ncol(trainX)))
+
+
+gam.fit <- gam(degdays ~ s(Firmicutes) + s(Actinobacteria), data=widePercT[trainingIndices,])
+big.fit <- gam(degdays ~ s(Firmicutes) + s(Actinobacteria) + s(Proteobacteria), data=widePercT[trainingIndices,])
 summary(gam.fit)
 yhatTest <- predict(gam.fit, newdata=widePercT[-trainingIndices,])
 
