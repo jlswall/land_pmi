@@ -4,8 +4,6 @@ library("tibble")
 library("dplyr")
 library("stringr")
 library("ggplot2")
-library("vegan")
-library("colorspace")
 library("randomForest")
 
 
@@ -41,7 +39,10 @@ sum(duplicated(colnames(rawAllT)))
 ## of the observed counts over all pigs at the various times.  The
 ## names of these columns are in form T#days_#accumulatedDegreeDays.
 ## Column 111: "total" - Want to check that this is correct.
-## Columns 113 and onward: I need to figure out what these are for.
+## Columns 113-223: These appear to be the percentages of the counts
+##    associated with the taxa by day and subject.  (I've checked 
+##    this by eye for column 1, but I haven't done detailed checks.)
+## Columns 225-242: I haven't checked these yet.
 
 
 ## To start, we're ignoring columns past 111.  We'll check that the
@@ -120,12 +121,13 @@ apply(subset(indivT, (days==1) & (origName=="Clostridiaceae"), "counts"), 2, sum
 subset(wideAvgsT, (origName=="Clostridiaceae"), "T1_27")
 ## Look at all the values for "T1_27".
 ## cbind(reorderChkT[,"T1_27"], wideAvgsT[,"T1_27"], reorderChkT[,"T1_27"]- wideAvgsT[,"T1_27"] )
-
 rm(chkAvgsT, matchNamesV, chkNamesV)
 
 
 ## Check that the total counts for each taxa match the "total" column
-## (column #111).
+## (column #111).  There are a lot of these to check, so we take the
+## absolute differences between the our total counts and the "total"
+## column and make sure that the biggest difference is 0.
 max(indivT %>%
   group_by(origName) %>%
   summarize(totalCt = sum(counts)) %>%
@@ -134,6 +136,7 @@ max(indivT %>%
   select(absDiffOrigMyCalc)
   )
 ## ##################################################
+
 
 
 
@@ -153,9 +156,10 @@ rm(tmp1, tmp2)
 
 
 ## Remove the Bacteria row (last row), since it is just the totals of
-## the taxa.  Also, include accum. degree days in the tibble.
+## the taxa.  Remove the counts associated with unclassifed taxa.
+## Also, include accum. degree days in the tibble.
 indivT <- indivT %>%
-  filter(origName!="Bacteria") %>%
+  filter(!(origName %in% c("Bacteria", "Unclassified"))) %>%
   left_join(timeDF, by="days")
 
 
@@ -165,29 +169,32 @@ indivT <- indivT %>%
 ## names.
 indivT$taxa <- gsub(indivT$origName, pattern="\\[", replacement="")
 indivT$taxa <- gsub(indivT$taxa, pattern="]", replacement="")
+## Column names with dashes can likewise be a problem, so I replace
+## dashes with underscores.
+indivT$taxa <- gsub(indivT$taxa, pattern="-", replacement="_")
 ## Remova the taxonName column from the tibble to avoid confusion with
 ## the next taxa column.
-indivT <- indivT %>% select(-taxonName)
+indivT <- indivT %>% select(-origName)
 ## ##################################################
 
 
 
-## ##### WORKING HERE: Would like to move this part down so that we'll
-## be working with just the most common taxa.
-
 
 ## ##################################################
-## For each individual pig and each day, find the percentage of all
-## counts represented by each taxa.
+## For use in graphs and in calculating percentages later, find counts
+## of total taxa types by:
+##   Each pig and each day
+##   Each day (all pigs combined)
 
+## Total taxa counts by day and by pig.
 ctsByDaySubjT <- indivT %>%
   group_by(days, degdays, subj) %>%
   summarize(totals = sum(counts))
 
-indivT <- indivT %>%
-  left_join(ctsByDaySubjT) %>%
-  mutate(fracByDaySubj=counts/totals) %>%
-  select(-totals)
+## Total taxa counts by day (all pigs combined).
+ctsByDayT <- indivT %>%
+  group_by(days, degdays) %>%
+  summarize(totals = sum(counts))
 ## ##################################################
 
 
@@ -195,21 +202,22 @@ indivT <- indivT %>%
 
 ## ##################################################
 ## Some taxa don't occur frequently.  We identify these, classify them
-## as rare, and then reformat the data accordingly.
-## Pechal et al (2013) call "rare" any taxa with <3% of total
-## abundance.
+## as rare, and then reformat the data accordingly.  Pechal et al
+## (2013) call "rare" any taxa with <3% of relative abundance.  Also,
+## we exclude all the "unclassified" counts.
 
 ## Find taxa which make up >= 3% of the total counts, over all days
 ## and subjects.  These are the "not rare" taxa, which I'll call
 ## "common".  Don't include the "unclassified" category of taxa, as
 ## unclassified taxa counts/fractions won't be used in the individual
-## models.
+## models.  (Note: Family-level taxa are unclassified much more often
+## than 3%, whether you look at it by totals or by individual
+## subj/day.)
 commonByTotalV <- unlist(indivT %>%
     group_by(taxa) %>%
     summarize(taxatotal = sum(counts)) %>%
     mutate(frac = taxatotal/sum(taxatotal)) %>%
     filter(frac >= 0.03) %>%
-    filter(taxa != "unclassified") %>%
     select(taxa)
     )
 ## See a list of all taxa percentages sorted in descending order:
@@ -225,14 +233,11 @@ commonByTotalV <- unlist(indivT %>%
 ## to figure out which taxa are "common" would be to include any taxa
 ## making up at least 3% of the total count on at least one particular
 ## day for any particular subject.  As above, we don't include the
-## "unclassified" category of taxa.  (For phylum taxa, unclassified
-## does have a maximum fraction of about 0.0343 on day 47, subject A6.
-## For other days and subjects, it's less than 0.02).
+## "unclassified" category of taxa.
 commonByDaySubjV <- unlist(indivT %>%
                            group_by(taxa) %>%
                            summarize(maxFracByDaySubj = max(fracByDaySubj)) %>%
                            filter(maxFracByDaySubj >= 0.03) %>%
-                           filter(taxa != "unclassified") %>%
                            select(taxa)
                            )
 ## See a list of maximum taxa percentages sorted in descending order:
@@ -242,24 +247,54 @@ commonByDaySubjV <- unlist(indivT %>%
 ##   arrange(desc(maxFracByDaySubj))
 
 
+
+## ###### WORKING HERE!
+
+
+## Yet another way to calculate the percentages represented by each
+## taxa is to calculate the percentages by day (over all subjects).
+## As above, we don't include the "unclassified" category of taxa.
+ctsByDayTaxaT <- indivT %>%
+  group_by(days, degdays, taxa) %>%
+  summarize(ctsByDayTaxa = sum(counts)) %>%
+  left_join(ctsByDayT) %>%
+  mutate(fracByDay = max(sumByDayTaxa/totals))
+commonByDayV <- unlist(ctsByDayTaxaT %>%
+                       filter(maxFracByDaySubj >= 0.03) %>%
+                         filter(taxa != "Unclassified") %>%
+                         select(taxa)
+                           )
+## See a list of maximum taxa percentages sorted in descending order:
+## indivT %>%
+##   group_by(taxa) %>%
+##   summarize(maxFracByDaySubj = max(fracByDaySubj)) %>%
+##   arrange(desc(maxFracByDaySubj))
+
+
+
 ## Check whether the "common" taxa are the same whether we use the 3%
 ## cutoff as 3% of the taxa totals or 3% of the totals by day and
 ## subject.
-{
-if (identical(commonByTotalV, commonByDaySubjV))
-  commonTaxaNamesV <- commonByTotalV
-else
-  stop("Taxa common enough to be included in further analyses are different when calculating for totals vs. for day/subj.")
-}
-rm(commonByTotalV, commonByDaySubjV)
+## {
+## if (identical(commonByTotalV, commonByDaySubjV))
+##   commonTaxaNamesV <- commonByTotalV
+## else
+##   stop("Taxa common enough to be included in further analyses are different when calculating for totals vs. for day/subj.")
+## }
+## rm(commonByTotalV, commonByDaySubjV)
+
+## #################
+## NOTE: Lists of common family-level taxa ARE different depending on
+## how we calculate them!
+commonTaxaNamesV <- commonByTotalV
+## #################
 
 
 
-## Rename unclassified taxa and taxa that occur less than 3% of the
-## time to "rare or uncl.".  Then, sum the counts for all these
-## rare or uncl. taxa into one row.
+## Rename taxa that occur less than 3% of the time to "rare".  Then,
+## sum the counts for these into one row.
 commontaxaT <- indivT
-commontaxaT[!(commontaxaT$taxa %in% commonTaxaNamesV), "taxa"] <- "Rare or uncl."
+commontaxaT[!(commontaxaT$taxa %in% c("Unclassified", commonTaxaNamesV)), "taxa"] <- "Rare"
 commontaxaT <- commontaxaT %>%
   group_by(days, degdays, subj, taxa) %>%
   summarize(counts = sum(counts), fracByDaySubj=sum(fracByDaySubj))
@@ -269,48 +304,33 @@ rm(commonTaxaNamesV)
 
 
 
+
 ## ##################################################
-## Treat each pig as a "site"/"community" and each day as a time step.
-## The repsonse is multivariate because there are counts for many
-## different phyla.
-
-## We need to get the data into "community matrix format", which is
-## basically a wide format.
-wideT <- commontaxaT %>%
-##  wideT <- indivT %>%
-  select(days, degdays, subj, taxa, counts) %>%
-  spread(taxa, counts)
-## Now, break this into 2 pieces.  One piece is the "community
-## matrix", which has a column for each phylum and with the count for
-## that phylum for a given day and subject.  The second piece is the
-## covariates (subject and day).
-communityCovariates <- wideT[,1:3]
-communityCounts <- wideT[,-c(1:3)]
+## Use the above total counts to find the fraction of the total
+## represented by each taxa, whether for each pig/day or for each day
+## (pigs combined).
+indivT <- indivT %>%
+  left_join(ctsByDaySubjT) %>%
+  mutate(fracByDaySubj=counts/totals) %>%
+  select(-totals)
 
 
-## Fit the PERMANOVA model
-## First without strata:
-## trynostrata <- adonis(communityCounts ~ as.factor(days), data=communityCovariates, permutations=5000)
-## Then, with strata.  (See
-## http://cc.oulu.fi/~jarioksa/softhelp/vegan/html/adonis.html).
-trystrata <- adonis(communityCounts ~ as.factor(days), data=communityCovariates, strata=communityCovariates$subj, permutations=5000)
+## Summarize the counts by day and by day-taxa, calculate percentages
+## of each taxa per day (across all pigs).
+bydayT <- commontaxaT %>%
+  group_by(days, degdays, taxa) %>%
+  summarize(ctsByTaxaDay = sum(counts)) %>%
+  left_join(commontaxaT %>%
+              group_by(degdays) %>%
+              summarize(ctsByDay = sum(counts)),
+            by = "degdays"
+  ) %>%
+  mutate(fracByDayTaxa = ctsByTaxaDay / ctsByDay)
 
 
-## Try using nonmetric multidimensional scaling.
-trymds <- metaMDS(communityCounts, k=2, trymax=1000)
-stressplot(trymds)
-plot(trymds)
-ordiplot(trymds,type="n")
-orditorp(trymds, display="species", col="red", air=0.01,
-         labels=make.cepnames(names(communityCounts)))
-## Make colors.
-myColors <- diverge_hcl(length(unique(communityCovariates$days)))
-orditorp(trymds, display="sites", air=0.01, col=myColors[as.numeric(as.factor(communityCovariates$days))], labels=as.character(communityCovariates$days))
-## ordihull(trymds, groups=communityCovariates$days, draw="polygon", col=myColors)
-rm(myColors)
-
-rm(trystrata, trymds)
 ## ##################################################
+
+
 
 
 
