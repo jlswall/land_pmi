@@ -201,6 +201,43 @@ ctsByDayT <- indivT %>%
 
 
 ## ##################################################
+## Columns 113-223: These appear to be the percentages of the counts
+##    associated with the taxa by day and subject.  (I've checked 
+##    this by eye for column 1, but I haven't done detailed checks.)
+
+widePercT <- rawAllT[,113:223]
+## The first column contains the family names.
+colnames(widePercT)[1] <- "origName"
+
+## Identify column names starting with "A".
+namesA <- colnames(widePercT)[substring(first=1, last=1, colnames(widePercT))=="A"]
+wideIndivPercT <- rawAllT[,c("origName", namesA)]
+
+
+## Identify column names starting with "T".  The values in these
+## columns are the averages of the percentages for individual pigs at
+## each time point.  The number of days since death immediately
+## follows the "T", and the number of accumulated degree days follows
+## the "_".
+namesT <- colnames(widePercT)[substring(first=1, last=1, colnames(widePercT))=="T"]
+wideTotalPercT <- rawAllT[,c("origName", namesA)]
+
+## Try to go from wide format to long format.
+indivPercT <- wideIndivPercT %>%
+  gather(indiv_time, perc, -origName) %>%
+  separate(indiv_time, sep="_T", into=c("subj", "days_with_extra"), convert=T) %>%
+  separate(days_with_extra, sep="__", into=c("days", "extra_stuff"), convert=T) %>%
+  select(-extra_stuff)
+
+## WORKING HERE!
+## Now, we'll have to merge with the percentages calculated below.
+
+## ##################################################
+
+
+
+
+## ##################################################
 ## Some taxa don't occur frequently.  We identify these, classify them
 ## as "rare", and then reformat the data accordingly.  Pechal et al
 ## (2013) call "rare" any taxa with <3% of relative abundance.  Also,
