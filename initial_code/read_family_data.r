@@ -25,36 +25,34 @@ sum(duplicated(colnames(rawAllT)))
 
 
 ## ##################################################
-## Extract raw data for each pig in wide format.
+## Concentrate on the counts for the individual pigs on the various
+## days.  Transfer from wide format to long format.  Check that the
+## columns whose names start with "T" are actually the averages I
+## think they are, and I'll check that totals column and row seems
+## correct.
 
-## For now, I'm going to completely ignore columns 2 ("rankID") and 4
-## ("daughterlevels").  I'm also going to ignore columsn beyond column
-## "DJ" (column 114).  These appear to be summary columns.
-## The columns I want to focus on are:
-## Column 1: "origName"
+## Column 1: taxa name (last row, labeled "Bacteria", contains
+##    totals over all taxa)
 ## Columns 2-110: 
-##    columns whose names start with "A#" - These are the observed
+##    columns whose names start with "A" - These are the observed
 ## counts for the individual pigs at the various times.
-##    columns whose names start with "T#" - These are the averages
+##    columns whose names start with "T" - These are the averages
 ## of the observed counts over all pigs at the various times.  The
 ## names of these columns are in form T#days_#accumulatedDegreeDays.
 ## Column 111: "total" - Want to check that this is correct.
-## Columns 113-223: These appear to be the percentages of the counts
-##    associated with the taxa by day and subject.  (I've checked 
-##    this by eye for column 1, but I haven't done detailed checks.)
-## Columns 225-242: I haven't checked these yet.
+## Columns >111:  seem to be summary columns, will check later.
 
-
-## To start, we're ignoring columns past 111.  We'll check that the
-## columns whose names start with A# are actually the averages I think
-## they are, and I'll check that the totals column seems correct.
+## For this part, we're working with just the first 111 columns.
 mainT <- rawAllT[,1:111]
 
 
-## Identify column names starting with "A".
+## #######################
+## Put individual counts and average counts into different tables.
+
+## Identify column names starting with "A". Save these as the counts
+## for individual pigs on the various days.
 namesA <- colnames(mainT)[substring(first=1, last=1, colnames(mainT))=="A"]
 wideIndivT <- mainT[,c("origName", namesA)]
-
 
 ## Identify column names starting with "T".  The values in these
 ## columns are the averages of the individual pigs at each time point.
@@ -75,15 +73,15 @@ with(timeDF, cor(degdays, days))
 ## across pigs for each time point.
 wideAvgsT <- mainT[,c("origName", namesT)]
 
-rm(namesA, namesT, mainT)
-## ##################################################
+rm(namesA, namesT)
+## #######################
 
 
+## #######################
+## Go from wide format to long format.  Check the averages and totals
+## columns.
 
-
-## ##################################################
-## Try to go from wide format to long format.
-
+## Go from wide to long format.
 indivT <- wideIndivT %>%
   gather(indiv_time, counts, -origName) %>%
   separate(indiv_time, sep="_T", into=c("subj", "days"), convert=T)
@@ -93,8 +91,8 @@ indivT <- wideIndivT %>%
   ## complete(taxonName, days, subj)
 
 
-## Next thing to check is whether we can get back the values in
-## wideAvgsT when we do a summary for indivT.
+## Check whether we can get back the values in wideAvgsT when we do a
+## summary for indivT.
 chkAvgsT <- indivT %>%
   select(origName, days, counts) %>%
   group_by(origName, days) %>%
@@ -107,23 +105,28 @@ colnames(chkAvgsT) <- c("origName", paste0("T", chkNamesV))
 ## Order this in the same order as what I read in from the sheet.
 reorderChkT <- chkAvgsT[match(wideAvgsT$origName, chkAvgsT$origName), colnames(wideAvgsT)]
 
+
 ## Compare with the averages I read in from the sheet.
-all.equal(wideAvgsT[,1], reorderChkT[,1])  ## Ensure taxonNames in same order.
+## First, ensure taxonNames in same order.
+all.equal(wideAvgsT[,1], reorderChkT[,1])
 ## Now check the counts, not the taxa names.
 apply(wideAvgsT[,-1] - reorderChkT[,-1], 2, summary)
 ## There is a problem with column T1_27.  As an example, consider the
-## row for Clostridiaceae.
+## counts for Clostridiaceae on that day.
 subset(indivT, (days==1) & (origName=="Clostridiaceae"), "counts")
+## The average is given by:
 apply(subset(indivT, (days==1) & (origName=="Clostridiaceae"), "counts"), 2, mean)
+## But, this is not the average we read from the sheet.
 subset(wideAvgsT, (origName=="Clostridiaceae"), "T1_27")
 ## It looks like they took the sum, not the mean.
 apply(subset(indivT, (days==1) & (origName=="Clostridiaceae"), "counts"), 2, sum)
-subset(wideAvgsT, (origName=="Clostridiaceae"), "T1_27")
 ## Look at all the values for "T1_27".
 ## cbind(reorderChkT[,"T1_27"], wideAvgsT[,"T1_27"], reorderChkT[,"T1_27"]- wideAvgsT[,"T1_27"] )
 rm(chkAvgsT, matchNamesV, chkNamesV)
+## #######################
 
 
+## #######################
 ## Check that the total counts for each taxa match the "total" column
 ## (column #111).  There are a lot of these to check, so we take the
 ## absolute differences between the our total counts and the "total"
@@ -135,6 +138,109 @@ max(indivT %>%
   mutate(absDiffOrigMyCalc = abs(total - totalCt)) %>%
   select(absDiffOrigMyCalc)
   )
+## #######################
+
+
+## #######################
+## Check that the total counts for each subject on each day match the
+## "Bacteria" row (row #233 in the tibble, #234 in the worksheet).
+
+## Save these totals in a table for use in calculating percentages.
+totalCtbySubjDay <- indivT %>%
+  filter(origName!="Bacteria") %>%
+  group_by(days, subj) %>%
+  summarize(total=sum(counts))
+
+## Compare the totals calculated above with the last row ("Bacteria")
+## of the individual counts.
+all.equal(
+    unite(totalCtbySubjDay, subj_day, subj, days, sep="_T") %>%
+      spread(key=subj_day, value=total),
+    wideIndivT %>% filter(origName=="Bacteria") %>% select(-origName)
+)
+## #######################
+
+rm(mainT, wideAvgsT, wideIndivT, reorderChkT)
+## ##################################################
+
+
+
+
+## ##################################################
+## Columns 113-223 ("DI"-"HO") appear to be percentages for each taxa, by
+## day and pig.  Check these.
+## Columns 225-242: I haven't checked these yet.
+
+## #######################
+## Organize the information.
+
+## Put these columns in their own table.
+widePercT <- rawAllT[,113:223]
+
+## The first column contains the family names.
+colnames(widePercT)[1] <- "origName"
+
+## Identify column names starting with "A" (individuals A1-A6).
+namesA <- colnames(widePercT)[substring(first=1, last=1, colnames(widePercT))=="A"]
+wideIndivPercT <- rawAllT[,c("origName", namesA)]
+
+
+## Identify column names starting with "T" (averages across
+## individuals).
+namesT <- colnames(widePercT)[substring(first=1, last=1, colnames(widePercT))=="T"]
+wideAvgsPercT <- rawAllT[,c("origName", namesA)]
+## #######################
+
+
+## #######################
+## Try to take the individual percentages from wide format to long
+## format.
+indivPercT <- wideIndivPercT %>%
+  gather(indiv_time, perc, -origName) %>%
+  separate(indiv_time, sep="_T", into=c("subj", "days_with_extra"), convert=T) %>%
+  separate(days_with_extra, sep="__", into=c("days", "extra_stuff"), convert=T) %>%
+  select(-extra_stuff)
+## #######################
+
+
+## #######################
+## Check that these percentages straight from the worksheet are the
+## same as what we calculate based on the individual counts.
+
+## First, I calculate these percentages based on the individuals
+## counts and the sums (based on those counts) that I calculated
+## earlier.  I add this column to the main table.
+indivT <- indivT %>%
+  left_join(totalCtbySubjDay) %>%
+  mutate(percByDaySubj = 100*counts/total) %>%
+  select(-total)
+
+
+## WORKING HERE! ##
+
+## Try to put these percentages in wide format for comparison with the
+## raw numbers from the worksheet.
+chkPercT <- indivT %>%
+  unite() %>%
+  spread(key=days, value=percByDaySubj
+
+
+
+
+
+indivT %>%
+  group_by(days, taxa) %>%
+  summarize(ctsByDayTaxa = sum(counts)) %>%
+  left_join(ctsByDayT) %>%
+  mutate(fracByDay = ctsByDayTaxa/totals)
+## #######################
+## ##################################################
+
+
+
+
+
+## ##################################################
 ## ##################################################
 
 
@@ -195,43 +301,6 @@ ctsByDaySubjT <- indivT %>%
 ctsByDayT <- indivT %>%
   group_by(days, degdays) %>%
   summarize(totals = sum(counts))
-## ##################################################
-
-
-
-
-## ##################################################
-## Columns 113-223: These appear to be the percentages of the counts
-##    associated with the taxa by day and subject.  (I've checked 
-##    this by eye for column 1, but I haven't done detailed checks.)
-
-widePercT <- rawAllT[,113:223]
-## The first column contains the family names.
-colnames(widePercT)[1] <- "origName"
-
-## Identify column names starting with "A".
-namesA <- colnames(widePercT)[substring(first=1, last=1, colnames(widePercT))=="A"]
-wideIndivPercT <- rawAllT[,c("origName", namesA)]
-
-
-## Identify column names starting with "T".  The values in these
-## columns are the averages of the percentages for individual pigs at
-## each time point.  The number of days since death immediately
-## follows the "T", and the number of accumulated degree days follows
-## the "_".
-namesT <- colnames(widePercT)[substring(first=1, last=1, colnames(widePercT))=="T"]
-wideTotalPercT <- rawAllT[,c("origName", namesA)]
-
-## Try to go from wide format to long format.
-indivPercT <- wideIndivPercT %>%
-  gather(indiv_time, perc, -origName) %>%
-  separate(indiv_time, sep="_T", into=c("subj", "days_with_extra"), convert=T) %>%
-  separate(days_with_extra, sep="__", into=c("days", "extra_stuff"), convert=T) %>%
-  select(-extra_stuff)
-
-## WORKING HERE!
-## Now, we'll have to merge with the percentages calculated below.
-
 ## ##################################################
 
 
@@ -315,18 +384,19 @@ commonByDayV <- unlist(indivT %>%
 ##   summarize(maxFracByDay = max(fracByDay)) %>%
 ##   arrange(desc(maxFracByDay))
 ##   )
+## ##################################################
 
 
 
 
-## #################
+## ##################################################
+## Figure out which taxa should be treated as "rare".
+
 ## NOTE: Lists of common family-level taxa ARE different depending on
 ## how we calculate them!  It looks like the Pechal et al paper used the fractions calculated by day, so we go with that.
 commonTaxaNamesV <- commonByDayV
 
 rm(commonByDaySubjV, commonByDayV, commonByTotalV)
-## #################
-
 
 
 
