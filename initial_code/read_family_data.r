@@ -195,11 +195,11 @@ wideAvgsPercT <- rawAllT[,c("origName", namesA)]
 ## #######################
 ## Try to take the individual percentages from wide format to long
 ## format.
-indivPercT <- wideIndivPercT %>%
-  gather(indiv_time, perc, -origName) %>%
-  separate(indiv_time, sep="_T", into=c("subj", "days_with_extra"), convert=T) %>%
-  separate(days_with_extra, sep="__", into=c("days", "extra_stuff"), convert=T) %>%
-  select(-extra_stuff)
+## indivPercT <- wideIndivPercT %>%
+##   gather(indiv_time, perc, -origName) %>%
+##   separate(indiv_time, sep="_T", into=c("subj", "days_with_extra"), convert=T) %>%
+##   separate(days_with_extra, sep="__", into=c("days", "extra_stuff"), convert=T) %>%
+##   select(-extra_stuff)
 ## #######################
 
 
@@ -216,23 +216,23 @@ indivT <- indivT %>%
   select(-total)
 
 
-## WORKING HERE! ##
-
 ## Try to put these percentages in wide format for comparison with the
 ## raw numbers from the worksheet.
 chkPercT <- indivT %>%
-  unite() %>%
-  spread(key=days, value=percByDaySubj
+  select(-counts) %>%
+  mutate(extrachar="1") %>%
+  unite(subj_days, subj, days, sep="_T") %>%
+  unite(subj_days, subj_days, extrachar, sep="__") %>%
+  spread(key=subj_days, value=percByDaySubj)
+if (nrow(setdiff(chkPercT, wideIndivPercT)) != 0)
+  stop("Extra observations were created when working with indivT")
+if (nrow(setdiff(wideIndivPercT, chkPercT)) != 0)
+  stop("More observations were are in the original worksheet than created when working with indivT")
 
 
+## WORKING HERE! ##
 
-
-
-indivT %>%
-  group_by(days, taxa) %>%
-  summarize(ctsByDayTaxa = sum(counts)) %>%
-  left_join(ctsByDayT) %>%
-  mutate(fracByDay = ctsByDayTaxa/totals)
+rm(chkPercT)
 ## #######################
 ## ##################################################
 
@@ -241,25 +241,7 @@ indivT %>%
 
 
 ## ##################################################
-## ##################################################
-
-
-
-
-## ##################################################
 ## Make other adjustments to the dataset so that it's easier to use.
-
-## Check that all the taxa counts add up to the Bacteria counts (in
-## the last row).
-tmp1 <- indivT %>%
-  filter(origName!="Bacteria") %>%
-  group_by(days, subj) %>%
-  summarize(counts=sum(counts))
-tmp2 <- subset(indivT, origName=="Bacteria", c("days", "subj", "counts"))
-if (!all.equal(tmp1, tmp2))
-  stop("Phylum counts don't add up to k__Bacteria counts")
-rm(tmp1, tmp2)
-
 
 ## Remove the Bacteria row (last row), since it is just the totals of
 ## the taxa.  Remove the counts associated with unclassifed taxa.
