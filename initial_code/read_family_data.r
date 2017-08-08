@@ -224,13 +224,15 @@ chkPercT <- indivT %>%
   unite(subj_days, subj, days, sep="_T") %>%
   unite(subj_days, subj_days, extrachar, sep="__") %>%
   spread(key=subj_days, value=percByDaySubj)
+
+## Now check to see if this matches the numbers we got from the spreadsheet.
+if (!all.equal(chkPercT, wideIndivPercT))
+  stop("Something different between the two sets of percentages.")
 if (nrow(setdiff(chkPercT, wideIndivPercT)) != 0)
   stop("Extra observations were created when working with indivT")
 if (nrow(setdiff(wideIndivPercT, chkPercT)) != 0)
   stop("More observations were are in the original worksheet than created when working with indivT")
 
-
-## WORKING HERE! ##
 
 rm(chkPercT)
 ## #######################
@@ -269,15 +271,10 @@ indivT <- indivT %>% select(-origName)
 
 
 ## ##################################################
-## For use in graphs and in calculating percentages later, find counts
+## For use in graphs and in calculating percentages later, we need counts
 ## of total taxa types by:
 ##   Each pig and each day
 ##   Each day (all pigs combined)
-
-## Total taxa counts by day and by pig.
-ctsByDaySubjT <- indivT %>%
-  group_by(days, degdays, subj) %>%
-  summarize(totals = sum(counts))
 
 ## Total taxa counts by day (all pigs combined).
 ctsByDayT <- indivT %>%
