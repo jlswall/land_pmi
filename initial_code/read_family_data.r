@@ -146,16 +146,19 @@ max(indivT %>%
 ## "Bacteria" row (row #233 in the tibble, #234 in the worksheet).
 
 ## Save these totals in a table for use in calculating percentages.
-totalCtbySubjDay <- indivT %>%
+## We exclude "Bacteria" taxa because that line is supposed to contain
+## the totals of all the taxa, including the unclassified taxa.
+## Later, I'll re-do these counts to exclude the "unclassified" taxa.
+ctBySubjDayT <- indivT %>%
   filter(origName!="Bacteria") %>%
   group_by(days, subj) %>%
-  summarize(total=sum(counts))
+  summarize(totals=sum(counts))
 
 ## Compare the totals calculated above with the last row ("Bacteria")
 ## of the individual counts.
 all.equal(
-    unite(totalCtbySubjDay, subj_day, subj, days, sep="_T") %>%
-      spread(key=subj_day, value=total),
+    unite(ctBySubjDayT, subj_day, subj, days, sep="_T") %>%
+      spread(key=subj_day, value=totals),
     wideIndivT %>% filter(origName=="Bacteria") %>% select(-origName)
 )
 ## #######################
@@ -189,6 +192,8 @@ wideIndivPercT <- rawAllT[,c("origName", namesA)]
 ## individuals).
 namesT <- colnames(widePercT)[substring(first=1, last=1, colnames(widePercT))=="T"]
 wideAvgsPercT <- rawAllT[,c("origName", namesA)]
+
+rm(namesA, namesT)
 ## #######################
 
 
@@ -211,9 +216,9 @@ wideAvgsPercT <- rawAllT[,c("origName", namesA)]
 ## counts and the sums (based on those counts) that I calculated
 ## earlier.  I add this column to the main table.
 indivT <- indivT %>%
-  left_join(totalCtbySubjDay) %>%
-  mutate(percByDaySubj = 100*counts/total) %>%
-  select(-total)
+  left_join(ctBySubjDayT) %>%
+  mutate(percByDaySubj = 100*counts/totals) %>%
+  select(-totals)
 
 
 ## Try to put these percentages in wide format for comparison with the
@@ -234,10 +239,9 @@ if (nrow(setdiff(wideIndivPercT, chkPercT)) != 0)
   stop("More observations were are in the original worksheet than created when working with indivT")
 
 
-rm(chkPercT)
+rm(chkPercT, ctBySubjDayT, wideIndivPercT, widePercT, wideAvgsPercT)
 ## #######################
 ## ##################################################
-
 
 
 
@@ -273,11 +277,16 @@ indivT <- indivT %>% select(-origName)
 ## ##################################################
 ## For use in graphs and in calculating percentages later, we need counts
 ## of total taxa types by:
-##   Each pig and each day
+##   Each pig and each day - re-do this without "unclassified" data.
 ##   Each day (all pigs combined)
 
+## Total taxa counts by day and subject (each pig separately).
+ctBySubjDayT <- indivT %>%
+  group_by(days, degdays, subj) %>%
+  summarize(totals=sum(counts))
+
 ## Total taxa counts by day (all pigs combined).
-ctsByDayT <- indivT %>%
+ctByDayT <- indivT %>%
   group_by(days, degdays) %>%
   summarize(totals = sum(counts))
 ## ##################################################
@@ -288,16 +297,14 @@ ctsByDayT <- indivT %>%
 ## ##################################################
 ## Some taxa don't occur frequently.  We identify these, classify them
 ## as "rare", and then reformat the data accordingly.  Pechal et al
-## (2013) call "rare" any taxa with <3% of relative abundance.  Also,
-## we exclude all the "unclassified" counts.
+## (2013) call "rare" any taxa with <3% of relative abundance.  We do
+## this having excluded all the "unclassified" counts.
 
 ## Find taxa which make up >= 3% of the total counts, over all days
-## and subjects.  These are the "not rare" taxa, which I'll call
-## "common".  Don't include the "unclassified" category of taxa, as
-## unclassified taxa counts/fractions won't be used in the individual
-## models.  (Note: Family-level taxa are unclassified much more often
-## than 3%, whether you look at it by totals or by individual
-## subj/day.)
+## and subjects.  We'll cause these "common" taxa.  Remember that the
+## "unclassified" taxa are excluded before we get to this point.
+## (Note: Family-level taxa are unclassified much more often than 3%,
+## whether you look at it by totals or by individual subj/day.)
 commonByTotalV <- unlist(indivT %>%
     group_by(taxa) %>%
     summarize(taxatotal = sum(counts)) %>%
@@ -317,26 +324,24 @@ commonByTotalV <- unlist(indivT %>%
 ## Taxa counts can vary widely by day and individual.  So, another way
 ## to figure out which taxa are "common" would be to include any taxa
 ## making up at least 3% of the total count on at least one particular
-## day for any particular subject.  As above, we don't include the
-## "unclassified" category of taxa.
-commonByDaySubjV <- unlist(indivT %>%
-                           left_join(ctsByDaySubjT) %>%
-                           mutate(fracByDaySubj = counts/totals) %>%
+## day for any particular subject.  (Again, note that the
+## "unclassified" category has already been excluded.)
+commonBySubjDayV <- unlist(indivT %>%
+                           left_join(ctBySubjDayT) %>%
+                           mutate(fracBySubjDay = counts/totals) %>%
                            group_by(taxa) %>%
-                           summarize(maxFracByDaySubj = max(fracByDaySubj)) %>%
-                           filter(maxFracByDaySubj >= 0.03) %>%
+                           summarize(maxFracBySubjDay = max(fracBySubjDay)) %>%
+                           filter(maxFracBySubjDay >= 0.03) %>%
                            select(taxa)
                            )
 ## See a list of maximum taxa percentages sorted in descending order:
 ## data.frame(indivT %>%
-##            left_join(ctsByDaySubjT) %>%
-##            mutate(fracByDaySubj = counts/totals) %>%
+##            left_join(ctBySubjDayT) %>%
+##            mutate(fracBySubjDay = counts/totals) %>%
 ##            group_by(taxa) %>%
-##            summarize(maxFracByDaySubj = max(fracByDaySubj)) %>%
-##            arrange(desc(maxFracByDaySubj))
+##            summarize(maxFracBySubjDay = max(fracBySubjDay)) %>%
+##            arrange(desc(maxFracBySubjDay))
 ##            )
-
-
 
 
 ## Yet another way to calculate the percentages represented by each
@@ -344,9 +349,9 @@ commonByDaySubjV <- unlist(indivT %>%
 ## As above, we don't include the "unclassified" category of taxa.
 commonByDayV <- unlist(indivT %>%
                        group_by(days, taxa) %>%
-                       summarize(ctsByDayTaxa = sum(counts)) %>%
-                       left_join(ctsByDayT) %>%
-                       mutate(fracByDay = ctsByDayTaxa/totals) %>%
+                       summarize(ctByDayTaxa = sum(counts)) %>%
+                       left_join(ctByDayT) %>%
+                       mutate(fracByDay = ctByDayTaxa/totals) %>%
                        group_by(taxa) %>%
                        summarize(maxFracByDay = max(fracByDay)) %>%
                        filter(maxFracByDay >= 0.03) %>%
@@ -356,9 +361,9 @@ commonByDayV <- unlist(indivT %>%
 ## order:
 ## data.frame(indivT %>%
 ##   group_by(days, taxa) %>%
-##   summarize(ctsByDayTaxa = sum(counts)) %>%
-##   left_join(ctsByDayT) %>%
-##   mutate(fracByDay = ctsByDayTaxa/totals) %>%
+##   summarize(ctByDayTaxa = sum(counts)) %>%
+##   left_join(ctByDayT) %>%
+##   mutate(fracByDay = ctByDayTaxa/totals) %>%
 ##   group_by(taxa) %>%
 ##   summarize(maxFracByDay = max(fracByDay)) %>%
 ##   arrange(desc(maxFracByDay))
@@ -369,14 +374,16 @@ commonByDayV <- unlist(indivT %>%
 
 
 ## ##################################################
-## Figure out which taxa should be treated as "rare".
+## Figure out which taxa should be treated as "rare".  Re-calculate
+## the various counts with all the rare individual taxa grouped into a
+## taxa called "Rare".
 
 ## NOTE: Lists of common family-level taxa ARE different depending on
-## how we calculate them!  It looks like the Pechal et al paper used the fractions calculated by day, so we go with that.
+## how we calculate them!  It looks like the Pechal et al paper used
+## the fractions calculated by day, so we go with that.
 commonTaxaNamesV <- commonByDayV
 
-rm(commonByDaySubjV, commonByDayV, commonByTotalV)
-
+rm(commonBySubjDayV, commonByDayV, commonByTotalV)
 
 
 ## Rename taxa that occur less than 3% of the time to "rare".  Then,
@@ -387,39 +394,45 @@ commontaxaT <- commontaxaT %>%
   group_by(days, degdays, subj, taxa) %>%
   summarize(counts = sum(counts))
 rm(commonTaxaNamesV)
-## WORKING HERE - Need to calculate the percentages by day and subject. ###
 ## ##################################################
 
 
 
 
-
 ## ##################################################
-## Use the above total counts to find the fraction of the total
-## represented by each taxa, whether for each pig/day or for each day
-## (pigs combined).
-indivT <- indivT %>%
-  left_join(ctsByDaySubjT) %>%
-  mutate(fracByDaySubj=counts/totals) %>%
+## Add percentages by day and by day/subj to the commontaxaT table.
+
+## Use the table of total counts by subj/day to find the fraction
+## represented by each taxa for each subj/day.
+commontaxaT <- commontaxaT %>%
+  left_join(ctBySubjDayT) %>%
+  mutate(fracBySubjDay=counts/totals) %>%
   select(-totals)
 
 
-## Summarize the counts by day and by day-taxa, calculate percentages
-## of each taxa per day (across all pigs).
-bydayT <- commontaxaT %>%
-  group_by(days, degdays, taxa) %>%
-  summarize(ctsByTaxaDay = sum(counts)) %>%
-  left_join(commontaxaT %>%
-              group_by(degdays) %>%
-              summarize(ctsByDay = sum(counts)),
-            by = "degdays"
-  ) %>%
-  mutate(fracByDayTaxa = ctsByTaxaDay / ctsByDay)
+## Use the table of total counts by day to find the fraction
+## represented by each taxa for each day.
+commontaxaT <- commontaxaT %>%
+  left_join(ctByDayT) %>%
+  mutate(fracByDay = counts/totals) %>%
+  select(-totals)
 
 
+## Check that the fractions add up to 1, appropriately.
+unique(
+    unlist(commontaxaT %>%
+           group_by(days) %>%
+           summarize(sumFracByDay = sum(fracByDay)) %>%
+           select(sumFracByDay))
+)
+unique(
+    unlist(commontaxaT %>%
+           group_by(days, subj) %>%
+           summarize(sumFracBySubjDay = sum(fracBySubjDay)) %>%
+           ungroup() %>%
+           select(sumFracBySubjDay))
+)
 ## ##################################################
-
-
 
 
 
@@ -429,7 +442,7 @@ bydayT <- commontaxaT %>%
 ## by day.
 
 ## Counts are highly variable, by individual and by day.
-ggplot(ctsByDaySubjT, aes(degdays, totals)) +
+ggplot(ctBySubjDayT, aes(degdays, totals)) +
   geom_point(aes(color=subj)) +
   xlab("Degree days") +
   ylab("Total taxa counts by degree day and subject") +
@@ -445,17 +458,40 @@ ggplot(commontaxaT, aes(degdays, counts)) +
   labs(color="Subject")
 
 
-## Make the stacked bar chart using raw counts by degree days.
-ggplot(commontaxaT, aes(degdays)) +
+## Make the stacked bar chart using raw counts by days.
+ggplot(commontaxaT, aes(days)) +
   geom_bar(aes(weight=counts, fill=taxa)) +
-  xlab("Degree days") +
-  ylab("Counts by degree day and taxa, combined over subjects")
+  xlab("Days since placement") +
+  ylab("Counts by day and taxa, combined over subjects")
 
 
 ## Assess variability among pigs on the first few days, in terms of counts.
 ggplot(subset(commontaxaT, days <= 5), aes(x=subj, y=counts, fill=taxa)) +
   geom_bar(stat="identity", position="stack") +
   facet_grid(~days)
+
+## Assess variability during the first few days, in terms of counts
+## (all subjects combined).
+ggplot(subset(commontaxaT, days <= 5), aes(x=days, y=fracByDay, fill=taxa)) +
+  geom_bar(stat="identity", position="stack")
+
+
+## Can't figure out why this doesn't match Figure 1b in the Pechal et
+## al paper!!!
+tmpT <- commontaxaT %>%
+  filter(days %in% c(0, 1, 3, 5)) %>%
+  group_by(days, taxa) %>%
+  summarize(sumFracByDay = sum(fracByDay)) %>%
+  filter(sumFracByDay >= 0.03)
+tmp2T <- tmpT %>%
+  left_join(tmpT %>%
+            group_by(days) %>%
+            summarize(sumEligible=sum(sumFracByDay))
+            ) %>%
+  mutate(reweightFracByDay = sumFracByDay/sumEligible)
+
+ggplot(subset(tmp2T), aes(x=days, y=reweightFracByDay, fill=taxa)) +
+  geom_bar(stat="identity", position="stack")
 ## ##################################################
 
 
