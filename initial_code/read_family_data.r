@@ -368,6 +368,37 @@ commonByDayV <- unlist(indivT %>%
 ##   summarize(maxFracByDay = max(fracByDay)) %>%
 ##   arrange(desc(maxFracByDay))
 ##   )
+
+
+## #######################
+## Now, I'm going to look again at the percentages represented by each
+## taxa by day/subject.  Then, for each day, I'm going to figure out
+## the average percentage represented by each taxa (averaged over all
+## subjects).
+
+## First, calculate percentages.
+percSubjDayT <- indivT %>%
+  left_join(ctBySubjDayT) %>%
+  mutate(fracBySubjDay = counts/totals) %>%
+  select(-totals)
+
+## For each day, find the mean fraction represented by each taxa
+## (averaged over subjects).
+avgSubjDayT <- percSubjDayT %>%
+  group_by(days, taxa) %>%
+  summarize(avgFracByDay = mean(fracBySubjDay),
+         sdAvgFracByDay = sd(fracBySubjDay)
+         )
+
+## To be classified as a "common" (or not rare taxa), a taxa has to
+## average at least 0.03 (3%) for at least one day.
+commonByAvgByDayV <-  unique(sort(unlist(
+    avgSubjDayT %>%
+    filter(avgFracByDay >= 0.03) %>%
+    ungroup() %>%
+    select(taxa)
+)))
+## #######################
 ## ##################################################
 
 
@@ -381,9 +412,9 @@ commonByDayV <- unlist(indivT %>%
 ## NOTE: Lists of common family-level taxa ARE different depending on
 ## how we calculate them!  It looks like the Pechal et al paper used
 ## the fractions calculated by day, so we go with that.
-commonTaxaNamesV <- commonByDayV
+commonTaxaNamesV <- commonByAvgByDayV
 
-rm(commonBySubjDayV, commonByDayV, commonByTotalV)
+rm(commonBySubjDayV, commonByDayV, commonByTotalV, commonByAvgByDayV)
 
 
 ## Rename taxa that occur less than 3% of the time to "rare".  Then,
@@ -412,19 +443,13 @@ commontaxaT <- commontaxaT %>%
 
 ## Use the table of total counts by day to find the fraction
 ## represented by each taxa for each day.
-commontaxaT <- commontaxaT %>%
-  left_join(ctByDayT) %>%
-  mutate(fracByDay = counts/totals) %>%
-  select(-totals)
+## commontaxaT <- commontaxaT %>%
+##   left_join(ctByDayT) %>%
+##   mutate(fracByDay = counts/totals) %>%
+##   select(-totals)
 
 
 ## Check that the fractions add up to 1, appropriately.
-unique(
-    unlist(commontaxaT %>%
-           group_by(days) %>%
-           summarize(sumFracByDay = sum(fracByDay)) %>%
-           select(sumFracByDay))
-)
 unique(
     unlist(commontaxaT %>%
            group_by(days, subj) %>%
@@ -432,6 +457,21 @@ unique(
            ungroup() %>%
            select(sumFracBySubjDay))
 )
+## unique(
+##     unlist(commontaxaT %>%
+##            group_by(days) %>%
+##            summarize(sumFracByDay = sum(fracByDay)) %>%
+##            select(sumFracByDay))
+## )
+
+
+## Re-calculate the average percentage represented by each taxa
+## (averaged over all subjects).
+avgSubjDayT <- commontaxaT %>%
+  group_by(days, degdays, taxa) %>%
+  summarize(avgFracByDay = mean(fracBySubjDay),
+         sdAvgFracByDay = sd(fracBySubjDay)
+         )
 ## ##################################################
 
 
@@ -470,67 +510,18 @@ ggplot(subset(commontaxaT, days <= 5), aes(x=subj, y=counts, fill=taxa)) +
   geom_bar(stat="identity", position="stack") +
   facet_grid(~days)
 
-## Assess variability during the first few days, in terms of counts
-## (all subjects combined).
-ggplot(subset(commontaxaT, days <= 5), aes(x=days, y=fracByDay, fill=taxa)) +
+## Assess variability during the first few days, in terms of average
+## percentages represented by each taxa (all subjects combined).
+ggplot(subset(avgSubjDayT, days <= 5), aes(x=days, y=avgFracByDay, fill=taxa)) +
   geom_bar(stat="identity", position="stack")
 
 
 ## Can't figure out why this doesn't match Figure 1b in the Pechal et
-## al paper!!!
-tmpT <- commontaxaT %>%
-  filter(days %in% c(0, 1, 3, 5)) %>%
-  group_by(days, taxa) %>%
-  summarize(sumFracByDay = sum(fracByDay)) %>%
-  filter(sumFracByDay >= 0.03)
-tmp2T <- tmpT %>%
-  left_join(tmpT %>%
-            group_by(days) %>%
-            summarize(sumEligible=sum(sumFracByDay))
-            ) %>%
-  mutate(reweightFracByDay = sumFracByDay/sumEligible)
-
-ggplot(subset(tmp2T), aes(x=days, y=reweightFracByDay, fill=taxa)) +
+## al paper!!!  Maybe it has something to do with the weather?  It
+## appears that our experiment saw hotter days 4-5.
+ggplot(subset(avgSubjDayT, days %in% c(0, 1, 3, 5)),
+       aes(x=days, y=avgFracByDay, fill=taxa)) +
   geom_bar(stat="identity", position="stack")
-## ##################################################
-
-
-
-## ##################################################
-## Bar charts using fractions associated with each taxa, rather than
-## raw counts.
-
-## Summarize the counts by day and by day-taxa, calculate percentages
-## of each taxa per day (across all pigs).
-bydayT <- commontaxaT %>%
-  group_by(days, degdays, taxa) %>%
-  summarize(ctsByTaxaDay = sum(counts)) %>%
-  left_join(commontaxaT %>%
-              group_by(degdays) %>%
-              summarize(ctsByDay = sum(counts)),
-            by = "degdays"
-  ) %>%
-  mutate(fracByDayTaxa = ctsByTaxaDay / ctsByDay)
-
-
-## Make stacked bar chart using percentages of taxa for each degree
-## day based on the total count for that day across all pigs.
-ggplot(bydayT, aes(degdays)) +
-  geom_bar(aes(weight=fracByDayTaxa, fill=taxa)) +
-  labs(x="Accum. degree days", y="Relative abundance")
-
-## Make stacked bar chart to compare with Figure 1 in Pechal et al
-## (2013).
-ggplot(subset(bydayT, days <= 5), aes(days)) +
-  geom_bar(aes(weight=fracByDayTaxa, fill=taxa)) +
-  labs(x="Days", y="Relative abundance")
-
-
-## Assess variability among pigs on the first few days, using fractions.
-ggplot(subset(commontaxaT, days <= 5),
-       aes(x=subj, y=fracByDaySubj, fill=taxa)) +
-  geom_bar(stat="identity", position="stack") +
-  facet_grid(~days)
 ## ##################################################
 
 
@@ -542,20 +533,19 @@ ggplot(subset(commontaxaT, days <= 5),
 ## Move back to wide format.
 widePercT <- commontaxaT %>%
   ungroup() %>%
-  select(degdays, subj, taxa, fracByDaySubj) %>%
-  spread(taxa, fracByDaySubj)
-## One group ("rare or uncl.") has spaces in it, which can cause
-## problems when the tibble is converted to a data.frame.
-colnames(widePercT) <- gsub(colnames(widePercT), pattern=" ", replacement="_")
+  select(degdays, subj, taxa, fracBySubjDay) %>%
+  spread(taxa, fracBySubjDay)
     
 
 ## Pick subset of the data to train on.
 trainingIndices <- sort(sample(1:nrow(widePercT), size=74, replace=F))
-rf <- randomForest(degdays ~ . -subj -Rare_or_uncl., data=widePercT[trainingIndices,], importance=T)
+rf <- randomForest(degdays ~ . -subj -Rare, data=widePercT[trainingIndices,], importance=T)
 imp.rf <- importance(rf)
 varImpPlot(rf)
-## For phylum taxa: Firmicutes and Actinobacteria strongest.  Less
-## strong are Proteobacteria and Bacteroidetes.
+
+## Try just the first 5 days.
+first5T <- widePercT %>% filter(degdays<=149)
+rf <- randomForest(degdays ~ . -subj -Rare, data=first5T, importance=T)
 
 ## Now try to predict for those observations not in the training set.
 yhatTest <- predict(rf, newdata=widePercT[-trainingIndices,])
