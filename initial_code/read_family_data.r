@@ -465,7 +465,7 @@ unique(
 ## )
 
 
-## Re-calculate the average percentage represented by each taxa
+## Re-calculate the average fraction represented by each taxa
 ## (averaged over all subjects).
 avgSubjDayT <- commontaxaT %>%
   group_by(days, degdays, taxa) %>%
@@ -495,6 +495,23 @@ ggplot(commontaxaT, aes(degdays, counts)) +
   facet_wrap(~taxa) +
   xlab("Degree days") +
   ylab("Counts by degree day and subject") +
+  labs(color="Subject")
+
+
+## For each bacteria, plot fraction by day/subj for each pig
+## vs. accum. degree days.
+ggplot(commontaxaT, aes(degdays, fracBySubjDay)) +
+  geom_point(aes(color=subj)) +
+  facet_wrap(~taxa) +
+  xlab("Degree days") +
+  ylab("Fraction by day and subject") +
+  labs(color="Subject")
+## Same as above, but only show the first 5 days.
+ggplot(subset(commontaxaT, days<=5), aes(degdays, fracBySubjDay)) +
+  geom_point(aes(color=subj)) +
+  facet_wrap(~taxa) +
+  xlab("Degree days (first 5 days only)") +
+  ylab("Fraction by day and subject") +
   labs(color="Subject")
 
 
