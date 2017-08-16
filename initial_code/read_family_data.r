@@ -555,8 +555,10 @@ widePercT <- commontaxaT %>%
     
 
 ## Pick subset of the data to train on.
-trainingIndices <- sort(sample(1:nrow(widePercT), size=74, replace=F))
-rf <- randomForest(degdays ~ . -subj -Rare, data=widePercT[trainingIndices,], importance=T)
+## trainingIndices <- sort(sample(1:nrow(widePercT), size=74, replace=F))
+## For now, use all indices.
+trainingIndices <- 1:nrow(widePercT)
+rf <- randomForest( degdays ~ . -subj -Rare, data=widePercT[trainingIndices,], importance=T, mtry=floor(sqrt(ncol(widePercT)-3)) )
 imp.rf <- importance(rf)
 varImpPlot(rf)
 
