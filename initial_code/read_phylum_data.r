@@ -161,7 +161,7 @@ indivT <- indivT %>% select(-origName)
 
 ## ##################################################
 ## For use in graphs and in calculating percentages later, we need
-## counts of total taxa types by:
+## total counts (over all taxa, unclassified taxa excluded) by:
 ##   Each pig and each day
 ##   Each day (all pigs combined)
 
@@ -193,7 +193,6 @@ commonByTotalV <- unlist(indivT %>%
     summarize(taxatotal = sum(counts)) %>%
     mutate(frac = taxatotal/sum(taxatotal)) %>%
     filter(frac >= 0.03) %>%
-    filter(taxa != "unclassified") %>%
     select(taxa)
     )
 ## See a list of all taxa percentages sorted in descending order:
@@ -208,10 +207,10 @@ commonByTotalV <- unlist(indivT %>%
 ## Taxa counts can vary widely by day and individual.  So, another way
 ## to figure out which taxa are "common" would be to include any taxa
 ## making up at least 3% of the total count on at least one particular
-## day for any particular subject.  As above, we don't include the
-## "unclassified" category of taxa.  (For phylum taxa, unclassified
-## does have a maximum fraction of about 0.0343 on day 47, subject A6.
-## For other days and subjects, it's less than 0.02).
+## day for any particular subject.  Remember that "unclassified" taxa
+## are excluded before we get to this point.  (For phylum taxa,
+## unclassified does have a maximum fraction of about 0.0343 on day
+## 47, subject A6.  For other days and subjects, it's less than 0.02).
 commonBySubjDayV <- unlist(indivT %>%
                            left_join(ctBySubjDayT) %>%
                            mutate(fracBySubjDay = counts/totals) %>%
@@ -232,7 +231,7 @@ commonBySubjDayV <- unlist(indivT %>%
 
 ## Yet another way to calculate the percentages represented by each
 ## taxa is to calculate the percentages by day (over all subjects).
-## As above, we don't include the "unclassified" category of taxa.
+## Again, "unclassified" taxa are already excluded by this point.
 commonByDayV <- unlist(indivT %>%
                        group_by(days, taxa) %>%
                        summarize(ctByDayTaxa = sum(counts)) %>%
