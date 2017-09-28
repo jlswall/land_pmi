@@ -277,12 +277,13 @@ avgSubjDayT <- percSubjDayT %>%
 
 ## To be classified as a "common" (or not rare taxa), a taxa has to
 ## average at least 0.03 (3%) for at least one day.
-commonByAvgByDayV <-  unique(sort(unlist(
+commonByAvgByDayV <-  unlist(
     avgSubjDayT %>%
     filter(avgFracByDay >= 0.03) %>%
     ungroup() %>%
-    select(taxa)
-)))
+    select(taxa) %>%
+    distinct(taxa)
+)
 ## #######################
 ## ##################################################
 
