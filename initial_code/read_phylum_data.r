@@ -9,8 +9,7 @@ library("colorspace")
 library("randomForest")
 
 
-## library("openxlsx")
-## phylumAllT <- read.xlsx(fileNm, sheet="Phylum_all", skipEmptyCols=FALSE)
+## Read in data from the phylum worksheet.
 fileNm <- "../orig_data/Shane_all_skin_samples_taxo_bs_05_05_2017.xlsx"
 rawAllT <- read_excel(path=fileNm, sheet="Phylum_all")
 
@@ -18,12 +17,6 @@ rawAllT <- read_excel(path=fileNm, sheet="Phylum_all")
 ## and I will want to make a new column without the "p__" suffix
 ## later.  So, I rename this column now to avoid confusion later.
 colnames(rawAllT)[colnames(rawAllT)=="taxon"] <- "origName"
-
-## Some of these column names are duplicated.
-## duplicated(colnames(phylumAllDF))
-## This first happens at column 116.
-## min(which(duplicated(colnames(phylumAllDF))))
-
 
 
 ## ##################################################
@@ -42,7 +35,7 @@ colnames(rawAllT)[colnames(rawAllT)=="taxon"] <- "origName"
 ## of the observed counts over all pigs at the various times.  The
 ## names of these columns are in form T#days_#accumulatedDegreeDays.
 
-## We're ignoring columns past 114.
+## The raw data appears to be in the first 114 columns.
 mainT <- rawAllT[,1:114]
 
 
@@ -52,7 +45,7 @@ wideIndivT <- mainT[,c("origName", namesA)]
 
 
 ## Identify column names starting with "T".  The values in these
-## columsn are the averages of the individual pigs at each time point.
+## columns are the averages of the individual pigs at each time point.
 ## The names of these columns contain the number of days since death
 ## and the accumulated degree days.  The number of days since death
 ## immediately follows the "T", and the number of accumulated degree
@@ -208,9 +201,7 @@ commonByTotalV <- unlist(indivT %>%
 ## to figure out which taxa are "common" would be to include any taxa
 ## making up at least 3% of the total count on at least one particular
 ## day for any particular subject.  Remember that "unclassified" taxa
-## are excluded before we get to this point.  (For phylum taxa,
-## unclassified does have a maximum fraction of about 0.0343 on day
-## 47, subject A6.  For other days and subjects, it's less than 0.02).
+## are excluded before we get to this point.
 commonBySubjDayV <- unlist(indivT %>%
                            left_join(ctBySubjDayT) %>%
                            mutate(fracBySubjDay = counts/totals) %>%
@@ -339,12 +330,6 @@ unique(
            ungroup() %>%
            select(sumFracBySubjDay))
 )
-## unique(
-##     unlist(commontaxaT %>%
-##            group_by(days) %>%
-##            summarize(sumFracByDay = sum(fracByDay)) %>%
-##            select(sumFracByDay))
-## )
 
 ## Re-calculate the average fraction represented by each taxa
 ## (averaged over all subjects).
@@ -358,6 +343,90 @@ avgSubjDayT <- commontaxaT %>%
 
 
 ## ############ WORKING HERE!!! ################
+
+
+
+## ##################################################
+## Graphics illustrating the variability in counts, by individual and
+## by day.
+
+## Using raw counts, we can see the large variability among individuals.
+## For each bacteria, plot counts for each pig vs. accum. degree days.
+ggplot(commontaxaT, aes(degdays, counts)) +
+  geom_point(aes(color=subj)) +
+  facet_wrap(~taxa) +
+  xlab("Degree days") +
+  ylab("Counts by degree day and subject") +
+  labs(color="Subject")
+## For each bacteria, plot counts for each pig vs. day number.
+ggplot(commontaxaT, aes(days, counts)) +
+  geom_point(aes(color=subj)) +
+  facet_wrap(~taxa) +
+  xlab("Days") +
+  ylab("Counts by degree day and subject") +
+  labs(color="Subject")
+## Save to a PDF file.
+ggsave("scatter_counts_by_degday_bacteria.pdf", width=6, height=3.5, units="in")
+
+
+## Make the stacked bar chart using raw counts by (all) degree days.
+ggplot(commontaxaT, aes(degdays)) +
+  geom_bar(aes(weight=counts, fill=taxa)) +
+  xlab("Degree days") +
+  ylab("Counts by degree day and taxa, combined over subjects")
+
+
+## Assess variability among pigs on the first few days, in terms of
+## counts.  This is another way to see the variability between
+## subjects.
+ggplot(subset(commontaxaT, days <= 5), aes(x=subj, y=counts, fill=taxa)) +
+  geom_bar(stat="identity", position="stack") +
+  facet_grid(~days) +
+  theme(axis.text.x = element_text(angle=90, hjust=0)) +
+  scale_y_continuous(expand=c(0, 0)) +
+  labs(x="Subjects", y="Counts")
+ggsave("stackedbars_by_degday_bacteria.pdf", width=6, height=3.5, units="in")
+## ##################################################
+
+
+
+## ##################################################
+## Bar charts using fractions associated with each taxa, rather than
+## raw counts.
+
+## Summarize the counts by day and by day-taxa, calculate percentages
+## of each taxa per day (across all pigs).
+bydayT <- commontaxaT %>%
+  group_by(days, degdays, taxa) %>%
+  summarize(ctsByTaxaDay = sum(counts)) %>%
+  left_join(commontaxaT %>%
+              group_by(degdays) %>%
+              summarize(ctsByDay = sum(counts)),
+            by = "degdays"
+  ) %>%
+  mutate(fracByDayTaxa = ctsByTaxaDay / ctsByDay)
+
+
+## Make stacked bar chart using percentages of taxa for each degree
+## day based on the total count for that day across all pigs.
+ggplot(bydayT, aes(degdays)) +
+  geom_bar(aes(weight=fracByDayTaxa, fill=taxa)) +
+  labs(x="Accum. degree days", y="Relative abundance")
+
+## Make stacked bar chart to compare with Figure 1 in Pechal et al
+## (2013).
+ggplot(subset(bydayT, days <= 5), aes(days)) +
+  geom_bar(aes(weight=fracByDayTaxa, fill=taxa)) +
+  labs(x="Days", y="Relative abundance")
+
+
+## Assess variability among pigs on the first few days, using fractions.
+ggplot(subset(commontaxaT, days <= 5),
+       aes(x=subj, y=fracByDaySubj, fill=taxa)) +
+  geom_bar(stat="identity", position="stack") +
+  facet_grid(~days)
+## ##################################################
+
 
 
 
@@ -402,82 +471,6 @@ orditorp(trymds, display="sites", air=0.01, col=myColors[as.numeric(as.factor(co
 rm(myColors)
 
 rm(trystrata, trymds)
-## ##################################################
-
-
-
-
-## ##################################################
-## Graphics illustrating the variability in counts, by individual and
-## by day.
-
-## Counts are highly variable, by individual and by day.
-ggplot(ctBySubjDayT, aes(degdays, totals)) +
-  geom_point(aes(color=subj)) +
-  xlab("Degree days") +
-  ylab("Total taxa counts by degree day and subject") +
-  labs(color="Subject")
-
-## For each bacteria, plot counts for each pig vs. accum. degree days.
-## Using raw counts, we can see the large variability among individuals.
-ggplot(commontaxaT, aes(degdays, counts)) +
-  geom_point(aes(color=subj)) +
-  facet_wrap(~taxa) +
-  xlab("Degree days") +
-  ylab("Counts by degree day and subject") +
-  labs(color="Subject")
-
-
-## Make the stacked bar chart using raw counts by degree days.
-ggplot(commontaxaT, aes(degdays)) +
-  geom_bar(aes(weight=counts, fill=taxa)) +
-  xlab("Degree days") +
-  ylab("Counts by degree day and taxa, combined over subjects")
-
-
-## Assess variability among pigs on the first few days, in terms of counts.
-ggplot(subset(commontaxaT, days <= 5), aes(x=subj, y=counts, fill=taxa)) +
-  geom_bar(stat="identity", position="stack") +
-  facet_grid(~days)
-## ##################################################
-
-
-
-## ##################################################
-## Bar charts using fractions associated with each taxa, rather than
-## raw counts.
-
-## Summarize the counts by day and by day-taxa, calculate percentages
-## of each taxa per day (across all pigs).
-bydayT <- commontaxaT %>%
-  group_by(days, degdays, taxa) %>%
-  summarize(ctsByTaxaDay = sum(counts)) %>%
-  left_join(commontaxaT %>%
-              group_by(degdays) %>%
-              summarize(ctsByDay = sum(counts)),
-            by = "degdays"
-  ) %>%
-  mutate(fracByDayTaxa = ctsByTaxaDay / ctsByDay)
-
-
-## Make stacked bar chart using percentages of taxa for each degree
-## day based on the total count for that day across all pigs.
-ggplot(bydayT, aes(degdays)) +
-  geom_bar(aes(weight=fracByDayTaxa, fill=taxa)) +
-  labs(x="Accum. degree days", y="Relative abundance")
-
-## Make stacked bar chart to compare with Figure 1 in Pechal et al
-## (2013).
-ggplot(subset(bydayT, days <= 5), aes(days)) +
-  geom_bar(aes(weight=fracByDayTaxa, fill=taxa)) +
-  labs(x="Days", y="Relative abundance")
-
-
-## Assess variability among pigs on the first few days, using fractions.
-ggplot(subset(commontaxaT, days <= 5),
-       aes(x=subj, y=fracByDaySubj, fill=taxa)) +
-  geom_bar(stat="identity", position="stack") +
-  facet_grid(~days)
 ## ##################################################
 
 
