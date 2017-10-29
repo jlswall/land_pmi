@@ -1,9 +1,6 @@
+library("tidyverse")
 library("readxl")
-library("tidyr")
-library("tibble")
-library("dplyr")
 library("stringr")
-library("ggplot2")
 library("vegan")
 library("colorspace")
 library("randomForest")
@@ -342,9 +339,6 @@ avgSubjDayT <- commontaxaT %>%
 
 
 
-## ############ WORKING HERE!!! ################
-
-
 
 ## ##################################################
 ## Graphics illustrating the variability in counts, by individual and
@@ -376,16 +370,31 @@ ggplot(commontaxaT, aes(degdays)) +
   ylab("Counts by degree day and taxa, combined over subjects")
 
 
+## ##########################
 ## Assess variability among pigs on the first few days, in terms of
-## counts.  This is another way to see the variability between
-## subjects.
-ggplot(subset(commontaxaT, days <= 5), aes(x=subj, y=counts, fill=taxa)) +
+## counts and fractions.
+fivedaysT <- subset(commontaxaT, days <= 5)
+## Add "Day" prefix to make graphs easier to read.
+fivedaysT$days <- paste0("Day ", fivedaysT$days)
+
+## In terms of counts.
+ggplot(fivedaysT, aes(x=subj, y=counts, fill=taxa)) +
   geom_bar(stat="identity", position="stack") +
   facet_grid(~days) +
   theme(axis.text.x = element_text(angle=90, hjust=0)) +
   scale_y_continuous(expand=c(0, 0)) +
   labs(x="Subjects", y="Counts")
-ggsave("stackedbars_by_degday_bacteria.pdf", width=6, height=3.5, units="in")
+ggsave("cts_bars_by_day_taxa.pdf", width=6, height=3.5, units="in")
+
+## In terms of fractions.
+ggplot(fivedaysT, aes(x=subj, y=fracBySubjDay, fill=taxa)) +
+  geom_bar(stat="identity", position="stack") +
+  facet_grid(~days) +
+  theme(axis.text.x = element_text(angle=90, hjust=0)) +
+  scale_y_continuous(expand=c(0, 0)) +
+  labs(x="Subjects", y="Composition fraction")
+ggsave("frac_bars_by_day_taxa.pdf", width=6, height=3.5, units="in")
+## ##########################
 ## ##################################################
 
 
@@ -419,8 +428,16 @@ ggplot(subset(bydayT, days <= 5), aes(days)) +
   geom_bar(aes(weight=fracByDayTaxa, fill=taxa)) +
   labs(x="Days", y="Relative abundance")
 
+## ####### WORKING HERE! 
 
-## Assess variability among pigs on the first few days, using fractions.
+
+
+## Bar charts with counts.
+ggplot(subset(commontaxaT, days <= 5)),
+       aes(x=subj, y=fracByDaySubj, fill=taxa)) +
+  geom_bar(stat="identity", position="stack") +
+  facet_grid(~days)
+
 ggplot(subset(commontaxaT, days <= 5),
        aes(x=subj, y=fracByDaySubj, fill=taxa)) +
   geom_bar(stat="identity", position="stack") +
