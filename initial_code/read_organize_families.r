@@ -447,18 +447,16 @@ unique(
            ungroup() %>%
            select(sumFracBySubjDay))
 )
-
-
-
-## Re-calculate the average fraction represented by each taxa
-## (averaged over all subjects).
-## avgSubjDayT <- commontaxaT %>%
-##   group_by(days, degdays, taxa) %>%
-##   summarize(avgFracByDay = mean(fracBySubjDay),
-##          sdAvgFracByDay = sd(fracBySubjDay)
-##          )
 ## ##################################################
 
+
+
+## ##################################################
+## Save the tibble to a file for use in separate code
+## for graphing and analysis.
+
+write_csv(commontaxaT, path="family_massaged.csv")
+## ##################################################
 
 
 
