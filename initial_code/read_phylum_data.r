@@ -288,6 +288,7 @@ all.equal(commonByAvgByDayV, commonByDayV, commonBySubjDayV, commonByTotalV)
 commonTaxaNamesV <- commonByAvgByDayV
 
 rm(commonBySubjDayV, commonByDayV, commonByTotalV, commonByAvgByDayV)
+rm(avgSubjDayT)
 
 
 ## Rename taxa that occur less than 3% of the time to "rare".  Then,
@@ -330,11 +331,11 @@ unique(
 
 ## Re-calculate the average fraction represented by each taxa
 ## (averaged over all subjects).
-avgSubjDayT <- commontaxaT %>%
-  group_by(days, degdays, taxa) %>%
-  summarize(avgFracByDay = mean(fracBySubjDay),
-         sdAvgFracByDay = sd(fracBySubjDay)
-         )
+## avgSubjDayT <- commontaxaT %>%
+##   group_by(days, degdays, taxa) %>%
+##   summarize(avgFracByDay = mean(fracBySubjDay),
+##          sdAvgFracByDay = sd(fracBySubjDay)
+##          )
 ## ##################################################
 
 
