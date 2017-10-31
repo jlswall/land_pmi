@@ -58,7 +58,7 @@
 
 %% \title[Short Paper Title] % (optional, use only with long paper titles)
 %% {Presentation Title}
-\title[]{Initial findings}
+%% \title[]{Initial findings}
 %\subtitle {Eastern CASTNET sites, May-Sep.~2001} % (optional)
 
 %% \author[Author, Another] % (optional, use only with lots of authors)
@@ -93,7 +93,7 @@
 
 %% \date[Short Occasion] % (optional)
 %% {Date / Occasion}
-\date{Oct.\ 2017}
+%% \date{Oct.\ 2017}
 
 %% \subject{Talks}
 % This is only inserted into the PDF information catalog. Can be left
@@ -129,9 +129,9 @@
 
 \begin{document}
 
-\begin{frame}
-  \titlepage
-\end{frame}
+%% \begin{frame}
+%%   \titlepage
+%% \end{frame}
 
 \begin{frame}{Outline}
   \tableofcontents
@@ -157,7 +157,7 @@
 %% %%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %% Introductory material
 %% \section[Background]{Background ideas and info}
-\section[Background]{Background: about the data}
+\section[Background]{Background: the data}
 
 
 \begin{frame}{Initial looks into phylum and family taxa}
@@ -267,7 +267,7 @@ Figure 1b of Pechal et al (2013).
 \end{center}
 \vspace{-0.05in}
 \noindent {\scriptsize There is extensive variability in phyla counts
-  beteween cadavers.  The same is true for families.}
+  between cadavers.  The same is true for families.}
 
 \end{frame}
 
@@ -297,7 +297,7 @@ Figure 1b of Pechal et al (2013).
 \end{figure}
 \end{center}
 \vspace{-0.05in}
-\noindent {\scriptsize Compare with Pechal et al (2013), Fig.~1a.  Our graph has much less Proteobacteria and more Actinobacteria.}
+\noindent {\scriptsize Comparing with Pechal et al (2013), Fig.~1a, our graph has less Proteobacteria and more Actinobacteria.}
 
 \end{frame}
 
@@ -316,8 +316,92 @@ Figure 1b of Pechal et al (2013).
 
 \end{frame}
 
+
+
+\begin{frame}{Taxa patterns by degree days (phyla)}
+
+\begin{center}
+\begin{figure}
+  \includegraphics[width=4.5in]{phyla_scatter_frac_by_degday}
+\end{figure}
+\end{center}
+\vspace{-0.1in}
+\noindent {\scriptsize Individual cadavers are not distinguished in this graph.}
+
+\end{frame}
+
+
+
+\begin{frame}{Taxa patterns by degree days (families)}
+
+\begin{center}
+\begin{figure}
+  \includegraphics[width=4.5in]{families_scatter_frac_by_degday}
+\end{figure}
+\end{center}
+\vspace{-0.1in}
+\noindent {\scriptsize Individual cadavers are not distinguished in this graph.}
+
+\end{frame}
 %% %%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
+
+%% %%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\section{Analysis ideas}
+
+
+\begin{frame}{Difficulties}
+  
+\begin{itemize}
+\item The explanatory variables are compositional fractions (for each day and each cadaver).
+\item Multicollinearity (strong dependencies among the explanatory variables) makes it difficult to use typical modeling techniques.
+\item One strategy would be to use principal components analysis to summarize most of the variability with fewer (constructed) variables.
+\item The predictive model will then be in terms of the principal components rather than original compositional fractions.
+  \item We'll have to decide how many principal components to retain.
+\end{itemize}
+
+\end{frame}
+
+
+
+
+\begin{frame}{Percentage of variability explained (phyla)}
+
+\begin{center}
+\begin{figure}
+  \includegraphics[width=2.5in]{phyla_prcomp_expl_barchart}
+\end{figure}
+\end{center}
+\vspace{-0.1in}
+\noindent {\scriptsize Two PCs explain more than 75\% of the variability.  Three PCs explain almost all.}
+
+\end{frame}
+
+
+
+\begin{frame}{Percentage of variability explained (families)}
+
+\begin{center}
+\begin{figure}
+  \includegraphics[width=2.5in]{families_prcomp_expl_barchart}
+\end{figure}
+\end{center}
+\vspace{-0.1in}
+\noindent {\footnotesize Seven PCs explain slightly more than 75\% of the variability.  We would have to see how sensitive any analysis is to the number of PCs retained.}
+
+\end{frame}
+
+
+\begin{frame}{Potential models}
+  
+  \begin{itemize}
+    \item Looking at the graphs of composition fraction vs. accumulated degree days, it seems we're going to need a nonlinear model.
+\item I'd like to try generalized additive models using the PCs.
+\item These models allow for flexibility in the shape of the relationship.
+  \item We'd want to be careful to balance flexibility with utility (avoid over-fitting, place emphasis on predictive value for some portion of dataset held in reserve).
+\end{itemize}
+
+\end{frame}
 
 
 
