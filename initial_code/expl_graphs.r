@@ -126,6 +126,55 @@ rm(fam5T, avgFam5T)
 
 
 
+## ##################################################
+## Scatterplot of percentage composition by degree day, with each
+## bacteria a different color.  No distinguishing between individuals.
+
+## For phylum taxa:
+ggplot(phylumT %>% filter(taxa!="Rare"),
+      aes(degdays, fracBySubjDay)) +
+  geom_point(aes(color=taxa)) +
+  labs(x="Degree days", y="Composition fraction") +
+  labs(color="Subject")
+ggsave("phyla_scatter_frac_by_degday.pdf", width=7, height=4, units="in")
+
+## For family taxa:
+ggplot(familyT %>% filter(taxa!="Rare"),
+      aes(degdays, fracBySubjDay)) +
+  geom_point(aes(color=taxa)) +
+  labs(x="Degree days", y="Composition fraction") +
+  labs(color="Subject")
+ggsave("families_scatter_frac_by_degday.pdf", width=7, height=4, units="in")
+## ##################################################
+
+
+
+## ##################################################
+## For each bacteria, scatterplot of fractions vs. accum. degree days
+## (for each pig).
+
+## For phylum taxa:
+ggplot(phylumT %>% filter(taxa!="Rare"),
+      aes(degdays, fracBySubjDay)) +
+  geom_point(aes(color=subj)) +
+  facet_wrap(~taxa) +
+  labs(x="Degree days", y="Composition fraction") +
+  labs(color="Subject")
+ggsave("phyla_scatter_frac_by_degday_by_taxa.pdf", width=6, height=4, units="in")
+
+## For family taxa:
+ggplot(familyT %>% filter(taxa!="Rare"),
+      aes(degdays, fracBySubjDay)) +
+  geom_point(aes(color=subj)) +
+  facet_wrap(~taxa) +
+  labs(x="Degree days", y="Composition fraction") +
+  labs(color="Subject")
+ggsave("families_scatter_frac_by_degday_by_taxa.pdf", width=7, height=5, units="in")
+## ##################################################
+
+
+
+
 ## ########## STOPPED EDITING HERE! ##########
 
 
