@@ -242,7 +242,13 @@ rm(chkPercT, ctBySubjDayT, wideIndivPercT, widePercT, wideAvgsPercT)
 
 
 
-## ##### WORKING HERE!  Want to find percentage unclassified! #####
+## ##################################################
+## Find the percentage of counts which are unclassified.
+
+## About 1.1% are unclassified.
+sum(subset(indivT, origName=="Unclassified")[,"counts"])/sum(subset(indivT, origName!="Bacteria")[,"counts"])
+## ##################################################
+
 
 
 
@@ -407,12 +413,11 @@ commonByAvgByDayV <-  unique(sort(unlist(
 ## the various counts with all the rare individual taxa grouped into a
 ## taxa called "Rare".
 
-## NOTE: Lists of common family-level taxa ARE different depending on
-## how we calculate them!  It looks like the Pechal et al paper used
-## the fractions calculated by day, so we go with that.  This is the
-## same list as what you get using the average fraction for each taxa
-## by day (averaged over all pigs), at least in this case.
-commonTaxaNamesV <- commonByDayV
+## NOTE: Lists of common order-level taxa ARE different depending on
+## how we calculate them!  We're going with the cutoff of at least
+## 0.03 for the average percentage by day over all pigs, which is the
+## same as the 0.03 of the total for the day over all pigs.
+commonTaxaNamesV <- commonByAvgByDayV
 
 rm(commonBySubjDayV, commonByDayV, commonByTotalV, commonByAvgByDayV)
 rm(avgSubjDayT)
