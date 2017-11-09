@@ -176,7 +176,7 @@ rm(mainT, wideAvgsT, wideIndivT, reorderChkT)
 ## Put these columns in their own table.
 widePercT <- rawAllT[,113:223]
 
-## The first column contains the family names.
+## The first column contains the order names.
 colnames(widePercT)[1] <- "origName"
 
 ## Identify column names starting with "A" (individuals A1-A6).
@@ -307,8 +307,8 @@ ctByDayT <- indivT %>%
 ## Find taxa which make up >= 3% of the total counts, over all days
 ## and subjects.  We'll cause these "common" taxa.  Remember that the
 ## "unclassified" taxa are excluded before we get to this point.
-## (Note: Family-level taxa are unclassified much more often than 3%,
-## whether you look at it by totals or by individual subj/day.)
+## (Note: Order-level taxa are unclassified about 1% of the time, if
+## you use the totals across days and pigs.)
 commonByTotalV <- unlist(indivT %>%
     group_by(taxa) %>%
     summarize(taxatotal = sum(counts)) %>%
@@ -462,5 +462,5 @@ unique(
 ## Save the tibble to a file for use in separate code
 ## for graphing and analysis.
 
-write_csv(commontaxaT, path="families_massaged.csv")
+write_csv(commontaxaT, path="orders_massaged.csv")
 ## ##################################################
