@@ -309,13 +309,13 @@ ctByDayT <- indivT %>%
 ## "unclassified" taxa are excluded before we get to this point.
 ## (Note: Order-level taxa are unclassified about 1% of the time, if
 ## you use the totals across days and pigs.)
-commonByTotalV <- unlist(indivT %>%
+commonByTotalV <- unique(unlist(indivT %>%
     group_by(taxa) %>%
     summarize(taxatotal = sum(counts)) %>%
     mutate(frac = taxatotal/sum(taxatotal)) %>%
     filter(frac >= 0.03) %>%
     select(taxa)
-    )
+    ))
 ## See a list of all taxa percentages sorted in descending order:
 ## data.frame( indivT %>%
 ##     group_by(taxa) %>%
@@ -330,14 +330,14 @@ commonByTotalV <- unlist(indivT %>%
 ## making up at least 3% of the total count on at least one particular
 ## day for any particular subject.  (Again, note that the
 ## "unclassified" category has already been excluded.)
-commonBySubjDayV <- unlist(indivT %>%
+commonBySubjDayV <- unique(unlist(indivT %>%
                            left_join(ctBySubjDayT) %>%
                            mutate(fracBySubjDay = counts/totals) %>%
                            group_by(taxa) %>%
                            summarize(maxFracBySubjDay = max(fracBySubjDay)) %>%
                            filter(maxFracBySubjDay >= 0.03) %>%
                            select(taxa)
-                           )
+                           ))
 ## See a list of maximum taxa percentages sorted in descending order:
 ## data.frame(indivT %>%
 ##            left_join(ctBySubjDayT) %>%
@@ -351,7 +351,7 @@ commonBySubjDayV <- unlist(indivT %>%
 ## Yet another way to calculate the percentages represented by each
 ## taxa is to calculate the percentages by day (over all subjects).
 ## As above, we don't include the "unclassified" category of taxa.
-commonByDayV <- unlist(indivT %>%
+commonByDayV <- unique(unlist(indivT %>%
                        group_by(days, taxa) %>%
                        summarize(ctByDayTaxa = sum(counts)) %>%
                        left_join(ctByDayT) %>%
@@ -360,7 +360,7 @@ commonByDayV <- unlist(indivT %>%
                        summarize(maxFracByDay = max(fracByDay)) %>%
                        filter(maxFracByDay >= 0.03) %>%
                        select(taxa)
-                       )
+                       ))
 ## See a list of maximum taxa by day percentages sorted in descending
 ## order:
 ## data.frame(indivT %>%
@@ -415,8 +415,10 @@ commonByAvgByDayV <-  unique(sort(unlist(
 
 ## NOTE: Lists of common order-level taxa ARE different depending on
 ## how we calculate them!  We're going with the cutoff of at least
-## 0.03 for the average percentage by day over all pigs, which is the
-## same as the 0.03 of the total for the day over all pigs.
+## 0.03 for the average percentage by day over all pigs (each pig has
+## same weight), which is the same in this case as the 0.03 of the
+## total for the day over all pigs (pigs with highest total counts
+## have greater weight).
 commonTaxaNamesV <- commonByAvgByDayV
 
 rm(commonBySubjDayV, commonByDayV, commonByTotalV, commonByAvgByDayV)
