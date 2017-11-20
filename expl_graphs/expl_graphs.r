@@ -4,10 +4,10 @@ library("colorspace")
 
 ## ##################################################
 ## Are we dealing with phlya, orders, or families?
-taxalevel <- "orders"
+taxalevel <- "families"
 
 ## Read in cleaned-up phyla, orders, or families taxa.
-taxaT <- read_csv(paste0(taxalevel, "_massaged.csv"))
+taxaT <- read_csv(paste0("../initial_code/", taxalevel, "_massaged.csv"))
 ## ##################################################
 
 
@@ -24,7 +24,7 @@ ggplot(taxaT, aes(days, counts)) +
   ylab("Counts by degree day and subject") +
   labs(color="Subject")
 ## Save to a PDF file.
-## ggsave(paste0(taxalevel, "_scatter_counts_by_day_bacteria.pdf"), width=6, height=3.5, units="in")
+ggsave(paste0(taxalevel, "_scatter_counts_by_day_bacteria.pdf"), width=6, height=3.5, units="in")
 
 
 ## Make the stacked bar chart using raw counts by (all) degree days.
@@ -61,7 +61,7 @@ ggplot(days5T, aes(x=subj, y=fracBySubjDay, fill=taxa)) +
   theme(axis.text.x = element_text(angle=90, hjust=0)) +
   scale_y_continuous(expand=c(0, 0)) +
   labs(x="Subjects", y="Composition fraction")
-## ggsave(paste0(taxalevel, "_first5_frac_bars_by_day_indiv.pdf"), width=6, height=3.5, units="in")
+ggsave(paste0(taxalevel, "_first5_frac_bars_by_day_indiv.pdf"), width=6, height=3.5, units="in")
 
 
 ## Assess taxa variability across the first few days, averaged across
@@ -74,7 +74,7 @@ avgdays5T <- taxaT %>%
 ggplot(avgdays5T, aes(x=days, y=avgFracByDay, fill=taxa)) +
   geom_bar(stat="identity", position="stack") +
   labs(x="Days", y="Composition fraction")
-## ggsave(paste0(taxalevel, "_first5_avgfrac_bars_by_day.pdf"), width=3.5, height=3, units="in")
+ggsave(paste0(taxalevel, "_first5_avgfrac_bars_by_day.pdf"), width=3.5, height=3, units="in")
 
 rm(days5T, avgdays5T)
 ## ##########################
@@ -92,7 +92,7 @@ ggplot(taxaT %>% filter(taxa!="Rare"),
   geom_point(aes(color=taxa)) +
   labs(x="Degree days", y="Composition fraction") +
   labs(color="Subject")
-## ggsave(paste0(taxalevel, "_scatter_frac_by_degday.pdf"), width=7, height=4, units="in")
+ggsave(paste0(taxalevel, "_scatter_frac_by_degday.pdf"), width=7, height=4, units="in")
 ## ##################################################
 
 
