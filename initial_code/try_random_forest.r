@@ -33,7 +33,7 @@ varImpPlot(rf)
 yhatTest <- predict(rf, newdata=wideT[-trainingIndices,])
 mean((yhatTest - wideT[-trainingIndices,"degdays"])^2)
 
-par(mfrow=c(2,2))
+par(mfrow=c(3,4))
 impvar <- rownames(imp.rf)[order(imp.rf[,1], decreasing=T)]
 for (i in seq_along(impvar))
   partialPlot(rf, pred.data=as.data.frame(wideT[trainingIndices,]), x.var=impvar[i], main=paste("Partial Dependence on", impvar[i]))
