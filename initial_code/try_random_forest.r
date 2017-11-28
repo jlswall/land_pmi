@@ -18,9 +18,16 @@ taxaT <- read_csv(paste0(taxalevel, "_massaged.csv"))
 ## Move back to wide format.
 wideT <- taxaT %>%
   ungroup() %>%
-  select(degdays, subj, taxa, fracBySubjDay) %>%
+  select(days, degdays, subj, taxa, fracBySubjDay) %>%
   spread(taxa, fracBySubjDay)
     
+
+## Do cross-validation, leaving one pig out at a time.
+for (pig.i in unique(wideT$subj)){
+
+  subT <- wideT %>% filter(subj != pig.i) %>% select(-subj, -Rare, -degdays)
+  rf <- randomForest(days ~ . , data=subT, importance=T)
+  }
 
 ## Pick subset of the data to train on.
 trainingIndices <- sort(sample(1:nrow(wideT), size=60, replace=F))
