@@ -13,21 +13,51 @@ taxaT <- read_csv(paste0(taxalevel, "_massaged.csv"))
 
 
 ## ##################################################
-## Try random forests.
+## Put the data in wide format.
 
 ## Move back to wide format.
 wideT <- taxaT %>%
   ungroup() %>%
   select(days, degdays, subj, taxa, fracBySubjDay) %>%
   spread(taxa, fracBySubjDay)
+## ##################################################
+
+
+
+## ##################################################
+## Try random forests.
+
+
+## Number of possible predictors.
+numPredictors <- nrow(taxaT %>% filter(taxa!="Rare") %>% distinct(taxa))
+
+## Try different values for mtry (which represents how many variables
+## can be chosen from at each split of the tree).
+listM <- c(floor(sqrt(numPredictors)):numPredictors)
+cvMSE <- rep(NA, length(listM))
+for (j in 1:length(listM)){
+
+  m <- listM[j]
+  
+  ## Do cross-validation, leaving one pig out at a time.
+  cvMSEs <- NULL
+  for (pig.i in unique(wideT$subj)){
     
-
-## Do cross-validation, leaving one pig out at a time.
-for (pig.i in unique(wideT$subj)){
-
-  subT <- wideT %>% filter(subj != pig.i) %>% select(-subj, -Rare, -degdays)
-  rf <- randomForest(days ~ . , data=subT, importance=T)
+    subT <- wideT %>% filter(subj != pig.i) %>% select(-subj, -Rare, -degdays)
+    cvsetT <- wideT %>% filter(subj == pig.i) %>% select(-subj, -Rare, -degdays)
+    rf <- randomForest(days ~ . , data=subT, mtry=m, importance=T)
+    cvTest <- predict(rf, newdata=cvsetT)
+    cvMSEs <- c(cvMSEs, sum((cvTest - cvsetT$days)^2)/length(cvTest))
   }
+  cvMSE[j]<- mean(cvMSEs)
+}
+rm(pig.i, j)
+  ## ##################################################
+
+
+
+## ##################################################
+## Try random forests.
 
 ## Pick subset of the data to train on.
 trainingIndices <- sort(sample(1:nrow(wideT), size=60, replace=F))
