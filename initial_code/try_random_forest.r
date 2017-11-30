@@ -37,7 +37,7 @@ numBtSamps <- seq(500, 5000, by=500)
 ## Try different values for mtry (which represents how many variables
 ## can be chosen from at each split of the tree).
 numVarSplit <- c(floor(sqrt(numPredictors)):numPredictors)
-
+set.seed(347194)
 cvMSE <- matrix(NA, nrow=length(numBtSamps), ncol=length(numVarSplit))
 for (i in 1:length(numBtSamps)){
 
