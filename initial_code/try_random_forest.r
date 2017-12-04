@@ -31,14 +31,19 @@ wideT <- taxaT %>%
 numPredictors <- nrow(taxaT %>% filter(taxa!="Rare") %>% distinct(taxa))
 
 ## Try different numbers of bootstrap samples.
-numBtSamps <- seq(500, 5000, by=500)
+numBtSamps <- seq(250, 3000, by=250)
+## numBtSamps <- seq(500, 5000, by=500)
 ## Try different values for mtry (which represents how many variables
 ## can be chosen from at each split of the tree).
-numVarSplit <- c(floor(sqrt(numPredictors)):numPredictors)
+numVarSplit <- unique(c(2, floor(sqrt(numPredictors)), floor(numPredictors/3), floor(numPredictors/2), numPredictors))
+## numVarSplit <- c(floor(sqrt(numPredictors)):numPredictors)
 ## Form matrix with all combinations of these.
 combos <- expand.grid(numBtSamps=numBtSamps, numVarSplit=numVarSplit)
 ## Add another column to contain the cross-validation MSE.
 combos$cvMSE <- NA
+
+## Number of times to do cross-validation.
+numCVs <- 100
 
 set.seed(347194)
 cvMSE <- rep(NA, length(combos))
@@ -48,23 +53,25 @@ for (i in 1:nrow(combos)){
   ## foldMSE <- NULL
   ## for (pig.k in unique(wideT$subj)){
     
-  ##   subT <- wideT %>% filter(subj != pig.k) %>% select(-subj, -Rare, -degdays)
-  ##   cvsetT <- wideT %>% filter(subj == pig.k) %>% select(-subj, -Rare, -degdays)
+  ##   subT <- wideT %>% filter(subj!=pig.k) %>% select(-subj, -Rare, -degdays)
+  ##   cvsetT <- wideT %>% filter(subj==pig.k) %>% select(-subj, -Rare, -degdays)
   ##   rf <- randomForest(days ~ . , data=subT, mtry=combos[i,"numVarSplit"], ntree=combos[i,"numBtSamps"], importance=T)
   ##   fitTest <- predict(rf, newdata=cvsetT)
   ##   foldMSE <- c(foldMSE, sum((fitTest - cvsetT$days)^2)/length(fitTest))
   ## }
-  ## Do cross-validation, leaving one pig out at a time.
+  
+  ## Do cross-validation, leaving one about 10% of the data at time.
   foldMSE <- NULL
-  numFolds <- 10
-  ## Check function rf.crossValidation().  Do I need rfUntilies package?
-  for (j in 1:numFolds){
+  numLeaveOut <- round(0.10 * nrow(wideT))
+  for (j in 1:numCVs){
     
-    subT <- wideT %>% filter(subj != pig.k) %>% select(-subj, -Rare, -degdays)
-    cvsetT <- wideT %>% filter(subj == pig.k) %>% select(-subj, -Rare, -degdays)
+    whichLeaveOut <- sample(1:nrow(wideT), size=numLeaveOut, replace=F)    
+    subT <- wideT[-whichLeaveOut,] %>% select(-subj, -Rare, -degdays)
+    cvsetT <- wideT[whichLeaveOut,] %>% select(-subj, -Rare, -degdays)
+    
     rf <- randomForest(days ~ . , data=subT, mtry=combos[i,"numVarSplit"], ntree=combos[i,"numBtSamps"], importance=T)
     fitTest <- predict(rf, newdata=cvsetT)
-    foldMSE <- c(foldMSE, sum((fitTest - cvsetT$days)^2)/length(fitTest))
+    foldMSE <- c(foldMSE, mean((fitTest - cvsetT$days)^2))
   }
   
   combos$cvMSE[i]<- mean(foldMSE)
