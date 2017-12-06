@@ -34,19 +34,19 @@ numPredictors <- nrow(taxaT %>% filter(taxa!="Rare") %>% distinct(taxa))
 numBtSampsVec <- seq(500, 4000, by=500)
 ## Try different values for mtry (which represents how many variables
 ## can be chosen from at each split of the tree).
-numVarSplitVec <- 6:8
+## numVarSplitVec <- 6:8
 ## numVarSplitVec <- unique(c(floor(sqrt(numPredictors)), floor(numPredictors/3), floor(numPredictors/2), numPredictors))
-## numVarSplitVec <- c(floor(sqrt(numPredictors)):numPredictors)
+numVarSplitVec <- c(floor(sqrt(numPredictors)):numPredictors)
 ## Form matrix with all combinations of these.
 combos <- expand.grid(numBtSamps=numBtSampsVec, numVarSplit=numVarSplitVec)
 
 ## Number of times to do cross-validation.
-numCVs <- 50
+numCVs <- 100
 ## For matrix to hold cross-validation results.
 cvMSE <- matrix(NA, nrow(combos), ncol=numCVs)
 
 
-set.seed(347194)
+set.seed(949164)
 ## Do cross-validation, leaving one about 10% of the data at time.
 numLeaveOut <- round(0.10 * nrow(wideT))
 for (i in 1:numCVs){
@@ -64,7 +64,6 @@ for (i in 1:numCVs){
 }
 rm(i, j)
 
-avgcvMSE <- apply(cvMSE, 1, mean)
 combos$avgcvMSE <- apply(cvMSE, 1, mean)
 combos$q1cvMSE <- apply(cvMSE, 1, quantile, 0.25)
 combos$q3cvMSE <- apply(cvMSE, 1, quantile, 0.75)
@@ -82,8 +81,15 @@ for (i in c(1:length(numVarSplitVec))){
 }
 rm(subDF, i)
 
-ggplot(data=subset(combos, (numVarSplit<10) & (numVarSplit>4)), aes(x=numBtSamps, y=avgcvMSE, color=as.factor(numVarSplit))) + geom_line()
+yrng <- range(combos[,"avgcvMSE"])
+ggplot(data=subset(combos, numVarSplit<=5), aes(x=numBtSamps, y=avgcvMSE, color=as.factor(numVarSplit))) + geom_line() + ylim(yrng)
+X11()
+ggplot(data=subset(combos, (numVarSplit>5) & (numVarSplit<=8)), aes(x=numBtSamps, y=avgcvMSE, color=as.factor(numVarSplit))) + geom_line() + ylim(yrng)
+X11()
+ggplot(data=subset(combos, numVarSplit>8), aes(x=numBtSamps, y=avgcvMSE, color=as.factor(numVarSplit))) + geom_line() + ylim(yrng)
+## mtry=5 or 6 and ntrees >= 3000
 ## ##################################################
+
 
 
 
@@ -94,46 +100,44 @@ ggplot(data=subset(combos, (numVarSplit<10) & (numVarSplit>4)), aes(x=numBtSamps
 numPredictors <- nrow(taxaT %>% filter(taxa!="Rare") %>% distinct(taxa))
 
 ## Try different numbers of bootstrap samples.
-numBtSampsVec <- seq(50, 500, by=50)
-## numBtSamps <- seq(500, 5000, by=500)
+numBtSampsVec <- seq(500, 4000, by=500)
 ## Try different values for mtry (which represents how many variables
 ## can be chosen from at each split of the tree).
-numVarSplitVec <- unique(c(floor(sqrt(numPredictors)), floor(numPredictors/3), floor(numPredictors/2), numPredictors))
-## numVarSplit <- c(floor(sqrt(numPredictors)):numPredictors)
+## numVarSplitVec <- 6:8
+## numVarSplitVec <- unique(c(floor(sqrt(numPredictors)), floor(numPredictors/3), floor(numPredictors/2), numPredictors))
+numVarSplitVec <- c(floor(sqrt(numPredictors)):numPredictors)
 ## Form matrix with all combinations of these.
 combos <- expand.grid(numBtSamps=numBtSampsVec, numVarSplit=numVarSplitVec)
-## Add another column to contain the cross-validation MSE.
-combos$avgcvMSE <- NA
-combos$q1cvMSE <- NA
-combos$q3cvMSE <- NA
 
 ## Number of times to do cross-validation.
-numCVs <- 50
+numFolds <- 10
+## Figure out which observations are in which fold by randomly
+## assigning the numbers 1-10 to the various rows.  There are 93
+## observations, so we assign an extra 1, 2, 3.
+set.seed(270284)
+numbersToAssign <- c(rep(1:10, 9), 1:3)
+whichFold <- sample(numbersToAssign, replace=F)
 
+## For matrix to hold cross-validation results.
+cvMSE <- matrix(NA, nrow(combos), ncol=numFolds)
 
-set.seed(431890)
-cvMSE <- rep(NA, length(combos))
-for (i in 1:nrow(combos)){
-  
-  ## Do cross-validation, leaving one about 10% of the data at time.
-  foldMSE <- NULL
-  numLeaveOut <- round(0.10 * nrow(wideT))
-  for (j in 1:numCVs){
-    
-    whichLeaveOut <- sample(1:nrow(wideT), size=numLeaveOut, replace=F)    
-    subT <- wideT[-whichLeaveOut,] %>% select(-subj, -Rare, -degdays)
-    cvsetT <- wideT[whichLeaveOut,] %>% select(-subj, -Rare, -degdays)
-    
-    rf <- randomForest(as.factor(days) ~ . , data=subT, mtry=combos[i,"numVarSplit"], ntree=combos[i,"numBtSamps"], importance=T)
+## Do cross-validation.
+for (i in 1:numFolds){
+
+  ## Leave out all the rows assigned to i.
+  whichLeaveOut <- whichFold==i
+  cvsetT <- wideT[whichLeaveOut,] %>% select(-subj, -Rare, -degdays)
+  subT <- wideT[-whichLeaveOut,] %>% select(-subj, -Rare, -degdays)
+
+  for (j in 1:nrow(combos)){    
+    rf <- randomForest(days ~ . , data=subT, mtry=combos[j,"numVarSplit"], ntree=combos[j,"numBtSamps"], importance=T)
     fitTest <- predict(rf, newdata=cvsetT)
-    foldMSE <- c(foldMSE, mean((fitTest - cvsetT$days)^2))
+    cvMSE[j,i] <- mean((fitTest - cvsetT$days)^2)
   }
-  
-  combos$avgcvMSE[i]<- mean(foldMSE)
-  combos$q1cvMSE[i]<- quantile(foldMSE, 0.25)
-  combos$q3cvMSE[i]<- quantile(foldMSE, 0.75)
 }
-rm(i, foldMSE)
+rm(i, j)
+
+
 
 
 
