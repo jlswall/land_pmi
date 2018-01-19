@@ -311,8 +311,9 @@ data.frame(indivT %>%
   arrange(desc(maxFracBySubjDay))
 )
 
-## Save the list of taxa names which satisfy the frequency cutoff.
-freqTaxaV <- as.vector(unlist(indivT %>%
+## Save the taxa names (in a tibble) which satisfy the frequency
+## cutoff.
+freqTaxaT <- indivT %>%
   left_join(ctBySubjDayT) %>%
   mutate(fracBySubjDay = counts/totals) %>%
   group_by(taxa) %>%
@@ -320,19 +321,23 @@ freqTaxaV <- as.vector(unlist(indivT %>%
   filter(maxFracBySubjDay >= freqCutoff) %>%
   arrange(desc(maxFracBySubjDay)) %>%
   select(taxa)
-))
 
 
-## Question: Do we want to just remove the "rare" taxa?
+## The following code would just remove all taxa that didn't make the
+## frequency cutoff on at least one day and one cadaver.
+## commontaxaT <- indivT %>%
+##  inner_join(freqTaxaV)
 
-## Rename the infreqently occurring taxa as "rare".  Then, sum the
-## counts for these into one row.
+## Rename taxa that occur less than the frequency cutoff allows as
+## "rare".  Then, sum all these "rare" taxa into one row.
 commontaxaT <- indivT
-commontaxaT[!(commontaxaT$taxa %in% freqTaxaV), "taxa"] <- "Rare"
+commontaxaT[!(commontaxaT$taxa %in% freqTaxaT$taxa), "taxa"] <- "Rare"
 commontaxaT <- commontaxaT %>%
   group_by(days, degdays, subj, taxa) %>%
   summarize(counts = sum(counts))
-rm(freqTaxaV)
+
+## Remove the list of taxa names that satisfied the frequence cutoff.
+rm(freqTaxaT)
 ## ##################################################
 
 
