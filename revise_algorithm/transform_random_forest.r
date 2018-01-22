@@ -38,7 +38,7 @@ numBtSampsVec <- seq(500, 4000, by=500)
 ## Try different values for mtry (which represents how many variables
 ## can be chosen from at each split of the tree).
 ## numVarSplitVec <- sort(unique(c(floor(sqrt(numPredictors)), ceiling(sqrt(numPredictors)), floor(numPredictors/3), ceiling(numPredictors/3), floor(numPredictors/2), numPredictors)))
-numVarSplitVec <- c(floor(sqrt(numPredictors)):numPredictors)
+numVarSplitVec <- c(floor(sqrt(numPredictors)):ceiling(numPredictors/3))
 ## Form matrix with all combinations of these.
 combos <- expand.grid(numBtSamps=numBtSampsVec, numVarSplit=numVarSplitVec)
 
@@ -57,7 +57,7 @@ numFolds <- 10
 ## Figure out which observations are in which fold by randomly
 ## assigning the numbers 1-10 to the various rows.  There are 93
 ## observations, so we assign an extra 1, 2, 3.
-set.seed(127689)
+set.seed(527689)
 numbersToAssign <- c(rep(1:10, 9), 1:3)
 whichFold <- sample(numbersToAssign, replace=F)
 
@@ -78,13 +78,13 @@ for (i in 1:numFolds){
 
   ## Leave out all the rows assigned to i.
   whichLeaveOut <- whichFold==i
-  cvsetT <- wideT[whichLeaveOut,] %>% select(-subj, -Rare, -degdays)
-  subT <- wideT[!whichLeaveOut,] %>% select(-subj, -Rare, -degdays)
+  cvsetT <- wideT[whichLeaveOut,] %>% select(-subj, -Rare, -days)
+  subT <- wideT[!whichLeaveOut,] %>% select(-subj, -Rare, -days)
   
   for (j in 1:nrow(combos)){    
-    rf <- randomForest(days ~ . , data=subT, mtry=combos[j,"numVarSplit"], ntree=combos[j,"numBtSamps"], importance=T)
+    rf <- randomForest(degdays ~ . , data=subT, mtry=combos[j,"numVarSplit"], ntree=combos[j,"numBtSamps"], importance=T)
     fitTest <- predict(rf, newdata=cvsetT)
-    cvMSE[j,i] <- mean((fitTest - cvsetT$days)^2)
+    cvMSE[j,i] <- mean((fitTest - cvsetT$degdays)^2)
   }
 }
 rm(i, j)
