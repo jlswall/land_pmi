@@ -26,19 +26,38 @@ wideT <- taxaT %>%
 
 
 ## ##################################################
+## In the first 15 days (448 degree days), observations were made
+## approx. every other day.  Then, there's a big gap between 15 days
+## and the next observation 26 days out.  Let's try the analysis with
+## just these observations.
+
+## ##########################
+## Look at a cluster analysis, just to see whether observations made
+## at the same time tend to be grouped together.  Results are mixed.
+set.seed(391746)
+earlyT <- wideT %>% filter(degdays < 500) %>% select(-subj, -Rare, -days)
+hc.out <- hclust(dist(earlyT %>% select(-degdays)), method="average")
+plot(hc.out, labels=earlyT$degdays)
+## ##########################
+
+
+## ##########################
 ## Try random forests for regression using "days" as the response
 ## variable.
 
-## ####################
-## How many predictors are there?  (All taxa except "rare".)
-numPredictors <- nrow(taxaT %>% filter(taxa!="Rare") %>% distinct(taxa))
+## #########
+## How many predictors?  (All columns except response: "degdays").
+numPredictors <- ncol(earlyT) - 1
 
 ## Try different numbers of bootstrap samples.
-numBtSampsVec <- seq(500, 4000, by=500)
+numBtSampsVec <- seq(200, 1000, by=200)
+## numBtSampsVec <- seq(500, 4000, by=500)
+
 ## Try different values for mtry (which represents how many variables
 ## can be chosen from at each split of the tree).
 ## numVarSplitVec <- sort(unique(c(floor(sqrt(numPredictors)), ceiling(sqrt(numPredictors)), floor(numPredictors/3), ceiling(numPredictors/3), floor(numPredictors/2), numPredictors)))
 numVarSplitVec <- c(floor(sqrt(numPredictors)):ceiling(numPredictors/3))
+
 ## Form matrix with all combinations of these.
 combos <- expand.grid(numBtSamps=numBtSampsVec, numVarSplit=numVarSplitVec)
 
@@ -58,11 +77,12 @@ numFolds <- 10
 ## assigning the numbers 1-10 to the various rows.  There are 93
 ## observations, so we assign an extra 1, 2, 3.
 set.seed(527689)
-numbersToAssign <- c(rep(1:10, 9), 1:3)
+numbersToAssign <- c( rep( 1:10, floor(nrow(earlyT)/10) ), 1:(nrow(earlyT) %% 10) )
 whichFold <- sample(numbersToAssign, replace=F)
 
 ## For matrix to hold cross-validation results.
 cvMSE <- matrix(NA, nrow(combos), ncol=numFolds)
+sqrtcvMSE <- matrix(NA, nrow(combos), ncol=numFolds)
 
 
 ## Do cross-validation.
@@ -78,23 +98,32 @@ for (i in 1:numFolds){
 
   ## Leave out all the rows assigned to i.
   whichLeaveOut <- whichFold==i
-  cvsetT <- wideT[whichLeaveOut,] %>% select(-subj, -Rare, -days)
-  subT <- wideT[!whichLeaveOut,] %>% select(-subj, -Rare, -days)
+  cvsetT <- earlyT[whichLeaveOut,]
+  subT <- earlyT[!whichLeaveOut,]
   
   for (j in 1:nrow(combos)){    
     rf <- randomForest(degdays ~ . , data=subT, mtry=combos[j,"numVarSplit"], ntree=combos[j,"numBtSamps"], importance=T)
     fitTest <- predict(rf, newdata=cvsetT)
     cvMSE[j,i] <- mean((fitTest - cvsetT$degdays)^2)
   }
+
+  ## In sqrt units:
+  for (j in 1:nrow(combos)){    
+    sqrtrf <- randomForest(sqrt(degdays) ~ . , data=subT, mtry=combos[j,"numVarSplit"], ntree=combos[j,"numBtSamps"], importance=T)
+    fitTest <- predict(sqrtrf, newdata=cvsetT)
+    sqrtcvMSE[j,i] <- mean((fitTest^2 - cvsetT$degdays)^2)
+  }
 }
-rm(i, j)
+rm(i, j, fitTest, rf)
 
 combos$avgcvMSE <- apply(cvMSE, 1, mean)
+combos$avgsqrtcvMSE <- apply(sqrtcvMSE, 1, mean)
 ## combos$q1cvMSE <- apply(cvMSE, 1, quantile, 0.25)
 ## combos$q3cvMSE <- apply(cvMSE, 1, quantile, 0.75)
 ggplot(data=combos, aes(x=numBtSamps, y=avgcvMSE, color=as.factor(numVarSplit))) +
   geom_line()
-
+X11()
+ggplot(data=combos, aes(x=numBtSamps, y=avgsqrtcvMSE, color=as.factor(numVarSplit))) + geom_line()
 ## plot(range(numBtSampsVec),
 ##      range(as.vector(combos[,c("q1cvMSE", "q3cvMSE")])), type="n")
 ## my.colors <- c("black", "red", "green", "blue", "orange", "cyan", "magenta", "yellow", "brown")
