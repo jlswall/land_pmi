@@ -73,7 +73,7 @@ numFolds <- 10
 ## Figure out which observations are in which fold by randomly
 ## assigning the numbers 1-10 to the various rows.  There are 93
 ## observations, so we assign an extra 1, 2, 3.
-set.seed(305619)
+set.seed(395641)
 numbersToAssign <- c( rep( 1:10, floor(nrow(allT)/10) ), 1:(nrow(allT) %% 10) )
 whichFold <- sample(numbersToAssign, replace=F)
 
@@ -143,7 +143,7 @@ combos$avgorigUnitsqrtcvErrFrac <- apply(origUnitsqrtcvErrFrac, 1, mean)
 
 write_csv(combos, path="all_data_avg_cv_metrics.csv")
 
-## Exclude 14, 16, 18.  Try to figure out which lower number it should be.
+## Exclude 6 and 18.  
 ggplot(data=combos, aes(x=numBtSamps, y=avgcvMSE, color=as.factor(numVarSplit))) + geom_line()
 X11()
 ggplot(data=combos, aes(x=numBtSamps, y=avgsqrtcvMSE, color=as.factor(numVarSplit))) + geom_line()
