@@ -40,7 +40,7 @@ plot(hc.out, labels=allT$degdays)
 
 
 ## ##################################################
-## Try random forests for regression using "days" as the response
+## Try random forests for regression using "degdays" as the response
 ## variable.
 
 ## #########
@@ -159,4 +159,4 @@ X11()
 ggplot(data=combos, aes(x=numBtSamps, y=avgsqrtcvErrFrac, color=as.factor(numVarSplit))) + geom_line()
 X11()
 ggplot(data=combos, aes(x=numBtSamps, y=avgorigUnitsqrtcvErrFrac, color=as.factor(numVarSplit))) + geom_line()
-## ####################
+## ##################################################
