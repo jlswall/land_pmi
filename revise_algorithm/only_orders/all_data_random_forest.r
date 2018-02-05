@@ -2,6 +2,9 @@ library("tidyverse")
 library("randomForest")
 library("figdim")
 
+## Try using all the data, even though the observations at the end are
+## taken less often than the ones at the beginning.
+
 
 ## ##################################################
 ## Are we dealing with phlya, orders, or families?
@@ -26,20 +29,17 @@ wideT <- taxaT %>%
 
 
 ## ##################################################
-## Try using all the data, even though the observations at the end are
-## taken less often than the ones at the beginning.
-
-## ##########################
 ## Look at a cluster analysis, just to see whether observations made
 ## at the same time tend to be grouped together.  Results are mixed.
 set.seed(2519812)
 allT <- wideT %>% select(-subj, -Rare, -days)
 hc.out <- hclust(dist(allT %>% select(-degdays)), method="average")
 plot(hc.out, labels=allT$degdays)
-## ##########################
+## ##################################################
 
 
-## ##########################
+
+## ##################################################
 ## Try random forests for regression using "days" as the response
 ## variable.
 
@@ -48,18 +48,16 @@ plot(hc.out, labels=allT$degdays)
 numPredictors <- ncol(allT) - 1
 
 ## Try different numbers of bootstrap samples.
-numBtSampsVec <- seq(500, 5000, by=500)
-## numBtSampsVec <- seq(500, 4000, by=500)
+numBtSampsVec <- seq(1000, 5000, by=1000)
 
 ## Try different values for mtry (which represents how many variables
 ## can be chosen from at each split of the tree).
-## numVarSplitVec <- sort(unique(c(floor(sqrt(numPredictors)), ceiling(sqrt(numPredictors)), floor(numPredictors/3), ceiling(numPredictors/3), floor(numPredictors/2), numPredictors)))
-numVarSplitVec <- c(floor(sqrt(numPredictors)):ceiling(numPredictors/3))
+numVarSplitVec <- seq( floor(sqrt(numPredictors)), ceiling(numPredictors/3)+3 , by=1)
 
 ## Form matrix with all combinations of these.
 combos <- expand.grid(numBtSamps=numBtSampsVec, numVarSplit=numVarSplitVec)
 
-## ############
+
 ## ## Uncomment the following to do cross-validation over and over.
 ## ## Number of times to do cross-validation.
 ## numCVs <- 100
@@ -67,14 +65,14 @@ combos <- expand.grid(numBtSamps=numBtSampsVec, numVarSplit=numVarSplitVec)
 ## numLeaveOut <- round(0.10 * nrow(wideT))
 ## ## For matrix to hold cross-validation results.
 ## cvMSE <- matrix(NA, nrow(combos), ncol=numCVs)
-## ############
+
 
 ## Number of times to do cross-validation.
 numFolds <- 10
 ## Figure out which observations are in which fold by randomly
 ## assigning the numbers 1-10 to the various rows.  There are 93
 ## observations, so we assign an extra 1, 2, 3.
-set.seed(337625)
+set.seed(885614)
 numbersToAssign <- c( rep( 1:10, floor(nrow(allT)/10) ), 1:(nrow(allT) %% 10) )
 whichFold <- sample(numbersToAssign, replace=F)
 
@@ -145,13 +143,17 @@ combos$avgorigUnitsqrtcvErrFrac <- apply(origUnitsqrtcvErrFrac, 1, mean)
 write_csv(combos, path="all_data_avg_cv_metrics.csv")
 
 
+## Nine or ten at each split looks best, though it's close between
+## 8-10.  It's not clear that the number of bootstrap samples matters,
+## at least after 2000.
 ggplot(data=combos, aes(x=numBtSamps, y=avgcvMSE, color=as.factor(numVarSplit))) + geom_line()
 X11()
 ggplot(data=combos, aes(x=numBtSamps, y=avgsqrtcvMSE, color=as.factor(numVarSplit))) + geom_line()
 X11()
 ggplot(data=combos, aes(x=numBtSamps, y=avgorigUnitsqrtcvMSE, color=as.factor(numVarSplit))) + geom_line()
 
-
+## Eight, nine, or ten at each split looks best, with number of
+## bootstrap samples indeterminate.
 ggplot(data=combos, aes(x=numBtSamps, y=avgcvErrFrac, color=as.factor(numVarSplit))) + geom_line()
 X11()
 ggplot(data=combos, aes(x=numBtSamps, y=avgsqrtcvErrFrac, color=as.factor(numVarSplit))) + geom_line()
