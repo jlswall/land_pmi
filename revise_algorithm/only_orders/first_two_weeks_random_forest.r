@@ -75,7 +75,7 @@ numFolds <- 10
 ## Figure out which observations are in which fold by randomly
 ## assigning the numbers 1-10 to the various rows.  There are 93
 ## observations, so we assign an extra 1, 2, 3.
-set.seed(405635)
+set.seed(415618)
 numbersToAssign <- c( rep( 1:10, floor(nrow(allT)/10) ), 1:(nrow(allT) %% 10) )
 whichFold <- sample(numbersToAssign, replace=F)
 

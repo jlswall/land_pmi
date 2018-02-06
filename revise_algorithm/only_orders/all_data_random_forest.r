@@ -52,7 +52,7 @@ numBtSampsVec <- seq(1000, 5000, by=1000)
 
 ## Try different values for mtry (which represents how many variables
 ## can be chosen from at each split of the tree).
-numVarSplitVec <- seq( floor(sqrt(numPredictors)), ceiling(numPredictors/3)+3 , by=1)
+numVarSplitVec <- seq( floor(sqrt(numPredictors)), ceiling(numPredictors/3)+4 , by=1)
 
 ## Form matrix with all combinations of these.
 combos <- expand.grid(numBtSamps=numBtSampsVec, numVarSplit=numVarSplitVec)
@@ -143,9 +143,9 @@ combos$avgorigUnitsqrtcvErrFrac <- apply(origUnitsqrtcvErrFrac, 1, mean)
 write_csv(combos, path="all_data_avg_cv_metrics.csv")
 
 
-## Nine or ten at each split looks best, though it's close between
-## 8-10.  It's not clear that the number of bootstrap samples matters,
-## at least after 2000.
+## Eight, nine, or ten at each split looks best, though it's close
+## between 8-10.  It's not clear that the number of bootstrap samples
+## matters, at least after 2000.
 ggplot(data=combos, aes(x=numBtSamps, y=avgcvMSE, color=as.factor(numVarSplit))) + geom_line()
 X11()
 ggplot(data=combos, aes(x=numBtSamps, y=avgsqrtcvMSE, color=as.factor(numVarSplit))) + geom_line()
