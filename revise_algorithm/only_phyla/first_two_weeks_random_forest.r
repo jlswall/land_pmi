@@ -2,8 +2,10 @@ library("tidyverse")
 library("randomForest")
 library("figdim")
 
-## Try using all the data, even though the observations at the end are
-## taken less often than the ones at the beginning.
+# In the first 15 days (448 degree days), observations were made
+## approx. every other day.  Then, there's a big gap between 15 days
+## and the next observation 26 days out.  Let's try the analysis with
+## just these observations.
 
 
 ## ##################################################
@@ -17,10 +19,11 @@ taxaT <- read_csv(paste0("../", taxalevel, "_massaged.csv"), col_types="iiccnn")
 
 
 ## ##################################################
-## Put the data in wide format.
+## Put the data in wide format and restrict to the first 15 days.
 
 ## Move back to wide format.
-wideT <- taxaT %>%
+earlyT <- taxaT %>%
+  filter(days <= 15) %>%
   ungroup() %>%
   select(days, degdays, subj, taxa, fracBySubjDay) %>%
   spread(taxa, fracBySubjDay)
@@ -31,10 +34,10 @@ wideT <- taxaT %>%
 ## ##################################################
 ## Look at a cluster analysis, just to see whether observations made
 ## at the same time tend to be grouped together.  Results are mixed.
-set.seed(5509629)
-allT <- wideT %>% select(-subj, -Rare, -days)
-hc.out <- hclust(dist(allT %>% select(-degdays)), method="average")
-plot(hc.out, labels=allT$degdays)
+set.seed(5429619)
+rawT <- earlyT %>% select(-subj, -Rare, -days)
+hc.out <- hclust(dist(rawT %>% select(-degdays)), method="average")
+plot(hc.out, labels=rawT$degdays)
 dev.off()
 ## ##################################################
 
@@ -46,7 +49,7 @@ dev.off()
 
 ## #########
 ## How many predictors?  (All columns except response: "degdays").
-numPredictors <- ncol(allT) - 1
+numPredictors <- ncol(rawT) - 1
 
 ## Try different numbers of bootstrap samples.
 numBtSampsVec <- seq(1000, 5000, by=1000)
@@ -73,8 +76,8 @@ numFolds <- 10
 ## Figure out which observations are in which fold by randomly
 ## assigning the numbers 1-10 to the various rows.  There are 93
 ## observations, so we assign an extra 1, 2, 3.
-set.seed(6185314)
-numbersToAssign <- c( rep( 1:10, floor(nrow(allT)/10) ), 1:(nrow(allT) %% 10) )
+set.seed(6063315)
+numbersToAssign <- c( rep( 1:10, floor(nrow(rawT)/10) ), 1:(nrow(rawT) %% 10) )
 whichFold <- sample(numbersToAssign, replace=F)
 
 ## For matrix to hold cross-validation results.
@@ -99,8 +102,8 @@ for (i in 1:numFolds){
 
   ## Leave out all the rows assigned to i.
   whichLeaveOut <- whichFold==i
-  cvsetT <- allT[whichLeaveOut,]
-  subT <- allT[!whichLeaveOut,]
+  cvsetT <- rawT[whichLeaveOut,]
+  subT <- rawT[!whichLeaveOut,]
 
   ## Calculate SSTotal for the cross-validation set.
   SSTot <- sum( (cvsetT$degdays-mean(cvsetT$degdays))^2 )
@@ -141,17 +144,21 @@ combos$avgsqrtcvErrFrac <- apply(sqrtcvErrFrac, 1, mean)
 combos$avgorigUnitsqrtcvMSE <- apply(origUnitsqrtcvMSE, 1, mean)
 combos$avgorigUnitsqrtcvErrFrac <- apply(origUnitsqrtcvErrFrac, 1, mean)
 
-write_csv(combos, path="all_data_avg_cv_metrics.csv")
+write_csv(combos, path="first_two_weeks_avg_cv_metrics.csv")
 
 
-## Somewhere between 7-10.
+## Original units model seems to prefer 4-10.  There is a lot of
+## variability for the square root model, but maybe a slight tendency
+## to prefer 5-8.
 ggplot(data=combos, aes(x=numBtSamps, y=avgcvMSE, color=as.factor(numVarSplit))) + geom_line()
 X11()
 ggplot(data=combos, aes(x=numBtSamps, y=avgsqrtcvMSE, color=as.factor(numVarSplit))) + geom_line()
 X11()
 ggplot(data=combos, aes(x=numBtSamps, y=avgorigUnitsqrtcvMSE, color=as.factor(numVarSplit))) + geom_line()
 
-## Somewhere between 6-10.
+## There is a LOT of variability here.  For the original units model,
+## maybe 7-10 are best.  For the square root model, perhaps 5-7 are
+## best.
 ggplot(data=combos, aes(x=numBtSamps, y=avgcvErrFrac, color=as.factor(numVarSplit))) + geom_line()
 X11()
 ggplot(data=combos, aes(x=numBtSamps, y=avgsqrtcvErrFrac, color=as.factor(numVarSplit))) + geom_line()
