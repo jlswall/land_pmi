@@ -57,13 +57,13 @@ dev.off()
 numPredictors <- ncol(rawT) - 1
 
 ## Try different numbers of bootstrap samples.
-numBtSampsVec <- 5000
-## numBtSampsVec <- seq(1000, 5000, by=1000)
+numBtSampsVec <- seq(3000, 5000, by=1000)
 
 ## Try different values for mtry (which represents how many variables
 ## can be chosen from at each split of the tree).
 ## Early tests indicated that a good number of splits is around 10.
-numVarSplitVec <- seq( 8, 12, by=1)
+## numVarSplitVec <- seq(9, 16, by=1)
+numVarSplitVec <- seq(14, 19, by=1)
 
 ## Form matrix with all combinations of these.
 combos <- expand.grid(numBtSamps=numBtSampsVec, numVarSplit=numVarSplitVec)
@@ -73,7 +73,7 @@ combos <- expand.grid(numBtSamps=numBtSampsVec, numVarSplit=numVarSplitVec)
 ## Do cross-validation over and over, leaving out a different 10% of
 ## the 57 observations each time.
 
-set.seed(215018)
+set.seed(323018)
 
 ## Number of times to do cross-validation.
 numCVs <- 100
@@ -129,6 +129,9 @@ for (i in 1:numCVs){
     origUnitsqrtcvErrFrac[j,i] <- sum(origUnitResid^2)/SSTot
   }
   rm(sqrtrf, sqrtfitTest, sqrtfitResid, origUnitResid)
+
+  if (i %% 10 == 0)
+    print(paste0("Finishing cross-validation number ", i))
 }
 rm(i, j, SSTot)
 
@@ -142,19 +145,19 @@ combos$avgsqrtcvErrFrac <- apply(sqrtcvErrFrac, 1, mean)
 combos$avgorigUnitsqrtcvMSE <- apply(origUnitsqrtcvMSE, 1, mean)
 combos$avgorigUnitsqrtcvErrFrac <- apply(origUnitsqrtcvErrFrac, 1, mean)
 
-write_csv(combos, path="first_two_weeks_avg_cv_metrics.csv")
+## write_csv(combos, path="first_two_weeks_avg_cv_metrics.csv")
 
 
-## Ten at each split looks best.  It's not clear that the number of
-## bootstrap samples matters, at least between 1000-5000.
+## On the original scale, it's unclear, but my best estimate is 18.
+## For the random forest done on the square root scale, the optimal
+## number of variables at each split is 12.
 ggplot(data=combos, aes(x=numBtSamps, y=avgcvMSE, color=as.factor(numVarSplit))) + geom_line()
 X11()
 ggplot(data=combos, aes(x=numBtSamps, y=avgsqrtcvMSE, color=as.factor(numVarSplit))) + geom_line()
 X11()
 ggplot(data=combos, aes(x=numBtSamps, y=avgorigUnitsqrtcvMSE, color=as.factor(numVarSplit))) + geom_line()
 
-## Ten at each split looks best.  It's not clear that the number of
-## bootstrap samples matters, at least between 1000-5000.
+
 ggplot(data=combos, aes(x=numBtSamps, y=avgcvErrFrac, color=as.factor(numVarSplit))) + geom_line()
 X11()
 ggplot(data=combos, aes(x=numBtSamps, y=avgsqrtcvErrFrac, color=as.factor(numVarSplit))) + geom_line()
