@@ -42,11 +42,12 @@ dev.off()
 numPredictors <- ncol(allT) - 1
 
 ## Try different numbers of bootstrap samples.
-numBtSampsVec <- seq(4000, 6000, by=1000)
+numBtSampsVec <- seq(5000, 6000, by=1000)
 
 ## Try different values for mtry (which represents how many variables
 ## can be chosen from at each split of the tree).
-numVarSplitVec <- seq( floor(sqrt(numPredictors)), ceiling(numPredictors/3)+10, by=2)
+numVarSplitVec <- seq(40, 60, by=5) 
+## numVarSplitVec <- seq( floor(sqrt(numPredictors)), ceiling(numPredictors/3)+10, by=2)
 
 ## Form matrix with all combinations of these.
 combos <- expand.grid(numBtSamps=numBtSampsVec, numVarSplit=numVarSplitVec)
@@ -56,10 +57,10 @@ combos <- expand.grid(numBtSamps=numBtSampsVec, numVarSplit=numVarSplitVec)
 ## Do cross-validation over and over, leaving out a different 10% of
 ## the 57 observations each time.
 
-set.seed(793910)
+set.seed(7893910)
 
 ## Number of times to do cross-validation.
-numCVs <- 100
+numCVs <- 50
 ## ## How many observations to reserve for testing each time.
 numLeaveOut <- round(0.10 * nrow(allT))
 
@@ -113,7 +114,7 @@ for (i in 1:numCVs){
   }
   rm(sqrtrf, sqrtfitTest, sqrtfitResid, origUnitResid)
 
-  if (i %% 5 == 0)
+  if (i %% 10 == 0)
     print(paste0("Finishing cross-validation number ", i))
 }
 rm(i, j, SSTot)
@@ -132,8 +133,9 @@ write_csv(combos, path="repeated_cv_all_data_avg_cv_metrics.csv")
 
 
 ## Preliminary check seems to indicate that the optimal number of
-## splits is around 29 for original units model.  For sqrt model, it's
-## 25.
+## splits is between 45-50 for original units model (5000 bootstrap
+## samples is sufficient).  For sqrt model, it's around 40.  It does
+## better with more bootstrap samples (say around 6000).
 ggplot(data=combos, aes(x=numBtSamps, y=avgcvMSE, color=as.factor(numVarSplit))) + geom_line()
 X11()
 ggplot(data=combos, aes(x=numBtSamps, y=avgsqrtcvMSE, color=as.factor(numVarSplit))) + geom_line()
