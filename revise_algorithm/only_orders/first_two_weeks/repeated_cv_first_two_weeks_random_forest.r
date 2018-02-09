@@ -50,7 +50,7 @@ numBtSampsVec <- seq(3000, 5000, by=1000)
 
 ## Try different values for mtry (which represents how many variables
 ## can be chosen from at each split of the tree).
-numVarSplitVec <- seq(5, 20, by=5)
+numVarSplitVec <- seq(10, 20, by=2)
 
 ## Form matrix with all combinations of these.
 combos <- expand.grid(numBtSamps=numBtSampsVec, numVarSplit=numVarSplitVec)
@@ -60,7 +60,7 @@ combos <- expand.grid(numBtSamps=numBtSampsVec, numVarSplit=numVarSplitVec)
 ## Do cross-validation over and over, leaving out a different 10% of
 ## the 57 observations each time.
 
-set.seed(283230)
+set.seed(289930)
 
 ## Number of times to do cross-validation.
 numCVs <- 100
