@@ -13,7 +13,7 @@ library("figdim")
 taxalevel <- "orders"
 
 ## Read in cleaned-up phyla, orders, or families taxa.
-taxaT <- read_csv(paste0("../", taxalevel, "_massaged.csv"), col_types="iiccnn")
+taxaT <- read_csv(paste0("../../", taxalevel, "_massaged.csv"), col_types="iiccnn")
 ## ##################################################
 
 
@@ -22,29 +22,17 @@ taxaT <- read_csv(paste0("../", taxalevel, "_massaged.csv"), col_types="iiccnn")
 ## Put the data in wide format and restrict to the first 15 days.
 
 ## Move back to wide format.
-wideT <- taxaT %>%
-  filter(days <= 15) %>%
-  ungroup() %>%
-  select(days, degdays, subj, taxa, fracBySubjDay) %>%
-  spread(taxa, fracBySubjDay)
+earlyT <- taxaT %>%
+  filter((days <= 15) & (taxa!="Rare")) %>%
+  select(degdays, subj, taxa, fracBySubjDay) %>%
+  spread(taxa, fracBySubjDay) %>%
+  select(-subj)
 
+## Just for reference later, keep the days and degree days, so we can
+## look at the time correspondence.
+timeT <- taxaT %>% distinct(days, degdays)
 
-## For the random forest model (and the cluster analysis), we don't
-## need the subject identifier, the number of days, or the percentage
-## of rare taxa.
-earlyT <- wideT %>% select(-subj, -Rare, -days)
-rm(wideT)
-## ##################################################
-
-
-
-## ##################################################
-## Look at a cluster analysis, just to see whether observations made
-## at the same time tend to be grouped together.  Results are mixed.
-set.seed(2519812)
-hc.out <- hclust(dist(earlyT %>% select(-degdays)), method="average")
-plot(hc.out, labels=earlyT$degdays)
-dev.off()
+rm(taxaT)
 ## ##################################################
 
 
@@ -62,9 +50,7 @@ numBtSampsVec <- seq(3000, 5000, by=1000)
 
 ## Try different values for mtry (which represents how many variables
 ## can be chosen from at each split of the tree).
-## Early tests indicated that a good number of splits is around 10.
-numVarSplitVec <- seq(12, 20, by=1)
-## numVarSplitVec <- seq(14, 19, by=1)
+numVarSplitVec <- seq(5, 20, by=5)
 
 ## Form matrix with all combinations of these.
 combos <- expand.grid(numBtSamps=numBtSampsVec, numVarSplit=numVarSplitVec)
@@ -74,7 +60,7 @@ combos <- expand.grid(numBtSamps=numBtSampsVec, numVarSplit=numVarSplitVec)
 ## Do cross-validation over and over, leaving out a different 10% of
 ## the 57 observations each time.
 
-set.seed(283229)
+set.seed(283230)
 
 ## Number of times to do cross-validation.
 numCVs <- 100
@@ -99,11 +85,6 @@ for (i in 1:numCVs){
   subT <- earlyT[-whichLeaveOut,]
   cvsetT <- earlyT[whichLeaveOut,]
   
-  ## ## Leave out all the rows assigned to i.
-  ## whichLeaveOut <- whichFold==i
-  ## cvsetT <- earlyT[whichLeaveOut,]
-  ## subT <- earlyT[!whichLeaveOut,]
-
   ## Calculate SSTotal for the cross-validation set.
   SSTot <- sum( (cvsetT$degdays-mean(cvsetT$degdays))^2 )
 
@@ -147,21 +128,21 @@ combos$avgorigUnitsqrtcvMSE <- apply(origUnitsqrtcvMSE, 1, mean)
 combos$avgorigUnitsqrtcvErrFrac <- apply(origUnitsqrtcvErrFrac, 1, mean)
 
 write_csv(combos, path="repeated_cv_first_two_weeks_avg_cv_metrics.csv")
-stop("Stopped program before graphs")
+
 
 ## On the original scale, it's 19-20..
 ## For the random forest done on the square root scale, the optimal
 ## number of variables at each split is 13-15.
 ggplot(data=combos, aes(x=numBtSamps, y=avgcvMSE, color=as.factor(numVarSplit))) + geom_line()
-X11()
+## X11()
 ggplot(data=combos, aes(x=numBtSamps, y=avgsqrtcvMSE, color=as.factor(numVarSplit))) + geom_line()
-X11()
+## X11()
 ggplot(data=combos, aes(x=numBtSamps, y=avgorigUnitsqrtcvMSE, color=as.factor(numVarSplit))) + geom_line()
 
 
 ggplot(data=combos, aes(x=numBtSamps, y=avgcvErrFrac, color=as.factor(numVarSplit))) + geom_line()
-X11()
+## X11()
 ggplot(data=combos, aes(x=numBtSamps, y=avgsqrtcvErrFrac, color=as.factor(numVarSplit))) + geom_line()
-X11()
+## X11()
 ggplot(data=combos, aes(x=numBtSamps, y=avgorigUnitsqrtcvErrFrac, color=as.factor(numVarSplit))) + geom_line()
 ## ####################
