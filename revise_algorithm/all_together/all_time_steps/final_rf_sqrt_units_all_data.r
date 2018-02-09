@@ -30,8 +30,8 @@ rm(tmpT)
 ## Number of bootstrap samples.
 numBtSamps <- 5000
 
-## Early runs indicated that the number of splits is around 45-50.
-numVarSplit <- 45
+## Early runs indicated that the number of splits is around 40.
+numVarSplit <- 40
 ## ##################################################
 
 
@@ -46,8 +46,12 @@ numCVs <- 100
 numLeaveOut <- round(0.10 * nrow(allT))
 
 ## For matrix to hold cross-validation results.
-cvMSE <- rep(NA, numCVs)
-cvErrFrac <- rep(NA, numCVs)
+sqrtcvMSE <- rep(NA, numCVs)
+sqrtcvErrFrac <- rep(NA, numCVs)
+origUnitsqrtcvMSE <- rep(NA, numCVs)
+origUnitsqrtcvErrFrac <- rep(NA, numCVs)
+
+set.seed(4012423)
 
 ## Do cross-validation.
 for (i in 1:numCVs){
@@ -60,19 +64,22 @@ for (i in 1:numCVs){
   ## Calculate SSTotal for the cross-validation set.
   SSTot <- sum( (cvsetT$degdays-mean(cvsetT$degdays))^2 )
 
-  rf <- randomForest(degdays ~ . , data=subT, mtry=numVarSplit,
-                     ntree=numBtSamps, importance=T)
-  fitTest <- predict(rf, newdata=cvsetT)
+  sqrtrf <- randomForest(sqrt(degdays) ~ . , data=subT, mtry=numVarSplit, ntree=numBtSamps, importance=T)
+  sqrtfitTest <- predict(sqrtrf, newdata=cvsetT)
+  sqrtfitResid <- sqrtfitTest - sqrt(cvsetT$degdays)
+  origUnitResid <- sqrtfitTest^2 - cvsetT$degdays
     
-  fitResid <- fitTest - cvsetT$degdays
-  cvMSE[i] <- mean(fitResid^2)
-  cvErrFrac[i] <- sum(fitResid^2)/SSTot
+  sqrtcvMSE[i] <- mean(sqrtfitResid^2)
+  sqrtcvErrFrac[i] <- sum(sqrtfitResid^2)/sum( ( sqrt(cvsetT$degdays) - mean(sqrt(cvsetT$degdays)) )^2 )
+  origUnitsqrtcvMSE[i] <- mean(origUnitResid^2)
+  origUnitsqrtcvErrFrac[i] <- sum(origUnitResid^2)/SSTot
 }
-rm(whichLeaveOut, subT, cvsetT, SSTot, rf, fitTest, fitResid, numLeaveOut, i)
+rm(whichLeaveOut, subT, cvsetT, SSTot, i)
+rm(sqrtrf, sqrtfitTest, sqrtfitResid, origUnitResid)
 
 
-write_csv(data.frame(cvMSE, cvErrFrac), path="final_rf_orig_units_cvstats_all_data.csv")
-rm(cvMSE, cvErrFrac)
+write_csv(data.frame(sqrtcvMSE, sqrtcvErrFrac, origUnitsqrtcvMSE, origUnitsqrtcvErrFrac), path="final_rf_sqrt_units_cvstats_all_data.csv")
+rm(sqrtcvMSE, sqrtcvErrFrac, origUnitsqrtcvMSE, origUnitsqrtcvErrFrac)
 ## ##################################################
 
 
@@ -80,13 +87,13 @@ rm(cvMSE, cvErrFrac)
 ## ##################################################
 ## Fit the final random forest with all the data (no cross-validation).
 
-set.seed(603932)
+set.seed(780932)
 
 ## Fit the random forest model on all the data (no cross-validation).
-rf <- randomForest(degdays ~ . , data=allT, mtry=numVarSplit,
+rf <- randomForest(sqrt(degdays) ~ . , data=allT, mtry=numVarSplit,
                    ntree=numBtSamps, importance=T)
 
-init.fig.dimen(file=paste0("orig_units_all_data_combined_imp_plot.pdf"), width=8, height=6)
-varImpPlot(rf, main="Importance of combined taxa (orig. units, all time steps)")
+init.fig.dimen(file=paste0("sqrt_units_all_data_combined_imp_plot.pdf"), width=8, height=6)
+varImpPlot(rf, main="Importance of combined taxa (sqrt. units, all time steps)")
 dev.off()
 ## ##################################################
