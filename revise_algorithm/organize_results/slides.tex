@@ -360,9 +360,59 @@
 }
   
 \end{frame}
+%% %%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 
 
+
+%% %%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\section[First 15 days]{Using first 15 days}
+
+
+\begin{frame}{Using family taxa - original units}
+
+  {\scriptsize
+    
+  \noindent Using original units:\\
+  RMSE: 84.19  \hspace{0.05in}  Explained variation: 69.76\%
+
+  \begin{center}
+    \begin{figure}
+      \includegraphics[width=3.25in]{../only_families/first_two_weeks/sqrt_units_first_two_weeks_families_imp_plot}
+    \end{figure}
+  \end{center}
+  \vspace{-0.25in}
+
+\noindent Remember, there are 51 family-level taxa which were
+considered as predictors.
+}
+
+\end{frame}
+
+
+
+\begin{frame}{Using family taxa - sqrt transformation}
+
+  {\scriptsize
+    
+  \noindent Using square root transformation:\\
+  RMSE: 3.06  \hspace{0.05in}  Explained variation: 78.65\%
+
+  \vspace{0.05in}
+  
+  \noindent If you transform the predictions back to the original
+  scale and then compare with the original degree days, the RMSE is
+  approximately 91.35.
+  
+\begin{center}
+\begin{figure}
+  \includegraphics[width=3.25in]{../only_families/first_two_weeks/sqrt_units_first_two_weeks_families_imp_plot}
+\end{figure}
+\end{center}
+\vspace{-0.25in}
+}
+  
+\end{frame}
 
 
 
