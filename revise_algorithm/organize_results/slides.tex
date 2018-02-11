@@ -157,18 +157,23 @@
 %% %%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %% Introductory material
 %% \section[Background]{Background ideas and info}
-\section[Background]{Setup for random forest models and simulations}
+\section[Background]{About the random forest models and simulations}
 
-\begin{frame}{About the data used}
+\begin{frame}{Data used}
 
 {\footnotesize
-  
-\noindent We tried many different random forest models:
+
+\noindent Goal: Predict the number of degree days since death based on
+the numbers and types of microbial communities present on the cadavers.
+
+\vspace{0.1in}
+
+\noindent We considered different taxa levels:
 \begin{itemize}
-\item Using family-level taxa alone
-\item Using order-level taxa alone
-\item Using phylum-level taxa alone
-\item Using family, order, and phylum-level taxa combined
+\item Family-level taxa alone
+\item Order-level taxa alone
+\item Phylum-level taxa alone
+\item Combined: family, order, and phylum-level taxa
 \end{itemize}
 
 \vspace{0.1in}
@@ -181,6 +186,32 @@
   days.)
 \end{itemize}
 }
+
+\end{frame}
+
+
+\begin{frame}{For a given taxa level (families, orders, or phyla)}
+
+  \noindent For each cadaver and each day, we have counts of the taxa
+  detected on swabs from the cadaver.
+
+  \begin{itemize}
+    \item First, completely exclude the counts of ``unclassified''
+      taxa.
+    \item Some taxa are ``rare''; that is, the number of associated
+      counts are very small.  We label a taxa as rare if the number of
+      counts of that taxa on any individual or any day never amounted
+      to 1\% of the total counts.
+      \item The percentages associated with ``rare'' taxa were not
+        included in the analysis.
+    \end{itemize}
+
+  \noindent The highest percentages of rare taxa were:
+  families: 7.20\% on day 47 for subject A6 (deg. day 1326)
+  orders: 3.68\% on day 0 for subject A1 (deg. day 0)
+  
+
+
 
 \end{frame}
 
@@ -230,7 +261,7 @@
   {\scriptsize
     
   \noindent Using original units:\\
-  RMSE: 267.03  \hspace{0.05in}  Explained variation: 76.86\%
+  RMSE: 207.23  \hspace{0.05in}  Explained variation: 86.06\%
 
   \begin{center}
     \begin{figure}
@@ -251,13 +282,13 @@
   {\scriptsize
     
   \noindent Using square root transformation:\\
-  RMSE: 5.64  \hspace{0.05in}  Explained variation: 79.43\%
+  RMSE: 4.41  \hspace{0.05in}  Explained variation: 87.42\%
 
   \vspace{0.05in}
   
   \noindent If you transform the predictions back to the original
   scale and then compare with the original degree days, the RMSE is
-  approximately 296.89.
+  approximately 226.23.
   
 \begin{center}
 \begin{figure}
@@ -276,7 +307,7 @@
   {\scriptsize
     
   \noindent Using original units:\\
-  RMSE: 281.16  \hspace{0.05in}  Explained variation: 74.35\%
+  RMSE: 236.89  \hspace{0.05in}  Explained variation: 81.79\%
 
   \begin{center}
     \begin{figure}
@@ -297,13 +328,13 @@
   {\scriptsize
     
   \noindent Using square root transformation:\\
-  RMSE: 5.40  \hspace{0.05in}  Explained variation: 81.14\%
+  RMSE: 4.56  \hspace{0.05in}  Explained variation: 86.56\%
 
   \vspace{0.05in}
   
   \noindent If you transform the predictions back to the original
   scale and then compare with the original degree days, the RMSE is
-  approximately 289.65.
+  approximately 261.46.
   
 \begin{center}
 \begin{figure}
@@ -420,7 +451,7 @@
   {\scriptsize
     
   \noindent Using original units:\\
-  RMSE: 84.19  \hspace{0.05in}  Explained variation: 69.76\%
+  RMSE: 64.29  \hspace{0.05in}  Explained variation: 82.37\%
 
   \begin{center}
     \begin{figure}
@@ -442,13 +473,13 @@ considered as predictors.
   {\scriptsize
     
   \noindent Using square root transformation:\\
-  RMSE: 3.06  \hspace{0.05in}  Explained variation: 78.65\%
+  RMSE: 2.34  \hspace{0.05in}  Explained variation: 87.52\%
 
   \vspace{0.05in}
   
   \noindent If you transform the predictions back to the original
   scale and then compare with the original degree days, the RMSE is
-  approximately 91.35.
+  approximately 64.92.
   
 \begin{center}
 \begin{figure}
@@ -467,7 +498,7 @@ considered as predictors.
   {\scriptsize
     
   \noindent Using original units:\\
-  RMSE: 69.02  \hspace{0.05in}  Explained variation: 79.68\%
+  RMSE: 54.38  \hspace{0.05in}  Explained variation: 87.38\%
 
   \begin{center}
     \begin{figure}
@@ -488,13 +519,13 @@ considered as predictors.
   {\scriptsize
     
   \noindent Using square root transformation:\\
-  RMSE: 2.93  \hspace{0.05in}  Explained variation: 80.50\%
+  RMSE: 2.08  \hspace{0.05in}  Explained variation: 90.18\%
 
   \vspace{0.05in}
   
   \noindent If you transform the predictions back to the original
   scale and then compare with the original degree days, the RMSE is
-  approximately 83.05.
+  approximately 52.86.
   
 \begin{center}
 \begin{figure}
