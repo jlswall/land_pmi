@@ -13,7 +13,7 @@ library("figdim")
 taxalevel <- "orders"
 
 ## Read in cleaned-up phyla, orders, or families taxa.
-taxaT <- read_csv(paste0("../../", taxalevel, "_massaged.csv"), col_types="iiccnn")
+taxaT <- read_csv(paste0("../../", taxalevel, "_massaged.csv"))
 ## ##################################################
 
 
@@ -46,11 +46,11 @@ rm(taxaT)
 numPredictors <- ncol(earlyT) - 1
 
 ## Try different numbers of bootstrap samples.
-numBtSampsVec <- seq(3000, 5000, by=1000)
+numBtSampsVec <- seq(4000, 5000, by=1000)
 
 ## Try different values for mtry (which represents how many variables
 ## can be chosen from at each split of the tree).
-numVarSplitVec <- seq(10, 20, by=2)
+numVarSplitVec <- seq(6, 10, by=1)
 
 ## Form matrix with all combinations of these.
 combos <- expand.grid(numBtSamps=numBtSampsVec, numVarSplit=numVarSplitVec)
@@ -60,7 +60,7 @@ combos <- expand.grid(numBtSamps=numBtSampsVec, numVarSplit=numVarSplitVec)
 ## Do cross-validation over and over, leaving out a different 10% of
 ## the 57 observations each time.
 
-set.seed(289930)
+set.seed(289940)
 
 ## Number of times to do cross-validation.
 numCVs <- 100
@@ -130,9 +130,7 @@ combos$avgorigUnitsqrtcvErrFrac <- apply(origUnitsqrtcvErrFrac, 1, mean)
 write_csv(combos, path="repeated_cv_first_two_weeks_avg_cv_metrics.csv")
 
 
-## On the original scale, it's 19-20..
-## For the random forest done on the square root scale, the optimal
-## number of variables at each split is 13-15.
+
 ggplot(data=combos, aes(x=numBtSamps, y=avgcvMSE, color=as.factor(numVarSplit))) + geom_line()
 ## X11()
 ggplot(data=combos, aes(x=numBtSamps, y=avgsqrtcvMSE, color=as.factor(numVarSplit))) + geom_line()
