@@ -373,5 +373,9 @@ unique(
 ## Save the tibble to a file for use in separate code
 ## for graphing and analysis.
 
-write_csv(commontaxaT, path="orders_massaged.csv")
+## I have to use the base R write.csv() routine, because write_csv
+## will write out scientific notation, which read_csv() doesn't read
+## in properly.
+## write_csv(commontaxaT, path="orders_massaged.csv")
+write.csv(commontaxaT, file="orders_massaged.csv", row.names=FALSE)
 ## ##################################################
