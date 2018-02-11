@@ -161,15 +161,17 @@
 
 \begin{frame}{About the data used}
 
-  \noindent We tried many different random forest models:
-  \begin{itemize}
-  \item Using family-level taxa alone
-  \item Using order-level taxa alone
-  \item Using phylum-level taxa alone
-  \item Using family, order, and phylum-level taxa combined
-  \end{itemize}
+{\footnotesize
+  
+\noindent We tried many different random forest models:
+\begin{itemize}
+\item Using family-level taxa alone
+\item Using order-level taxa alone
+\item Using phylum-level taxa alone
+\item Using family, order, and phylum-level taxa combined
+\end{itemize}
 
-\vspace{0.05in}
+\vspace{0.1in}
 
 \noindent Time scale:
 \begin{itemize}
@@ -178,12 +180,13 @@
   15 days, the observations are approx.~weekly, rather than every 2
   days.)
 \end{itemize}
+}
 
 \end{frame}
 
 
 
-\begin{frame}{About transformations}
+\begin{frame}{Distribution of the degree days}
 
   {\scriptsize
   
@@ -193,8 +196,23 @@
 
     
 \begin{figure}
-  \includegraphics[width=2.1in]{hist_degdays}
-  \includegraphics[width=2.1in]{hist_sqrt_degdays}
+  \includegraphics[width=2.1in]{degdays_all_time_steps_hist}
+  \includegraphics[width=2.1in]{sqrt_degdays_all_time_steps_hist}
+\end{figure}
+  }
+  
+\end{frame}
+
+
+
+\begin{frame}{Looking at just the first 2 weeks}
+
+  {\scriptsize
+    \noindent After 15 days, the observations occur much less frequently, on the order of about once a week, making the distribution less skewed.
+    
+\begin{figure}
+  \includegraphics[width=2.1in]{degdays_first_two_weeks_hist}
+  \includegraphics[width=2.1in]{sqrt_degdays_first_two_weeks_hist}
 \end{figure}
   }
   
