@@ -106,4 +106,13 @@ rf <- randomForest(degdays ~ . , data=earlyT, mtry=numVarSplit,
 init.fig.dimen(file=paste0("orig_units_first_two_weeks_families_imp_plot.pdf"), width=8, height=6)
 varImpPlot(rf, main="Importance of family taxa (orig. units, first 2 weeks)")
 dev.off()
+
+
+## Find residuals:
+resids <- rf$predicted - earlyT$degdays
+## Print out RMSE:
+sqrt( mean( resids^2 ) )
+## Estimate of explained variance, which R documentation calls "pseudo
+## R-squared"
+1 - ( sum(resids^2)/sum( (earlyT$degdays - mean(earlyT$degdays))^2 ) )
 ## ##################################################
