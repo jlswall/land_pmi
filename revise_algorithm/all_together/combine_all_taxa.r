@@ -10,7 +10,7 @@ library("figdim")
 ## Read in phyla-level taxa.
 taxalevel <- "phyla"
 ## Read in cleaned-up phyla, orders, or families taxa.
-tmpT <- read_csv(paste0("../", taxalevel, "_massaged.csv"), col_types="iiccnn")
+tmpT <- read_csv(paste0("../", taxalevel, "_massaged.csv"))
 ## Move to wide format.
 phylaT <- tmpT %>%
   select(days, degdays, subj, taxa, fracBySubjDay) %>%
@@ -21,7 +21,7 @@ phylaT <- tmpT %>%
 ## Read in order-level taxa.
 taxalevel <- "orders"
 ## Read in cleaned-up phyla, orders, or families taxa.
-tmpT <- read_csv(paste0("../", taxalevel, "_massaged.csv"), col_types="iiccnn")
+tmpT <- read_csv(paste0("../", taxalevel, "_massaged.csv"))
 ## Move to wide format.
 ordersT <- tmpT %>%
   select(days, degdays, subj, taxa, fracBySubjDay) %>%
@@ -32,7 +32,7 @@ ordersT <- tmpT %>%
 ## Read in order-level taxa.
 taxalevel <- "families"
 ## Read in cleaned-up phyla, orders, or families taxa.
-tmpT <- read_csv(paste0("../", taxalevel, "_massaged.csv"), col_types="iiccnn")
+tmpT <- read_csv(paste0("../", taxalevel, "_massaged.csv"))
 ## Move to wide format.
 familiesT <- tmpT %>%
   select(days, degdays, subj, taxa, fracBySubjDay) %>%
@@ -57,5 +57,5 @@ allT <- phylaT %>%
 
 
 
-write_csv(allT, path="combined_taxa.csv")
+write.csv(allT, file="combined_taxa.csv", row.names=FALSE)
 
