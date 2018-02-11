@@ -2,6 +2,7 @@ library("tidyverse")
 library("randomForest")
 library("figdim")
 
+
 ## In the first 15 days (448 degree days), observations were made
 ## approx. every other day.  Then, there's a big gap between 15 days
 ## and the next observation 26 days out.  Let's try the analysis with
@@ -12,7 +13,7 @@ library("figdim")
 ## Read in the data and restrict to the first 15 days.
 
 ## Read in the combined data in wide format.
-allT <- read_csv("combined_taxa.csv")
+allT <- read_csv("../combined_taxa.csv")
 
 ## Restrict to the first 15 days.  Also, remove subj and days
 ## variable, since they won't be used in the random forest.
@@ -30,17 +31,6 @@ rm(allT)
 
 
 ## ##################################################
-## Look at a cluster analysis, just to see whether observations made
-## at the same time tend to be grouped together.  Results are mixed.
-set.seed(7019812)
-hc.out <- hclust(dist(earlyT %>% select(-degdays)), method="average")
-plot(hc.out, labels=earlyT$degdays)
-dev.off()
-## ##################################################
-
-
-
-## ##################################################
 ## Try random forests for regression using "days" as the response
 ## variable.
 
@@ -49,12 +39,11 @@ dev.off()
 numPredictors <- ncol(earlyT) - 1
 
 ## Try different numbers of bootstrap samples.
-numBtSampsVec <- seq(4000, 6000, by=1000)
+numBtSampsVec <- seq(4000, 5000, by=1000)
 
 ## Try different values for mtry (which represents how many variables
 ## can be chosen from at each split of the tree).
-numVarSplitVec <- seq( 25, 30, by=1)
-## numVarSplitVec <- seq( floor(sqrt(numPredictors)), ceiling(numPredictors/3)+1, by=2)
+numVarSplitVec <- seq(5, 80, by=5)
 
 ## Form matrix with all combinations of these.
 combos <- expand.grid(numBtSamps=numBtSampsVec, numVarSplit=numVarSplitVec)
@@ -143,15 +132,15 @@ write_csv(combos, path="repeated_cv_first_two_weeks_avg_cv_metrics.csv")
 ## splits is around 29 for original units model.  For sqrt model, it's
 ## 25.
 ggplot(data=combos, aes(x=numBtSamps, y=avgcvMSE, color=as.factor(numVarSplit))) + geom_line()
-X11()
+## X11()
 ggplot(data=combos, aes(x=numBtSamps, y=avgsqrtcvMSE, color=as.factor(numVarSplit))) + geom_line()
-X11()
+## X11()
 ggplot(data=combos, aes(x=numBtSamps, y=avgorigUnitsqrtcvMSE, color=as.factor(numVarSplit))) + geom_line()
 
 
 ggplot(data=combos, aes(x=numBtSamps, y=avgcvErrFrac, color=as.factor(numVarSplit))) + geom_line()
-X11()
+## X11()
 ggplot(data=combos, aes(x=numBtSamps, y=avgsqrtcvErrFrac, color=as.factor(numVarSplit))) + geom_line()
-X11()
+## X11()
 ggplot(data=combos, aes(x=numBtSamps, y=avgorigUnitsqrtcvErrFrac, color=as.factor(numVarSplit))) + geom_line()
 ## ####################
