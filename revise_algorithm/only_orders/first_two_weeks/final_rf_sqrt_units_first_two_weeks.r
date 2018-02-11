@@ -113,4 +113,22 @@ rf <- randomForest(sqrt(degdays) ~ . , data=earlyT, mtry=numVarSplit,
 init.fig.dimen(file=paste0("sqrt_units_first_two_weeks_orders_imp_plot.pdf"), width=8, height=6)
 varImpPlot(rf, main="Importance of order taxa (sqrt units, first 2 weeks)")
 dev.off()
+
+
+## In square root units:
+## Find residuals:
+resids <- rf$predicted - sqrt(earlyT$degdays)
+## Print out RMSE:
+sqrt( mean( resids^2 ) )
+## Estimate of explained variance, which R documentation calls "pseudo
+## R-squared"
+1 - ( sum(resids^2)/sum( (sqrt(earlyT$degdays) - mean(sqrt(earlyT$degdays)))^2 ) )
+
+## Projecting onto original units:
+## Find estimated residuals:
+resids <- (rf$predicted^2) - earlyT$degdays
+## Print out RMSE:
+sqrt( mean( resids^2 ) )
+## Estimate of explained variance
+1 - ( sum(resids^2)/sum( (earlyT$degdays - mean(earlyT$degdays))^2 ) )
 ## ##################################################
