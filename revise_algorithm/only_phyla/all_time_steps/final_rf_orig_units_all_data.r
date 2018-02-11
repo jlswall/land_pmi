@@ -103,4 +103,13 @@ rf <- randomForest(degdays ~ . , data=allT, mtry=numVarSplit,
 init.fig.dimen(file=paste0("orig_units_all_data_phyla_imp_plot.pdf"), width=8, height=6)
 varImpPlot(rf, main="Importance of phylum taxa (orig. units, all time steps)")
 dev.off()
+
+
+## Find residuals:
+resids <- rf$predicted - allT$degdays
+## Print out RMSE:
+sqrt( mean( resids^2 ) )
+## Estimate of explained variance, which R documentation calls "pseudo
+## R-squared"
+1 - ( sum(resids^2)/sum( (allT$degdays - mean(allT$degdays))^2 ) )
 ## ##################################################
