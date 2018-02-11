@@ -554,6 +554,52 @@ considered as predictors.
 
 
 
+\begin{frame}{Using phylum taxa - original units}
+
+  {\scriptsize
+    
+  \noindent Using original units:\\
+  RMSE: 72.38  \hspace{0.05in}  Explained variation: 77.65\%
+
+  \begin{center}
+    \begin{figure}
+      \includegraphics[width=3.25in]{../only_phyla/first_two_weeks/orig_units_first_two_weeks_phyla_imp_plot}
+    \end{figure}
+  \end{center}
+  \vspace{-0.25in}
+
+\noindent Remember, there are 10 taxa which were considered as predictors.
+}
+
+\end{frame}
+
+
+
+\begin{frame}{Using phylum taxa - sqrt transformation}
+
+  {\scriptsize
+    
+  \noindent Using square root transformation:\\
+  RMSE: 2.93 \hspace{0.05in}  Explained variation: 80.50\%
+
+  \vspace{0.05in}
+  
+  \noindent If you transform the predictions back to the original
+  scale and then compare with the original degree days, the RMSE is
+  approximately 75.16.
+  
+\begin{center}
+\begin{figure}
+  \includegraphics[width=3.25in]{../only_phyla/first_two_weeks/sqrt_units_first_two_weeks_phyla_imp_plot}
+\end{figure}
+\end{center}
+\vspace{-0.25in}
+}
+  
+\end{frame}
+
+
+
 \end{document}
 
 
