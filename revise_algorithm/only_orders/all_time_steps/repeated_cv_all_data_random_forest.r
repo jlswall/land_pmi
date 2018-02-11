@@ -8,7 +8,7 @@ library("figdim")
 taxalevel <- "orders"
 
 ## Read in cleaned-up phyla, orders, or families taxa.
-taxaT <- read_csv(paste0("../../", taxalevel, "_massaged.csv"), col_types="iiccnn")
+taxaT <- read_csv(paste0("../../", taxalevel, "_massaged.csv"))
 ## ##################################################
 
 
@@ -17,7 +17,7 @@ taxaT <- read_csv(paste0("../../", taxalevel, "_massaged.csv"), col_types="iiccn
 ## Put the data in wide format; remove days, subj, and rare taxa.
 
 ## Move back to wide format.
-earlyT <- taxaT %>%
+allT <- taxaT %>%
   filter(taxa!="Rare") %>%
   select(degdays, subj, taxa, fracBySubjDay) %>%
   spread(taxa, fracBySubjDay) %>%
@@ -38,14 +38,14 @@ rm(taxaT)
 
 ## #########
 ## How many predictors?  (All columns except response: "degdays").
-numPredictors <- ncol(earlyT) - 1
+numPredictors <- ncol(allT) - 1
 
 ## Try different numbers of bootstrap samples.
 numBtSampsVec <- seq(4000, 5000, by=1000)
 
 ## Try different values for mtry (which represents how many variables
 ## can be chosen from at each split of the tree).
-numVarSplitVec <- seq(6, 14, by=2)
+numVarSplitVec <- seq(9, 12, by=1)
 
 ## Form matrix with all combinations of these.
 combos <- expand.grid(numBtSamps=numBtSampsVec, numVarSplit=numVarSplitVec)
@@ -55,12 +55,12 @@ combos <- expand.grid(numBtSamps=numBtSampsVec, numVarSplit=numVarSplitVec)
 ## Do cross-validation over and over, leaving out a different 10% of
 ## the 57 observations each time.
 
-set.seed(780291)
+set.seed(780221)
 
 ## Number of times to do cross-validation.
 numCVs <- 100
 ## ## How many observations to reserve for testing each time.
-numLeaveOut <- round(0.10 * nrow(earlyT))
+numLeaveOut <- round(0.10 * nrow(allT))
 
 
 ## For matrix to hold cross-validation results.
@@ -76,9 +76,9 @@ sqrtcvErrFrac <- matrix(NA, nrow(combos), ncol=numCVs)
 for (i in 1:numCVs){
   
   ## Determine training and cross-validation set.
-  whichLeaveOut <- sample(1:nrow(earlyT), size=numLeaveOut, replace=F)    
-  subT <- earlyT[-whichLeaveOut,]
-  cvsetT <- earlyT[whichLeaveOut,]
+  whichLeaveOut <- sample(1:nrow(allT), size=numLeaveOut, replace=F)    
+  subT <- allT[-whichLeaveOut,]
+  cvsetT <- allT[whichLeaveOut,]
   
   ## Calculate SSTotal for the cross-validation set.
   SSTot <- sum( (cvsetT$degdays-mean(cvsetT$degdays))^2 )

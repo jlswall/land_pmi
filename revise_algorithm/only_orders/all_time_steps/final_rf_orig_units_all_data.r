@@ -8,7 +8,7 @@ library("figdim")
 taxalevel <- "orders"
 
 ## Read in cleaned-up phyla, orders, or families taxa.
-taxaT <- read_csv(paste0("../../", taxalevel, "_massaged.csv"), col_types="iiccnn")
+taxaT <- read_csv(paste0("../../", taxalevel, "_massaged.csv"))
 ## ##################################################
 
 
@@ -40,8 +40,8 @@ rm(taxaT)
 numBtSamps <- 5000
 
 ## Early runs indicated that the number of variables to consider at
-## each split is about 10 for response variable in the original units.
-numVarSplit <- 10
+## each split is about 12 for response variable in the original units.
+numVarSplit <- 12
 ## ##################################################
 
 
@@ -60,7 +60,7 @@ numLeaveOut <- round(0.10 * nrow(allT))
 cvMSE <- rep(NA, numCVs)
 cvErrFrac <- rep(NA, numCVs)
 
-set.seed(9431029)
+set.seed(9433029)
 
 
 ## Do cross-validation.
