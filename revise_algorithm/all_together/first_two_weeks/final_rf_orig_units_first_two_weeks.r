@@ -37,8 +37,8 @@ rm(tmpT)
 ## Number of bootstrap samples.
 numBtSamps <- 5000
 
-## Early runs indicated that the number of splits is around 29-31.
-numVarSplit <- 30
+## Early runs indicated that the number of splits is around 15.
+numVarSplit <- 15
 ## ##################################################
 
 
@@ -56,7 +56,7 @@ numLeaveOut <- round(0.10 * nrow(earlyT))
 cvMSE <- rep(NA, numCVs)
 cvErrFrac <- rep(NA, numCVs)
 
-set.seed(431974)
+set.seed(435954)
 
 ## Do cross-validation.
 for (i in 1:numCVs){
@@ -89,7 +89,7 @@ rm(cvMSE, cvErrFrac)
 ## ##################################################
 ## Fit the final random forest with all the data (no cross-validation).
 
-set.seed(743931)
+set.seed(740930)
 
 ## Fit the random forest model on all the data (no cross-validation).
 rf <- randomForest(degdays ~ . , data=earlyT, mtry=numVarSplit,
