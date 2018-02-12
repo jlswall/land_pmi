@@ -122,10 +122,6 @@ combos$avgorigUnitsqrtcvErrFrac <- apply(origUnitsqrtcvErrFrac, 1, mean)
 write_csv(combos, path="repeated_cv_all_data_avg_cv_metrics.csv")
 
 
-## Preliminary check seems to indicate that the optimal number of
-## splits is between 45-50 for original units model (5000 bootstrap
-## samples is sufficient).  For sqrt model, it's around 40.  It does
-## better with more bootstrap samples (say around 6000).
 ggplot(data=combos, aes(x=numBtSamps, y=avgcvMSE, color=as.factor(numVarSplit))) + geom_line()
 ## X11()
 ggplot(data=combos, aes(x=numBtSamps, y=avgsqrtcvMSE, color=as.factor(numVarSplit))) + geom_line()

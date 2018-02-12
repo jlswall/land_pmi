@@ -43,7 +43,8 @@ numBtSampsVec <- seq(4000, 5000, by=1000)
 
 ## Try different values for mtry (which represents how many variables
 ## can be chosen from at each split of the tree).
-numVarSplitVec <- seq(5, 80, by=5)
+## Earlier runs showed that 10 seemed best, followed by 15.
+numVarSplitVec <- seq(5, 20, by=5)
 
 ## Form matrix with all combinations of these.
 combos <- expand.grid(numBtSamps=numBtSampsVec, numVarSplit=numVarSplitVec)
@@ -53,7 +54,7 @@ combos <- expand.grid(numBtSamps=numBtSampsVec, numVarSplit=numVarSplitVec)
 ## Do cross-validation over and over, leaving out a different 10% of
 ## the 57 observations each time.
 
-set.seed(693018)
+set.seed(4930180)
 
 ## Number of times to do cross-validation.
 numCVs <- 100
@@ -128,9 +129,6 @@ combos$avgorigUnitsqrtcvErrFrac <- apply(origUnitsqrtcvErrFrac, 1, mean)
 write_csv(combos, path="repeated_cv_first_two_weeks_avg_cv_metrics.csv")
 
 
-## Preliminary check seems to indicate that the optimal number of
-## splits is around 29 for original units model.  For sqrt model, it's
-## 25.
 ggplot(data=combos, aes(x=numBtSamps, y=avgcvMSE, color=as.factor(numVarSplit))) + geom_line()
 ## X11()
 ggplot(data=combos, aes(x=numBtSamps, y=avgsqrtcvMSE, color=as.factor(numVarSplit))) + geom_line()
