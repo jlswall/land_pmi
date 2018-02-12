@@ -8,7 +8,7 @@ library("figdim")
 taxalevel <- "phyla"
 
 ## Read in cleaned-up phyla, orders, or families taxa.
-taxaT <- read_csv(paste0("../../", taxalevel, "_massaged.csv"), col_types="iiccnn")
+taxaT <- read_csv(paste0("../../", taxalevel, "_massaged.csv"))
 ## ##################################################
 
 
@@ -44,11 +44,7 @@ numPredictors <- ncol(allT) - 1
 numBtSampsVec <- seq(4000, 5000, by=1000)
 
 ## Try different values for mtry (which represents how many variables
-## can be chosen from at each split of the tree).  First runs excluded
-## 2 and 3 definitely, but 9 and 10 were close on the original units,
-## and values in the middle of the range wer very close for the square
-## root units.  So, I'm running again with more cross-validation
-## samples, different seeds, and excluding 2 and 3.
+## can be chosen from at each split of the tree).
 numVarSplitVec <- seq(4, numPredictors, by=1)
 
 ## Form matrix with all combinations of these.
@@ -59,10 +55,10 @@ combos <- expand.grid(numBtSamps=numBtSampsVec, numVarSplit=numVarSplitVec)
 ## Do cross-validation over and over, leaving out a different 10% of
 ## the 57 observations each time.
 
-set.seed(6840201)
+set.seed(6140601)
 
 ## Number of times to do cross-validation.
-numCVs <- 200
+numCVs <- 100
 ## ## How many observations to reserve for testing each time.
 numLeaveOut <- round(0.10 * nrow(allT))
 
