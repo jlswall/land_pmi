@@ -13,7 +13,7 @@ library("figdim")
 taxalevel <- "phyla"
 
 ## Read in cleaned-up phyla, orders, or families taxa.
-taxaT <- read_csv(paste0("../../", taxalevel, "_massaged.csv"), col_types="iiccnn")
+taxaT <- read_csv(paste0("../../", taxalevel, "_massaged.csv"))
 ## ##################################################
 
 
@@ -45,9 +45,9 @@ rm(taxaT)
 numBtSamps <- 5000
 
 ## Early runs indicated that the number of variables to consider at
-## each split is about 10 for response variables in the original
-## units, which is actually all of the available predictors.
-numVarSplit <- 10
+## each split is about 9 for response variables in the original
+## units.
+numVarSplit <- 9
 ## ##################################################
 
 
@@ -65,7 +65,7 @@ numLeaveOut <- round(0.10 * nrow(earlyT))
 cvMSE <- rep(NA, numCVs)
 cvErrFrac <- rep(NA, numCVs)
 
-set.seed(6043179)
+set.seed(5043179)
 
 
 ## Do cross-validation.
@@ -98,7 +98,7 @@ rm(cvMSE, cvErrFrac)
 ## ##################################################
 ## Fit the final random forest with all the data (no cross-validation).
 
-set.seed(780981)
+set.seed(780982)
 
 ## Fit the random forest model on all the data (no cross-validation).
 rf <- randomForest(degdays ~ . , data=earlyT, mtry=numVarSplit,

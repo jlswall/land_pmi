@@ -14,7 +14,7 @@ library("figdim")
 taxalevel <- "phyla"
 
 ## Read in cleaned-up phyla, orders, or families taxa.
-taxaT <- read_csv(paste0("../../", taxalevel, "_massaged.csv"), col_types="iiccnn")
+taxaT <- read_csv(paste0("../../", taxalevel, "_massaged.csv"))
 ## ##################################################
 
 
@@ -45,8 +45,8 @@ rm(taxaT)
 ## Number of bootstrap samples.
 numBtSamps <- 5000
 
-## Early runs indicated that the number of splits is around 6.
-numVarSplit <- 6
+## Early runs indicated that the number of splits is around 8.
+numVarSplit <- 8
 ## ##################################################
 
 
@@ -67,7 +67,7 @@ origUnitsqrtcvMSE <- rep(NA, numCVs)
 origUnitsqrtcvErrFrac <- rep(NA, numCVs)
 
 
-set.seed(3702423)
+set.seed(3732423)
 
 ## Do cross-validation.
 for (i in 1:numCVs){
@@ -104,7 +104,7 @@ rm(sqrtcvMSE, sqrtcvErrFrac, origUnitsqrtcvMSE, origUnitsqrtcvErrFrac)
 ## Fit the final random forest with the first two weeks of the data
 ## (no cross-validation).
 
-set.seed(6150932)
+set.seed(6054932)
 
 ## Fit the random forest model on all the data (no cross-validation).
 rf <- randomForest(sqrt(degdays) ~ . , data=earlyT, mtry=numVarSplit,

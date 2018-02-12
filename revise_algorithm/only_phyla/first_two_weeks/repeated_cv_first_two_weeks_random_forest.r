@@ -13,7 +13,7 @@ library("figdim")
 taxalevel <- "phyla"
 
 ## Read in cleaned-up phyla, orders, or families taxa.
-taxaT <- read_csv(paste0("../../", taxalevel, "_massaged.csv"), col_types="iiccnn")
+taxaT <- read_csv(paste0("../../", taxalevel, "_massaged.csv"))
 ## ##################################################
 
 
@@ -50,11 +50,7 @@ numBtSampsVec <- seq(4000, 5000, by=1000)
 
 ## Try different values for mtry (which represents how many variables
 ## can be chosen from at each split of the tree).
-## Our first run showed that 5 was best for the square root response,
-## but on theoriginal units, 6-10 were grouped tightly together.  So,
-## I'm doing another run with more cross-validation samples, different
-## random seed, and excluding 2 and 3.
-numVarSplitVec <- seq(4, numPredictors, by=1)
+numVarSplitVec <- seq(6, numPredictors, by=1)
 
 ## Form matrix with all combinations of these.
 combos <- expand.grid(numBtSamps=numBtSampsVec, numVarSplit=numVarSplitVec)
@@ -64,7 +60,7 @@ combos <- expand.grid(numBtSamps=numBtSampsVec, numVarSplit=numVarSplitVec)
 ## Do cross-validation over and over, leaving out a different 10% of
 ## the 57 observations each time.
 
-set.seed(9989932)
+set.seed(9489932)
 
 ## Number of times to do cross-validation.
 numCVs <- 200
