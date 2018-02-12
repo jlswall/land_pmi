@@ -30,8 +30,9 @@ rm(tmpT)
 ## Number of bootstrap samples.
 numBtSamps <- 5000
 
-## Early runs indicated that the number of splits is around 40.
-numVarSplit <- 40
+## Early runs indicated that the number of splits is around 20, when
+## dealing with sqrt units.
+numVarSplit <- 20
 ## ##################################################
 
 
@@ -45,13 +46,14 @@ numCVs <- 100
 ## ## How many observations to reserve for testing each time.
 numLeaveOut <- round(0.10 * nrow(allT))
 
+
 ## For matrix to hold cross-validation results.
 sqrtcvMSE <- rep(NA, numCVs)
 sqrtcvErrFrac <- rep(NA, numCVs)
 origUnitsqrtcvMSE <- rep(NA, numCVs)
 origUnitsqrtcvErrFrac <- rep(NA, numCVs)
 
-set.seed(4012423)
+set.seed(4012424)
 
 ## Do cross-validation.
 for (i in 1:numCVs){
@@ -87,7 +89,7 @@ rm(sqrtcvMSE, sqrtcvErrFrac, origUnitsqrtcvMSE, origUnitsqrtcvErrFrac)
 ## ##################################################
 ## Fit the final random forest with all the data (no cross-validation).
 
-set.seed(780932)
+set.seed(780939)
 
 ## Fit the random forest model on all the data (no cross-validation).
 rf <- randomForest(sqrt(degdays) ~ . , data=allT, mtry=numVarSplit,
