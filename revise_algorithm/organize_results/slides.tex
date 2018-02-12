@@ -173,14 +173,14 @@ the numbers and types of microbial communities present on the cadavers.
 \item Family-level taxa alone
 \item Order-level taxa alone
 \item Phylum-level taxa alone
-\item Combined: family, order, and phylum-level taxa
+\item Currently, I'm completing runs using all the above combined
 \end{itemize}
 
 \vspace{0.1in}
 
 \noindent Time scale:
 \begin{itemize}
-\item Tried models utilizing all 61 days of observations in the data setthe time steps in the data
+\item Tried models utilizing all 61 days of observations in the data set
 \item Tried models utilizing the first 15 days of observations. (After
   15 days, the observations are approx.~weekly, rather than every 2
   days.)
@@ -192,26 +192,31 @@ the numbers and types of microbial communities present on the cadavers.
 
 \begin{frame}{For a given taxa level (families, orders, or phyla)}
 
+  {\scriptsize
+
   \noindent For each cadaver and each day, we have counts of the taxa
   detected on swabs from the cadaver.
 
   \begin{itemize}
-    \item First, completely exclude the counts of ``unclassified''
-      taxa.
+  \item Completely excluded counts of ``unclassified'' taxa.
+   \item For all classified taxa, converted the counts to percentages (count of each taxa on each cadaver and each day, divided by total counts for that cadaver on that day)
     \item Some taxa are ``rare''; that is, the number of associated
-      counts are very small.  We label a taxa as rare if the number of
-      counts of that taxa on any individual or any day never amounted
-      to 1\% of the total counts.
+      counts are very small.  Considered ``rare'' if the percentage
+      represented by that taxa for any cadaver on any day never
+      amounted to 1\% of the daily count.
       \item The percentages associated with ``rare'' taxa were not
-        included in the analysis.
+        included in the random forest models.
     \end{itemize}
 
-  \noindent The highest percentages of rare taxa were:
-  families: 7.20\% on day 47 for subject A6 (deg. day 1326)
-  orders: 3.68\% on day 0 for subject A1 (deg. day 0)
+  \vspace{0.1in}
   
-
-
+  \noindent The highest percentages of rare taxa were:
+  \begin{itemize}
+  \item families: 7.20\% on day 47 for subject A6 (deg. day 1326)
+  \item orders: 3.68\% on day 0 for subject A1
+  \item phylum: 0.95\% on day 0 for subject A1
+      \end{itemize}
+}
 
 \end{frame}
 
@@ -221,9 +226,10 @@ the numbers and types of microbial communities present on the cadavers.
 
   {\scriptsize
   
-    \noindent Since the degree days are so right-skewed, I also ran
-    analyses using the square root of the degree days as the response
-    variable.
+    \noindent Since the degree days (the responses) are so
+    right-skewed, I fit all the random forest models in each of two ways:\\
+    - using the actual degree days as the response variable\\
+    - using the square root of the degree days as the response variable
 
     
 \begin{figure}
@@ -239,12 +245,39 @@ the numbers and types of microbial communities present on the cadavers.
 \begin{frame}{Looking at just the first 2 weeks}
 
   {\scriptsize
-    \noindent After 15 days, the observations occur much less frequently, on the order of about once a week, making the distribution less skewed.
+    \noindent I also fit random forest models separately for:\\
+    - the whole range of time steps (61 days)\\
+    - just the first 15 days
+
+    \vspace{0.05in}
+    
+    \noindent After the first 15 days, the observations occur much
+    less frequently, on the order of about once a week, so there is a
+    rather natural breaking point in the data here.
     
 \begin{figure}
   \includegraphics[width=2.1in]{degdays_first_two_weeks_hist}
   \includegraphics[width=2.1in]{sqrt_degdays_first_two_weeks_hist}
 \end{figure}
+  }
+  
+\end{frame}
+
+
+
+\begin{frame}{Fitting the random forest models}
+
+  {\footnotesize
+
+    \begin{itemize}
+  \item For each different scenario, we have to determine the number of variables to consider for each split of the random forest decision tree.
+  \item Considering only a subset of available variables at each split allows the random forest technique to work well when variables are correlated.
+  \item To determine the number that works best in each scenario, we use a series of cross-validation runs, leaving out a subset of our data each time and using the remaining data to fit the model and make predictions.
+    \item Each model is then fit using the number of splits that
+      worked best in cross-validation runs.
+      \item This was done for 12 different models.  (Four more models,
+        using combined taxa, are in process.)
+    \end{itemize}
   }
   
 \end{frame}
@@ -257,6 +290,7 @@ the numbers and types of microbial communities present on the cadavers.
 
 
 \begin{frame}{Using family taxa - original units}
+%% family, orig, all steps
 
   {\scriptsize
     
@@ -278,7 +312,8 @@ the numbers and types of microbial communities present on the cadavers.
 
 
 \begin{frame}{Using family taxa - sqrt transformation}
-
+  %% family, sqrt, all steps
+  
   {\scriptsize
     
   \noindent Using square root transformation:\\
@@ -303,7 +338,8 @@ the numbers and types of microbial communities present on the cadavers.
 
 
 \begin{frame}{Using order taxa - original units}
-
+  %% order, orig, all steps
+  
   {\scriptsize
     
   \noindent Using original units:\\
@@ -323,8 +359,10 @@ the numbers and types of microbial communities present on the cadavers.
 
 
 
-\begin{frame}{Using order taxa - sqrt transformation}
 
+\begin{frame}{Using order taxa - sqrt transformation}
+%% order, sqrt, all steps
+  
   {\scriptsize
     
   \noindent Using square root transformation:\\
@@ -349,6 +387,7 @@ the numbers and types of microbial communities present on the cadavers.
 
 
 \begin{frame}{Using combined taxa - original units}
+%% combined, orig, all steps
 
   {\scriptsize
     
@@ -370,7 +409,8 @@ the numbers and types of microbial communities present on the cadavers.
 
 
 \begin{frame}{Using combined taxa - sqrt transformation}
-
+%% combined, sqrt, all steps
+  
   {\scriptsize
     
   \noindent Using square root transformation:\\
@@ -395,11 +435,12 @@ the numbers and types of microbial communities present on the cadavers.
 
 
 \begin{frame}{Using phylum taxa - original units}
-
+%% phylum, orig, all steps
+  
   {\scriptsize
     
   \noindent Using original units:\\
-  RMSE: 380.86  \hspace{0.05in}  Explained variation: 52.92\%
+  RMSE: 313.98  \hspace{0.05in}  Explained variation: 68.01\%
 
   \begin{center}
     \begin{figure}
@@ -416,17 +457,18 @@ the numbers and types of microbial communities present on the cadavers.
 
 
 \begin{frame}{Using phylum taxa - sqrt transformation}
+%% phylum, sqrt, all steps
 
   {\scriptsize
     
   \noindent Using square root transformation:\\
-  RMSE: 8.37  \hspace{0.05in}  Explained variation: 54.70\%
+  RMSE: 6.40  \hspace{0.05in}  Explained variation: 73.50\%
 
   \vspace{0.05in}
   
   \noindent If you transform the predictions back to the original
   scale and then compare with the original degree days, the RMSE is
-  approximately 397.27.
+  approximately 313.28.
   
 \begin{center}
 \begin{figure}
@@ -447,7 +489,8 @@ the numbers and types of microbial communities present on the cadavers.
 
 
 \begin{frame}{Using family taxa - original units}
-
+%% family, orig, first 15
+  
   {\scriptsize
     
   \noindent Using original units:\\
@@ -469,6 +512,7 @@ considered as predictors.
 
 
 \begin{frame}{Using family taxa - sqrt transformation}
+%% family, sqrt, first 15
 
   {\scriptsize
     
@@ -494,6 +538,7 @@ considered as predictors.
 
 
 \begin{frame}{Using order taxa - original units}
+%% order, orig, first 15
 
   {\scriptsize
     
@@ -515,6 +560,7 @@ considered as predictors.
 
 
 \begin{frame}{Using order taxa - sqrt transformation}
+%% order, sqrt, first 15
 
   {\scriptsize
     
@@ -540,6 +586,7 @@ considered as predictors.
 
 
 \begin{frame}{Using combined taxa - original units}
+%% combined, orig, first 15
 
   {\scriptsize
     
@@ -561,7 +608,8 @@ considered as predictors.
 
 
 \begin{frame}{Using combined taxa - sqrt transformation}
-
+%% combined, sqrt, first 15
+  
   {\scriptsize
     
   \noindent Using square root transformation:\\
@@ -586,11 +634,12 @@ considered as predictors.
 
 
 \begin{frame}{Using phylum taxa - original units}
+%% phylum, orig, first 15
 
   {\scriptsize
     
   \noindent Using original units:\\
-  RMSE: 72.38  \hspace{0.05in}  Explained variation: 77.65\%
+  RMSE: 62.57  \hspace{0.05in}  Explained variation: 83.30\%
 
   \begin{center}
     \begin{figure}
@@ -607,17 +656,18 @@ considered as predictors.
 
 
 \begin{frame}{Using phylum taxa - sqrt transformation}
-
+%% phylum, sqrt, first 15
+  
   {\scriptsize
     
   \noindent Using square root transformation:\\
-  RMSE: 2.93 \hspace{0.05in}  Explained variation: 80.50\%
+  RMSE: 2.33 \hspace{0.05in}  Explained variation: 87.65\%
 
   \vspace{0.05in}
   
   \noindent If you transform the predictions back to the original
   scale and then compare with the original degree days, the RMSE is
-  approximately 75.16.
+  approximately 62.67.
   
 \begin{center}
 \begin{figure}
