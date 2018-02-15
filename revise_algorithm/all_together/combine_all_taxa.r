@@ -15,6 +15,9 @@ tmpT <- read_csv(paste0("../", taxalevel, "_massaged.csv"))
 phylaT <- tmpT %>%
   select(days, degdays, subj, taxa, fracBySubjDay) %>%
   spread(taxa, fracBySubjDay)
+## Also, save the list of unique phyla taxa as a data frame.
+taxasGroupT <- tmpT %>% distinct(taxa)
+taxasGroupT$group <- "phylum"
 ## #####################
 
 ## #####################
@@ -26,6 +29,12 @@ tmpT <- read_csv(paste0("../", taxalevel, "_massaged.csv"))
 ordersT <- tmpT %>%
   select(days, degdays, subj, taxa, fracBySubjDay) %>%
   spread(taxa, fracBySubjDay)
+## Save the list of unique order taxa as a tibble, combine it with
+## those of the phyla.
+tmpGroupT <- tmpT %>% distinct(taxa)
+tmpGroupT$group <- "order"
+taxasGroupT <- bind_rows(taxasGroupT, tmpGroupT)
+rm(tmpGroupT)
 ## #####################
 
 ## #####################
@@ -37,9 +46,22 @@ tmpT <- read_csv(paste0("../", taxalevel, "_massaged.csv"))
 familiesT <- tmpT %>%
   select(days, degdays, subj, taxa, fracBySubjDay) %>%
   spread(taxa, fracBySubjDay)
+## Save the list of unique family taxa as a tibble, combine it with
+## those of the phyla and orders.
+tmpGroupT <- tmpT %>% distinct(taxa)
+tmpGroupT$group <- "family"
+taxasGroupT <- bind_rows(taxasGroupT, tmpGroupT)
+rm(tmpGroupT)
 ## #####################
 
 rm(taxalevel, tmpT)
+## ##################################################
+
+
+## ##################################################
+## Write out the list of taxas with their group.
+
+write.csv(taxasGroupT %>% filter(taxa!="Rare"), file="list_taxas_groups.csv", row.names=FALSE)
 ## ##################################################
 
 
