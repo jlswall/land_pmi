@@ -173,7 +173,7 @@ the numbers and types of microbial communities present on the cadavers.
 \item Family-level taxa alone
 \item Order-level taxa alone
 \item Phylum-level taxa alone
-\item Currently, I'm completing runs using all the above combined
+\item All the above combined
 \end{itemize}
 
 \vspace{0.1in}
@@ -253,7 +253,7 @@ the numbers and types of microbial communities present on the cadavers.
     
     \noindent After the first 15 days, the observations occur much
     less frequently, on the order of about once a week, so there is a
-    rather natural breaking point in the data here.
+    natural breaking point in the data here.
     
 \begin{figure}
   \includegraphics[width=2.1in]{degdays_first_two_weeks_hist}
@@ -270,13 +270,12 @@ the numbers and types of microbial communities present on the cadavers.
   {\footnotesize
 
     \begin{itemize}
-  \item For each different scenario, we have to determine the number of variables to consider for each split of the random forest decision tree.
+  \item For each scenario, we have to determine the number of variables to consider for each split of the random forest decision tree.
   \item Considering only a subset of available variables at each split allows the random forest technique to work well when variables are correlated.
-  \item To determine the number that works best in each scenario, we use a series of cross-validation runs, leaving out a subset of our data each time and using the remaining data to fit the model and make predictions.
+  \item To determine the number that works best in each scenario, we use a series of cross-validation runs, leaving out a 10\% subset of our data each time and using the remaining data to fit the model and make predictions.
     \item Each model is then fit using the number of splits that
       worked best in cross-validation runs.
-      \item This was done for 12 different models.  (Four more models,
-        using combined taxa, are in process.)
+      \item This was done for 16 different models.
     \end{itemize}
   }
   
