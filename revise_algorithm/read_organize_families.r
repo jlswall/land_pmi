@@ -369,5 +369,10 @@ unique(
 ## Save the tibble to a file for use in separate code
 ## for graphing and analysis.
 
-write_csv(commontaxaT, path="families_massaged.csv")
+## I decided to use the write.csv() routine for the family data, even
+## though I didn't have the problems here that I did with the orders
+## and the phyla.  That way, it remains consistent, and hopefully I
+## prevent future issues with write_csv and scientific notation.
+## write_csv(commontaxaT, path="families_massaged.csv")
+write.csv(commontaxaT, file="families_massaged.csv", row.names=FALSE)
 ## ##################################################
