@@ -1,0 +1,8 @@
+"Pig 1","Pig 1 ADD","Pig 2","Pig 2 ADD","Pig 3","Pig 3 ADD","Pig Average ADD"
+"T0",0,"T0",0,"T0",0,0
+"T1",17,"T1",17,"T1",17,17
+"T2",36,"T2",35,"T2",35,35
+"T3",58,"T3",56,"T3",56,57
+"T4",81,"T4",88,"T4",88,86
+"T5",105,"T5",102,"T5",102,103
+"*ADD given in accumulated degrees Celsius ",,,,,,
