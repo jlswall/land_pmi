@@ -21,14 +21,14 @@ sum(duplicated(colnames(rawAllT)))
 
 
 ## ##################################################
-## Concentrate on the counts for the individual pigs on the various
-## days.  Transfer from wide format to long format.  Check that the
+## Focus on the counts for the individual pigs on the various
+## days.  Want to transfer from wide format to long format.  Check that the
 ## columns whose names start with "Avg" are actually the averages I
 ## think they are, and I'll check that totals column and row seems
 ## correct.
 
-## Column 3: taxa name (last row, labeled "Bacteria", contains
-##    totals over all taxa)
+## Column 3: taxa name (some with strange "o__", "c__" prefixes
+##   The first row contains the totals.
 ## Column 5: contains totals of all counts (all days and subjects) for
 ## the taxa in that row
 ##
@@ -45,6 +45,7 @@ sum(duplicated(colnames(rawAllT)))
 ## Identify column names starting with "P". Save these as the counts
 ## for individual pigs on the various days.
 namesP <- colnames(rawAllT)[substring(first=1, last=1, colnames(rawAllT))=="P"]
+## Extract the columns with the taxa names and the counts by subject and day.
 wideIndivT <- rawAllT[,c("origName", namesP)]
 
 ## Identify column names starting with "Avg_T".  The values in these
@@ -52,15 +53,7 @@ wideIndivT <- rawAllT[,c("origName", namesP)]
 ## The names of these columns contain the number of days since death.
 ## The number of days since death immediately follows the "T".
 namesT <- colnames(rawAllT)[substring(first=1, last=5, colnames(rawAllT))=="Avg_T"]
-## Separate the days from the "Avg_T" part.
-timeDF <- data.frame(days=substring(namesT, first=6))
-## ##### INSERT DEGREE DAYS HERE! #####
-## Note: number of days and accum. degree days are strongly correlated.
-with(timeDF, cor(degdays, days))
-
-
-## Extract the columns with the taxa names and the average counts
-## across pigs for each time point.
+## Extract the columns with the taxa names and the average counts by day.
 wideAvgsT <- rawAllT[,c("origName", namesT)]
 
 rm(namesP, namesT)
@@ -71,15 +64,13 @@ rm(namesP, namesT)
 ## Go from wide format to long format.  Check the averages and totals
 ## columns.
 
-## ##### FIX THE NEXT LINE HERE! #####
-## Go from wide to long format.
+## Go from wide to long format.  Pull out subject and day from the
+## column names of the form "P#T#S1".
 indivT <- wideIndivT %>%
   gather(indiv_time, counts, -origName) %>%
-  separate(indiv_time, sep="_T", into=c("subj", "days"), convert=T)
-  ## To add rows of missing values for combinations of days and
-  ## subjects on which no samples are available (some subjects
-  ## were not observed on certain days), add %>% and then this:
-  ## complete(taxonName, days, subj)
+  separate(indiv_time, sep="T", into=c("subj", "days"), convert=T) %>%
+  separate(days, sep="S", into=c("days", "notneeded"), convert=T) %>%
+  select(-notneeded)
 
 
 ## Check whether we can get back the values in wideAvgsT when we do a
@@ -89,13 +80,17 @@ chkAvgsT <- indivT %>%
   group_by(origName, days) %>%
   summarize(avgs=mean(counts)) %>%
   spread(key=days,  value=avgs)
-## Match the names to the timeDF frame.
-matchNamesV <- na.omit(match(colnames(chkAvgsT), as.character(timeDF$days)))
-chkNamesV <- paste(timeDF[matchNamesV,1], timeDF[matchNamesV,2], sep="_")
-colnames(chkAvgsT) <- c("origName", paste0("T", chkNamesV))
+## Match the names to the original column names.
+matchNamesV <- colnames(chkAvgsT) %in% as.character(unique(indivT$days))
+chkNamesV <- paste0("Avg_T", names(chkAvgsT)[matchNamesV])
+colnames(chkAvgsT) <- c(colnames(chkAvgsT)[!matchNamesV], chkNamesV)
+rm(matchNamesV, chkNamesV)
 ## Order this in the same order as what I read in from the sheet.
 reorderChkT <- chkAvgsT[match(wideAvgsT$origName, chkAvgsT$origName), colnames(wideAvgsT)]
 
+
+## ########## THERE ARE SOME MIS-MATCHES BELOW ##########
+## ########## I think the averages in the sheet are rounded.
 
 ## Compare with the averages I read in from the sheet.
 ## First, ensure taxonNames in same order.
