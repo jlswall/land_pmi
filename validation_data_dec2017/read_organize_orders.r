@@ -89,27 +89,21 @@ rm(matchNamesV, chkNamesV)
 reorderChkT <- chkAvgsT[match(wideAvgsT$origName, chkAvgsT$origName), colnames(wideAvgsT)]
 
 
-## ########## THERE ARE SOME MIS-MATCHES BELOW ##########
-## ########## I think the averages in the sheet are rounded.
-
 ## Compare with the averages I read in from the sheet.
 ## First, ensure taxonNames in same order.
 all.equal(wideAvgsT[,1], reorderChkT[,1])
-## Now check the counts, not the taxa names.
-apply(wideAvgsT[,-1] - reorderChkT[,-1], 2, summary)
-## There is a problem with column T1_27.  As an example, consider the
-## counts for Clostridiales on that day.
-subset(indivT, (days==1) & (origName=="Clostridiales"), "counts")
-## The average is given by:
-apply(subset(indivT, (days==1) & (origName=="Clostridiales"), "counts"), 2, mean)
-## But, this is not the average we read from the sheet.
-subset(wideAvgsT, (origName=="Clostridiales"), "T1_27")
-## It looks like they took the sum, not the mean.
-apply(subset(indivT, (days==1) & (origName=="Clostridiales"), "counts"), 2, sum)
-## Look at all the values for "T1_27".
-## cbind(reorderChkT[,"T1_27"], wideAvgsT[,"T1_27"], reorderChkT[,"T1_27"]- wideAvgsT[,"T1_27"] )
-rm(chkAvgsT, matchNamesV, chkNamesV)
+## Now check the counts.  The averages in the spreadsheet appear to
+## have been rounded, so we expect some differences.  However, there
+## shouldn't be any differences greater than 0.5.
+indicBigDiff <- abs(wideAvgsT[,-1] - reorderChkT[,-1]) > 0.5
+sum(indicBigDiff)
+
+rm(indicBigDiff)
 ## #######################
+
+
+## ########## WORKING HERE! ###########
+
 
 
 ## #######################
