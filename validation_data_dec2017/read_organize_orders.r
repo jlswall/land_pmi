@@ -8,15 +8,27 @@ fileNm <- "Skin_Validation_Summary_summer_2017.xlsx"
 rawAllT <- read_excel(path=fileNm, sheet="Order")
 rm(fileNm)
 
+
+## ##################################################
+## Deal with column names.
+
 ## The "taxon" column contains some names that are strange because
 ## they have "k__" or "o__" at the beginning.  I will want to make a
 ## new column later with only text-based names.  So, I rename this
 ## column now to avoid confusion later.
 colnames(rawAllT)[colnames(rawAllT)=="taxon"] <- "origName"
 
-## Column names are unique in this sheet (unlike the "Phylum_all"
-## sheet in the original data I got.)
+## Ensure column names are unique in this sheet (unlike the
+## "Phylum_all" sheet in the first spreadsheet I got.)
 sum(duplicated(colnames(rawAllT)))
+
+## The column names for the individual subject day counts all end with
+## "S1" (positions 5-6 in the string).  This makes them harder to deal
+## with later in the code, so we remove the "S1".
+indicS1 <- substring(colnames(rawAllT), first=5, last=6)=="S1"
+colnames(rawAllT)[indicS1] <- substring(colnames(rawAllT)[indicS1], first=1, last=4)
+rm(indicS1)
+## ##################################################
 
 
 
@@ -65,12 +77,10 @@ rm(namesP, namesT)
 ## columns.
 
 ## Go from wide to long format.  Pull out subject and day from the
-## column names of the form "P#T#S1".
+## column names of the form "P#T#".
 indivT <- wideIndivT %>%
   gather(indiv_time, counts, -origName) %>%
-  separate(indiv_time, sep="T", into=c("subj", "days"), convert=T) %>%
-  separate(days, sep="S", into=c("days", "notneeded"), convert=T) %>%
-  select(-notneeded)
+  separate(indiv_time, sep="T", into=c("subj", "days"), convert=T)
 
 
 ## Check whether we can get back the values in wideAvgsT when we do a
@@ -102,135 +112,56 @@ rm(indicBigDiff)
 ## #######################
 
 
-## ########## WORKING HERE! ###########
-
-
-
-## #######################
-## Check that the total counts for each taxa match the "total" column
-## (column #111).  There are a lot of these to check, so we take the
-## absolute differences between the our total counts and the "total"
-## column and make sure that the biggest difference is 0.
-max(indivT %>%
-  group_by(origName) %>%
-  summarize(totalCt = sum(counts)) %>%
-  left_join(rawAllT %>% select(origName, total)) %>%
-  mutate(absDiffOrigMyCalc = abs(total - totalCt)) %>%
-  select(absDiffOrigMyCalc)
-  )
-## #######################
-
 
 ## #######################
 ## Check that the total counts for each subject on each day match the
-## "Bacteria" row (row #233 in the tibble, #234 in the worksheet).
+## "Bacteria" row (first row).
 
 ## Save these totals in a table for use in calculating percentages.
 ## We exclude "Bacteria" taxa because that line is supposed to contain
 ## the totals of all the taxa, including the unclassified taxa.
 ## Later, I'll re-do these counts to exclude the "unclassified" taxa.
 ctBySubjDayT <- indivT %>%
-  filter(origName!="Bacteria") %>%
+  filter(origName!="k__Bacteria") %>%
   group_by(days, subj) %>%
   summarize(totals=sum(counts))
 
-## Compare the totals calculated above with the last row ("Bacteria")
-## of the individual counts.
+## Compare the totals calculated above with the first row
+## ("k__Bacteria")
 all.equal(
-    unite(ctBySubjDayT, subj_day, subj, days, sep="_T") %>%
+    unite(ctBySubjDayT, subj_day, subj, days, sep="T") %>%
       spread(key=subj_day, value=totals),
-    wideIndivT %>% filter(origName=="Bacteria") %>% select(-origName)
+    wideIndivT %>% filter(origName=="k__Bacteria") %>% select(-origName)
 )
 ## #######################
 
-rm(mainT, wideAvgsT, wideIndivT, reorderChkT)
+
+## #######################
+## Check that the total counts for each taxa (across days and pigs)
+## match the totals column (column "E").
+
+## There's a PROBLEM HERE, because the totals in column e are often
+## bigger than my totals (never less than my totals).
+totalDiffT <- indivT %>%
+  group_by(origName) %>%
+  filter(origName!="k__Bacteria") %>%
+  summarize(myTotal=sum(counts)) %>%
+  full_join(rawAllT %>% filter(origName!="k__Bacteria") %>% arrange(origName) %>% select(origName, total)) %>%
+  mutate(mineMinusTheirs = myTotal-total)
+
+summary(totalDiffT$mineMinusTheirs)
+## #######################
+
+rm(wideAvgsT, wideIndivT, reorderChkT, totalDiffT)
 ## ##################################################
 
 
 
-
 ## ##################################################
-## Columns 113-223 ("DI"-"HO") appear to be percentages for each taxa, by
-## day and pig.  Check these.
-## Columns 225-242: I haven't checked these yet.
+## Find the percentage of counts which are unclassified bacteria.
 
-## #######################
-## Organize the information.
-
-## Put these columns in their own table.
-widePercT <- rawAllT[,113:223]
-
-## The first column contains the order names.
-colnames(widePercT)[1] <- "origName"
-
-## Identify column names starting with "A" (individuals A1-A6).
-namesA <- colnames(widePercT)[substring(first=1, last=1, colnames(widePercT))=="A"]
-wideIndivPercT <- rawAllT[,c("origName", namesA)]
-
-
-## Identify column names starting with "T" (averages across
-## individuals).
-namesT <- colnames(widePercT)[substring(first=1, last=1, colnames(widePercT))=="T"]
-wideAvgsPercT <- rawAllT[,c("origName", namesA)]
-
-rm(namesA, namesT)
-## #######################
-
-
-## #######################
-## Try to take the individual percentages from wide format to long
-## format.
-## indivPercT <- wideIndivPercT %>%
-##   gather(indiv_time, perc, -origName) %>%
-##   separate(indiv_time, sep="_T", into=c("subj", "days_with_extra"), convert=T) %>%
-##   separate(days_with_extra, sep="__", into=c("days", "extra_stuff"), convert=T) %>%
-##   select(-extra_stuff)
-## #######################
-
-
-## #######################
-## Check that these percentages straight from the worksheet are the
-## same as what we calculate based on the individual counts.
-
-## First, I calculate these percentages based on the individuals
-## counts and the sums (based on those counts) that I calculated
-## earlier.  I add this column to the main table.
-indivT <- indivT %>%
-  left_join(ctBySubjDayT) %>%
-  mutate(percByDaySubj = 100*counts/totals) %>%
-  select(-totals)
-
-
-## Try to put these percentages in wide format for comparison with the
-## raw numbers from the worksheet.
-chkPercT <- indivT %>%
-  select(-counts) %>%
-  mutate(extrachar="1") %>%
-  unite(subj_days, subj, days, sep="_T") %>%
-  unite(subj_days, subj_days, extrachar, sep="__") %>%
-  spread(key=subj_days, value=percByDaySubj)
-
-## Now check to see if this matches the numbers we got from the spreadsheet.
-if (!all.equal(chkPercT, wideIndivPercT))
-  stop("Something different between the two sets of percentages.")
-if (nrow(setdiff(chkPercT, wideIndivPercT)) != 0)
-  stop("Extra observations were created when working with indivT")
-if (nrow(setdiff(wideIndivPercT, chkPercT)) != 0)
-  stop("More observations were are in the original worksheet than created when working with indivT")
-
-
-rm(chkPercT, ctBySubjDayT, wideIndivPercT, widePercT, wideAvgsPercT)
-## #######################
-## ##################################################
-
-
-
-
-## ##################################################
-## Find the percentage of counts which are unclassified.
-
-## About 1.1% are unclassified.
-sum(subset(indivT, origName=="Unclassified")[,"counts"])/sum(subset(indivT, origName!="Bacteria")[,"counts"])
+## About 0.35% are unclassified.
+sum(subset(indivT, origName=="k__Bacteria_unclassified")[,"counts"])/sum(subset(indivT, origName!="k__Bacteria")[,"counts"])
 ## ##################################################
 
 
@@ -239,11 +170,13 @@ sum(subset(indivT, origName=="Unclassified")[,"counts"])/sum(subset(indivT, orig
 ## ##################################################
 ## Make other adjustments to the dataset so that it's easier to use.
 
-## Remove the Bacteria row (last row), since it is just the totals of
-## the taxa.  Remove the counts associated with unclassifed taxa.
+## ############ WORKING HERE! ############
+
+## Remove the k__Bacteria row (first row), since it is just the totals
+## of the taxa.  Remove the counts associated with unclassifed taxa.
 ## Also, include accum. degree days in the tibble.
 indivT <- indivT %>%
-  filter(!(origName %in% c("Bacteria", "Unclassified"))) %>%
+  filter(!(origName %in% c("k__Bacteria", "k__Bacteria_unclassified"))) %>%
   left_join(timeDF, by="days")
 
 
@@ -260,6 +193,7 @@ indivT$taxa <- gsub(indivT$taxa, pattern="-", replacement="_")
 ## the next taxa column.
 indivT <- indivT %>% select(-origName)
 ## ##################################################
+
 
 
 
