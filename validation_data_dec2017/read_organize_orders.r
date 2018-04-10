@@ -166,34 +166,38 @@ sum(subset(indivT, origName=="k__Bacteria_unclassified")[,"counts"])/sum(subset(
 
 
 
-
 ## ##################################################
 ## Make other adjustments to the dataset so that it's easier to use.
 
-## ############ WORKING HERE! ############
+## Read in the table containing degdays by subj and time.
+timeT <- read_csv("degdays_by_subj_day.csv")
+
 
 ## Remove the k__Bacteria row (first row), since it is just the totals
 ## of the taxa.  Remove the counts associated with unclassifed taxa.
 ## Also, include accum. degree days in the tibble.
 indivT <- indivT %>%
   filter(!(origName %in% c("k__Bacteria", "k__Bacteria_unclassified"))) %>%
-  left_join(timeDF, by="days")
+  left_join(timeT)
 
 
-## Make a new, more readable taxa column.
-## Column names with open brackets (e.g. "[Tissierellaceae]") causes
-## problems for functions expecting traditional data frame column
-## names.
-indivT$taxa <- gsub(indivT$origName, pattern="\\[", replacement="")
-indivT$taxa <- gsub(indivT$taxa, pattern="]", replacement="")
-## Column names with dashes can likewise be a problem, so I replace
-## dashes with underscores.
-indivT$taxa <- gsub(indivT$taxa, pattern="-", replacement="_")
-## Remova the taxonName column from the tibble to avoid confusion with
+## ## Make a new, more readable taxa column.
+## ## Column names with open brackets (e.g. "[Tissierellaceae]") causes
+## ## problems for functions expecting traditional data frame column
+## ## names.
+## indivT$taxa <- gsub(indivT$origName, pattern="\\[", replacement="")
+## indivT$taxa <- gsub(indivT$taxa, pattern="]", replacement="")
+## ## Column names with dashes can likewise be a problem, so I replace
+## ## dashes with underscores.
+## indivT$taxa <- gsub(indivT$taxa, pattern="-", replacement="_")
+
+## I decided to leave the names alone for the taxa, even though they
+## aren't very read-able.
+indivT$taxa <- indivT$origName
+## Remove the taxonName column from the tibble to avoid confusion with
 ## the next taxa column.
 indivT <- indivT %>% select(-origName)
 ## ##################################################
-
 
 
 
@@ -213,6 +217,10 @@ ctByDayT <- indivT %>%
   group_by(days, degdays) %>%
   summarize(totals = sum(counts))
 ## ##################################################
+
+
+
+## ############ WORKING HERE! ############
 
 
 
