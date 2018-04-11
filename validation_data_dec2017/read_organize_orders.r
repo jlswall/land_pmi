@@ -220,13 +220,9 @@ ctByDayT <- indivT %>%
 
 
 
-## ############ WORKING HERE! ############
-
-
-
 ## ##################################################
 ## Some taxa don't occur frequently.  It's hard to make a hard cutoff
-## for what constitutes "frequently".  There are 143 taxa in the
+## for what constitutes "frequently".  There are 140 taxa in the
 ## dataset, and a lot of them appear in less than 0.1% of samples.
 
 ## I'm going to set the cutoff at 1% (0.01).  This means that in order
@@ -271,7 +267,6 @@ rm(freqTaxaT)
 
 
 
-
 ## ##################################################
 ## Add percentages by subj/day to the commontaxaT table.
 
@@ -292,6 +287,10 @@ unique(
            select(sumFracBySubjDay))
 )
 ## ##################################################
+
+
+
+## ############ WORKING HERE! ############
 
 
 
