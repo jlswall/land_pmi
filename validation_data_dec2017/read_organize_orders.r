@@ -181,20 +181,22 @@ indivT <- indivT %>%
   left_join(timeT)
 
 
-## ## Make a new, more readable taxa column.
-## ## Column names with open brackets (e.g. "[Tissierellaceae]") causes
-## ## problems for functions expecting traditional data frame column
-## ## names.
-## indivT$taxa <- gsub(indivT$origName, pattern="\\[", replacement="")
-## indivT$taxa <- gsub(indivT$taxa, pattern="]", replacement="")
-## ## Column names with dashes can likewise be a problem, so I replace
-## ## dashes with underscores.
-## indivT$taxa <- gsub(indivT$taxa, pattern="-", replacement="_")
+## Make a new, more readable taxa column.
+## Remove the "o__", "c__", "p__" from the fronts of all the taxa
+## names.
+indivT$taxa <- gsub(indivT$origName, pattern="o__", replacement="")
+indivT$taxa <- gsub(indivT$taxa, pattern="c__", replacement="")
+indivT$taxa <- gsub(indivT$taxa, pattern="p__", replacement="")
+## Column names with open brackets (e.g. "[Tissierellaceae]") causes
+## problems for functions expecting traditional data frame column
+## names.
+indivT$taxa <- gsub(indivT$taxa, pattern="\\[", replacement="")
+indivT$taxa <- gsub(indivT$taxa, pattern="]", replacement="")
+## Column names with dashes can likewise be a problem, so I replace
+## dashes with underscores.
+indivT$taxa <- gsub(indivT$taxa, pattern="-", replacement="_")
 
-## I decided to leave the names alone for the taxa, even though they
-## aren't very read-able.
-indivT$taxa <- indivT$origName
-## Remove the taxonName column from the tibble to avoid confusion with
+## Remove the origName column from the tibble to avoid confusion with
 ## the next taxa column.
 indivT <- indivT %>% select(-origName)
 ## ##################################################
@@ -220,49 +222,53 @@ ctByDayT <- indivT %>%
 
 
 
+## FOLLOWING IS COMMENTED OUT BECAUSE THE NEEDED TAXA WILL BE USED
+## BY THE MODEL FIT ON THE ORIGINAL DATA.
+## So, I will just copy indivT to commontaxaT.
+commontaxaT <- indivT
 ## ##################################################
 ## Some taxa don't occur frequently.  It's hard to make a hard cutoff
 ## for what constitutes "frequently".  There are 140 taxa in the
 ## dataset, and a lot of them appear in less than 0.1% of samples.
 
-## I'm going to set the cutoff at 1% (0.01).  This means that in order
-## to be included in the dataset, a specific taxa must make up at
-## least 1% of the total counts on at least 1 day for at least 1
-## cadaver.
-freqCutoff <- 0.01
+## ## I'm going to set the cutoff at 1% (0.01).  This means that in order
+## ## to be included in the dataset, a specific taxa must make up at
+## ## least 1% of the total counts on at least 1 day for at least 1
+## ## cadaver.
+## freqCutoff <- 0.01
 
-## Get list of maximum taxa percentages sorted in descending order:
-data.frame(indivT %>%
-  left_join(ctBySubjDayT) %>%
-  mutate(fracBySubjDay = counts/totals) %>%
-  group_by(taxa) %>%
-  summarize(maxFracBySubjDay = max(fracBySubjDay)) %>%
-  arrange(desc(maxFracBySubjDay))
-)
-
-
-## Save the taxa names (in a tibble) which satisfy the frequency
-## cutoff.
-freqTaxaT <- indivT %>%
-  left_join(ctBySubjDayT) %>%
-  mutate(fracBySubjDay = counts/totals) %>%
-  group_by(taxa) %>%
-  summarize(maxFracBySubjDay = max(fracBySubjDay)) %>%
-  filter(maxFracBySubjDay >= freqCutoff) %>%
-  arrange(desc(maxFracBySubjDay)) %>%
-  select(taxa)
+## ## Get list of maximum taxa percentages sorted in descending order:
+## data.frame(indivT %>%
+##   left_join(ctBySubjDayT) %>%
+##   mutate(fracBySubjDay = counts/totals) %>%
+##   group_by(taxa) %>%
+##   summarize(maxFracBySubjDay = max(fracBySubjDay)) %>%
+##   arrange(desc(maxFracBySubjDay))
+## )
 
 
-## Rename taxa that occur less than the frequency cutoff allows as
-## "rare".  Then, sum all these "rare" taxa into one row.
-commontaxaT <- indivT
-commontaxaT[!(commontaxaT$taxa %in% freqTaxaT$taxa), "taxa"] <- "Rare"
-commontaxaT <- commontaxaT %>%
-  group_by(days, degdays, subj, taxa) %>%
-  summarize(counts = sum(counts))
+## ## Save the taxa names (in a tibble) which satisfy the frequency
+## ## cutoff.
+## freqTaxaT <- indivT %>%
+##   left_join(ctBySubjDayT) %>%
+##   mutate(fracBySubjDay = counts/totals) %>%
+##   group_by(taxa) %>%
+##   summarize(maxFracBySubjDay = max(fracBySubjDay)) %>%
+##   filter(maxFracBySubjDay >= freqCutoff) %>%
+##   arrange(desc(maxFracBySubjDay)) %>%
+##   select(taxa)
 
-## Remove the list of taxa names that satisfied the frequence cutoff.
-rm(freqTaxaT)
+
+## ## Rename taxa that occur less than the frequency cutoff allows as
+## ## "rare".  Then, sum all these "rare" taxa into one row.
+## commontaxaT <- indivT
+## commontaxaT[!(commontaxaT$taxa %in% freqTaxaT$taxa), "taxa"] <- "Rare"
+## commontaxaT <- commontaxaT %>%
+##   group_by(days, degdays, subj, taxa) %>%
+##   summarize(counts = sum(counts))
+
+## ## Remove the list of taxa names that satisfied the frequence cutoff.
+## rm(freqTaxaT)
 ## ##################################################
 
 
@@ -287,10 +293,6 @@ unique(
            select(sumFracBySubjDay))
 )
 ## ##################################################
-
-
-
-## ############ WORKING HERE! ############
 
 
 
