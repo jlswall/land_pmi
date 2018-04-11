@@ -13,9 +13,9 @@ rm(fileNm)
 ## Deal with column names.
 
 ## The "taxon" column contains some names that are strange because
-## they have "k__" or "o__" at the beginning.  I will want to make a
-## new column later with only text-based names.  So, I rename this
-## column now to avoid confusion later.
+## they have "o__" at the beginning or square brackets around the
+## name.  I will want to make a new column later with only text-based
+## names.  So, I rename this column now to avoid confusion later.
 colnames(rawAllT)[colnames(rawAllT)=="taxon"] <- "origName"
 
 ## Ensure column names are unique in this sheet (unlike the
@@ -39,7 +39,7 @@ rm(indicS1)
 ## think they are, and I'll check that totals column and row seems
 ## correct.
 
-## Column 3: taxa name (some with strange "o__", "c__" prefixes
+## Column 3: taxa name (some with "o__", "c__" prefixes)
 ##   The first row contains the totals.
 ## Column 5: contains totals of all counts (all days and subjects) for
 ## the taxa in that row
@@ -176,17 +176,18 @@ timeT <- read_csv("degdays_by_subj_day.csv")
 ## Remove the k__Bacteria row (first row), since it is just the totals
 ## of the taxa.  Remove the counts associated with unclassifed taxa.
 ## Also, include accum. degree days in the tibble.
-indivT <- indivT %>%
-  filter(!(origName %in% c("k__Bacteria", "k__Bacteria_unclassified"))) %>%
+newT <- indivT %>%
+  filter(origName!="k__Bacteria") %>%
+  filter(!grepl("unclassified", origName, ignore.case=T)) %>%
   left_join(timeT)
 
+## ###### WORKING HERE! RE-CHECKING THIS CODE! #####
 
 ## Make a new, more readable taxa column.
-## Remove the "o__", "c__", "p__" from the fronts of all the taxa
-## names.
+## Remove the "o__" from the fronts of all the taxa names.  (All the
+## taxa with names starting with "c__" and "p__" were unclassified
+## data, and were removed in the previous step.
 indivT$taxa <- gsub(indivT$origName, pattern="o__", replacement="")
-indivT$taxa <- gsub(indivT$taxa, pattern="c__", replacement="")
-indivT$taxa <- gsub(indivT$taxa, pattern="p__", replacement="")
 ## Column names with open brackets (e.g. "[Tissierellaceae]") causes
 ## problems for functions expecting traditional data frame column
 ## names.
