@@ -14,6 +14,39 @@ rfCovar <- attr(rf[["terms"]], "term.labels")
 validT <- read_csv("orders_massaged.csv")
 
 
+## ##################################################
+## Compare the percentages with those from the original dataset for
+## the most important variables.
+
+## Find the variables by order of importance in original random forest
+## model.
+orderIncMSE <- order(rf[["importance"]][,"%IncMSE"], decreasing=TRUE)
+varsByImportance <- rownames(rf[["importance"]][orderIncMSE,])
+rm(orderIncMSE)
+
+## Read in the original data.
+origT <- read_csv("../revise_algorithm/orders_massaged.csv")
+
+par(mfrow=c(3,2))
+for (iTaxa in varsByImportance[1:6]){
+
+  ## Subset and make boxplots for original data.
+  subT <- origT %>% filter((taxa==iTaxa) & (degdays<=150))
+  boxplot(fracBySubjDay ~ degdays, data=subT, main=iTaxa)
+
+  ## Subset and make boxplots for validation data.
+  subValidT <- validT %>%
+    filter((taxa==iTaxa) & (degdays<=150)) %>%
+    group_by(degdays) %>%
+    summarize(medianFrac = median(fracBySubjDay))
+  with(subValidT, lines(degdays, medianFrac, col="blue", lty=2, lwd=3))
+}
+
+## ##################################################
+
+
+
+
 ## For the validation data, assess taxa variability across the first
 ## few days, averaged across pigs, in terms of fractions.
 avgTaxaOverdegdaysT <- validT %>%
@@ -21,18 +54,6 @@ avgTaxaOverdegdaysT <- validT %>%
   group_by(degdays, taxa) %>%
   summarize(avgFracByDegday=mean(fracBySubjDay)) %>%
   filter(avgFracByDegday >= 0.01)
-
-
-ggplot(validT %>% filter(taxa %in% rfCovar),
-    aes(degdays, fracBySubjDay)) +
-    geom_point(aes(color=taxa)) +
-    labs(x="Degree days", y="Composition fraction") +
-    labs(color="Taxa")
-
-ggplot(avgTaxaOverdegdaysT, aes(x=degdays, y=avgFracByDegday, fill=taxa)) +
-  geom_bar(stat="identity", position="stack") +
-  labs(x="Days", y="Composition fraction")
-         
 
 
 
