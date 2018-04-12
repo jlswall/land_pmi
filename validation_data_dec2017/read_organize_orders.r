@@ -176,12 +176,10 @@ timeT <- read_csv("degdays_by_subj_day.csv")
 ## Remove the k__Bacteria row (first row), since it is just the totals
 ## of the taxa.  Remove the counts associated with unclassifed taxa.
 ## Also, include accum. degree days in the tibble.
-newT <- indivT %>%
+indivT <- indivT %>%
   filter(origName!="k__Bacteria") %>%
   filter(!grepl("unclassified", origName, ignore.case=T)) %>%
   left_join(timeT)
-
-## ###### WORKING HERE! RE-CHECKING THIS CODE! #####
 
 ## Make a new, more readable taxa column.
 ## Remove the "o__" from the fronts of all the taxa names.  (All the
