@@ -30,11 +30,24 @@ origT <- read_csv("../revise_algorithm/orders_massaged.csv")
 par(mfrow=c(3,2))
 for (iTaxa in varsByImportance[1:6]){
 
-  ## Subset and make boxplots for original data.
-  subT <- origT %>% filter((taxa==iTaxa) & (degdays<=150))
-  boxplot(fracBySubjDay ~ degdays, data=subT, main=iTaxa)
+  ## Subset and draw max/min lines for original data.
+  subT <- origT %>%
+    filter((taxa==iTaxa) & (degdays<=150)) %>%
+    group_by(degdays) %>%
+    summarize(minFrac=min(fracBySubjDay), maxFrac=max(fracBySubjDay))
+  ## boxplot(fracBySubjDay ~ degdays, data=subT, main=iTaxa)
 
-  ## Subset and make boxplots for validation data.
+  ## Put on dots to represent validation measurements.
+  ## Cadaver 1 ("P1").
+  subValidT <- validT %>% filter((subj=="P1") & (taxa==iTaxa))
+  with(subValidT, points(degdays, fracBySubjDay, pch=1, col="blue"))
+  ## Cadaver 2 ("P2").
+  subValidT <- validT %>% filter((subj=="P2") & (taxa==iTaxa))
+  with(subValidT, points(degdays, fracBySubjDay, pch=2, col="cyan"))
+  ## Cadaver 3 ("P3").
+  subValidT <- validT %>% filter((subj=="P3") & (taxa==iTaxa))
+  with(subValidT, points(degdays, fracBySubjDay, pch=3, col="darkred"))
+  
   subValidT <- validT %>%
     filter((taxa==iTaxa) & (degdays<=150)) %>%
     group_by(degdays) %>%
