@@ -27,34 +27,45 @@ rm(orderIncMSE)
 ## Read in the original data.
 origT <- read_csv("../revise_algorithm/orders_massaged.csv")
 
-par(mfrow=c(3,2))
-for (iTaxa in varsByImportance[1:6]){
+
+## Put on dots to represent validation measurements.
+mypch <- c(1, 15, 16)
+names(mypch) <- unique(validT$subj)
+mycolors <- c("blue", "darkgreen", "slategray")
+names(mycolors) <- unique(validT$subj)
+
+pdf(file="compare_taxa_orig_vs_valid_data.pdf")
+par(mfrow=c(2,1))
+
+for (iTaxa in varsByImportance){
 
   ## Subset and draw max/min lines for original data.
   subT <- origT %>%
-    filter((taxa==iTaxa) & (degdays<=150)) %>%
+    filter((taxa==iTaxa) & (degdays<=120)) %>%
     group_by(degdays) %>%
     summarize(minFrac=min(fracBySubjDay), maxFrac=max(fracBySubjDay))
-  ## boxplot(fracBySubjDay ~ degdays, data=subT, main=iTaxa)
 
-  ## Put on dots to represent validation measurements.
-  ## Cadaver 1 ("P1").
-  subValidT <- validT %>% filter((subj=="P1") & (taxa==iTaxa))
-  with(subValidT, points(degdays, fracBySubjDay, pch=1, col="blue"))
-  ## Cadaver 2 ("P2").
-  subValidT <- validT %>% filter((subj=="P2") & (taxa==iTaxa))
-  with(subValidT, points(degdays, fracBySubjDay, pch=2, col="cyan"))
-  ## Cadaver 3 ("P3").
-  subValidT <- validT %>% filter((subj=="P3") & (taxa==iTaxa))
-  with(subValidT, points(degdays, fracBySubjDay, pch=3, col="darkred"))
-  
+  ## Subset the validation measurements.
   subValidT <- validT %>%
-    filter((taxa==iTaxa) & (degdays<=150)) %>%
-    group_by(degdays) %>%
-    summarize(medianFrac = median(fracBySubjDay))
-  with(subValidT, lines(degdays, medianFrac, col="blue", lty=2, lwd=3))
-}
+    filter(taxa==iTaxa)
 
+  ## Build graph.
+  ## First, find range of counts.
+  fracRng <- range(c(subT[,c("minFrac", "maxFrac")], subValidT[,"fracBySubjDay"]))
+  plot(range(c(subT[,"degdays"], subValidT[,"degdays"])), fracRng,
+       type="n", mar=c(3, 3, 2, 1), xlab="Degree days",
+       ylab="Fractional composition")
+  title(iTaxa, line=1)
+  for (i in 1:nrow(subT))
+    with(subT[i,], lines(rep(degdays, 2), c(minFrac, maxFrac)))  
+  for (iSubj in unique(subValidT$subj))
+    with(subValidT %>% filter((subj==iSubj) & (taxa==iTaxa)),
+         points(degdays, fracBySubjDay,
+                pch=mypch[iSubj], col=mycolors[iSubj])
+         )
+  legend("topright", names(mypch), pch=mypch, col=mycolors, cex=0.5, title="Valid. pigs")
+}
+dev.off()
 ## ##################################################
 
 
