@@ -45,9 +45,9 @@ timeDF <- separate(data.frame(x=substring(namesT, first=2),
 with(timeDF, cor(degdays, days))
 
 
-## Extract the columns with the taxa names and the average counts
-## across pigs for each time point.
-wideAvgsT <- rawAllT[,c("taxon", namesT)]
+## Extract the columns with the taxa names and the sums across pigs
+## for each time point and taxon.
+wideSumsT <- rawAllT[,c("taxon", namesT)]
 
 rm(namesA, namesT)
 ## #######################
@@ -63,29 +63,29 @@ indivT <- wideIndivT %>%
   gather(indiv_time, counts, -taxon) %>%
   separate(indiv_time, sep="T", into=c("subj", "days"), convert=T) %>%
   separate(days, sep="S", into=c("days", "swab"), convert=T)
-  ## To add rows of missing values for combinations of days and
-  ## subjects on which no samples are available (some subjects
-  ## were not observed on certain days), add %>% and then this:
-  ## complete(taxonName, days, subj)
-
-## ########## WORKING HERE ###########
-
-## Check whether we can get back the values in wideAvgsT when we do a
-## summary for indivT.
-chkAvgsT <- indivT %>%
-  select(origName, days, counts) %>%
-  group_by(origName, days) %>%
-  summarize(avgs=mean(counts)) %>%
-  spread(key=days,  value=avgs)
-## Match the names to the timeDF frame.
-matchNamesV <- na.omit(match(colnames(chkAvgsT), as.character(timeDF$days)))
-chkNamesV <- paste(timeDF[matchNamesV,1], timeDF[matchNamesV,2], sep="_")
-colnames(chkAvgsT) <- c("origName", paste0("T", chkNamesV))
-## Order this in the same order as what I read in from the sheet.
-reorderChkT <- chkAvgsT[match(wideAvgsT$origName, chkAvgsT$origName), colnames(wideAvgsT)]
 
 
-## Compare with the averages I read in from the sheet.
+## ######
+## Make sure the totals for each day and taxa (across subjects) match
+## those I get from doing the sums.
+mysumsT <- indivT %>% group_by(taxon, days) %>% summarize(counts=sum(counts))
+## Adjust the times so that they match up with the first few
+## characters of the original column names for comparison.
+mysumsT[,"compareDays"] <- paste0("T", as.vector(as.matrix(mysumsT[,"days"])), " - ")
+mysumsT <- mysumsT %>% select(-days) %>% spread(compareDays, counts)
+## Put column names of mysumsT into same order as those for wideSums. It's sufficient to just check that the "T##" part matches.
+match.order <- match(substring(colnames(wideSumsT), first=1, last=4), substring(colnames(mysumsT), first=1, last=4))
+mysumsT <- mysumsT[,match.order]
+## Put rows of mysumsT into same order as those for wideSums.
+match.order <- match(wideSumsT[,"taxon"], mysumsT[,"taxon"])
+## We have more than 1 row with taxons "Incertae_Sedis" and "uncultured".
+
+## ########### WORKING HERE! ###########
+## ######
+
+
+## ######
+## Compare with the sums I read in from the sheet.
 ## First, ensure taxonNames in same order.
 all.equal(wideAvgsT[,1], reorderChkT[,1])
 ## Now check the counts, not the taxa names.
