@@ -66,9 +66,7 @@ indivT <- wideIndivT %>%
 
 ## ######
 ## Make sure the totals for each day and taxa (across subjects) match
-## those I get from doing the sums.  There are multiple rows marked
-## "uncultured"and "Incertae_Sedis", and that messes up the matching
-## process below.
+## those I get from doing the sums.
 mysumsT <- indivT %>% group_by(taxon, days) %>% summarize(counts=sum(counts))
 ## Adjust the times so that they match up with the first few
 ## characters of the original column names for comparison.
@@ -79,10 +77,32 @@ mysumsT <- mysumsT %>% select(-days) %>% spread(compareDays, counts)
 ## matches.
 match.order <- match(substring(colnames(wideSumsT), first=1, last=4), substring(colnames(mysumsT), first=1, last=4))
 mysumsT <- mysumsT[,match.order]
-## Put rows of mysumsT into same order as those for wideSums.
-match.order <- match(wideSumsT[,"taxon"], mysumsT[,"taxon"])
-## We have more than 1 row with taxons "Incertae_Sedis" and "uncultured".
+## Put rows of mysumsT into same order as those for wideSums. There
+## are multiple rows marked "uncultured"and "Incertae_Sedis", and that
+## messes up the matching process below.  Also, the percent
+## unclassified for the individuals shouldn't be added, or we could
+## get a sum above 100%.  So we remove these rows, and check the taxa
+## that could be identified.
+wideSumsT <- wideSumsT %>% filter(!(taxon %in% c("uncultured", "Incertae_Sedis", "% Unclassified")))
+mysumsT <- mysumsT %>% filter(!(taxon %in% c("uncultured", "Incertae_Sedis", "% Unclassified")))
+match.order <- match(pull(wideSumsT, taxon), pull(mysumsT, taxon))
+mysumsT <- mysumsT[match.order,]
+unique(as.vector(as.matrix(wideSumsT[,-1]) - as.matrix(mysumsT[,-1])))
 
+rm(match.order, wideSumsT, mysumsT)
+## ######
+
+
+## ######
+## Check that the counts of unclassified taxa add up to the total of
+## unclassified taxa in the third-to-last row.
+
+## Identify the various "unclassified" types, which have taxon names
+## ending with "_unclassified".
+unclassSumsT <- indivT %>%
+  group_by(days, subj) %>%
+  filter(grepl(pattern="_unclassified", taxon)) %>%
+  summarize(totals=sum(counts))
 ## ########### WORKING HERE! ###########
 ## ######
 
