@@ -20,9 +20,8 @@ sum(duplicated(colnames(rawAllT)))
 ## think they are, and I'll check that totals column and row seems
 ## correct.
 
-
 ## #######################
-## Put individual counts and average counts into different tables.
+## Put individual counts and daily sums into different tables.
 
 ## Identify column names starting with "A". Save these as the counts
 ## for individual pigs on the various days.
@@ -47,6 +46,14 @@ with(timeDF, cor(degdays, days))
 ## Extract the columns with the taxa names and the sums across pigs
 ## for each time point and taxon.
 wideSumsT <- rawAllT[,c("taxon", namesT)]
+
+
+## The last few rows are special cases, so I exclude them from the
+## tables of counts for the taxa.  They are: "Eukaryota",
+## '"Unclassified"', "% Unclassified", "Total Classified"
+wideIndivT <- wideIndivT %>% filter(!(taxon %in% c('Eukaryota', '"Unclassified"', "% Unclassified", "Total Classified")))
+wideSumsT <- wideSumsT %>% filter(!(taxon %in% c('Eukaryota', '"Unclassified"', "% Unclassified", "Total Classified")))
+
 
 rm(namesA, namesT)
 ## #######################
@@ -91,169 +98,22 @@ unique(as.vector(as.matrix(wideSumsT[,-1]) - as.matrix(mysumsT[,-1])))
 
 rm(match.order, wideSumsT, mysumsT)
 ## ######
-
-
-## ######
-## Check that the counts of unclassified taxa add up to the total of
-## unclassified taxa in the third-to-last row.
-
-## Identify the various "unclassified" types, which have taxon names
-## ending with "_unclassified".
-unclassSumsT <- indivT %>%
-  group_by(days, subj) %>%
-  filter(grepl(pattern="_unclassified", taxon)) %>%
-  summarize(totals=sum(counts))
-## ########### WORKING HERE! ###########
-## ######
-
-
-## ######
-## Compare with the sums I read in from the sheet.
-## First, ensure taxonNames in same order.
-all.equal(wideAvgsT[,1], reorderChkT[,1])
-## Now check the counts, not the taxa names.
-apply(wideAvgsT[,-1] - reorderChkT[,-1], 2, summary)
-## There is a problem with column T1_27.  As an example, consider the
-## counts for Clostridiales on that day.
-subset(indivT, (days==1) & (origName=="Clostridiales"), "counts")
-## The average is given by:
-apply(subset(indivT, (days==1) & (origName=="Clostridiales"), "counts"), 2, mean)
-## But, this is not the average we read from the sheet.
-subset(wideAvgsT, (origName=="Clostridiales"), "T1_27")
-## It looks like they took the sum, not the mean.
-apply(subset(indivT, (days==1) & (origName=="Clostridiales"), "counts"), 2, sum)
-## Look at all the values for "T1_27".
-## cbind(reorderChkT[,"T1_27"], wideAvgsT[,"T1_27"], reorderChkT[,"T1_27"]- wideAvgsT[,"T1_27"] )
-rm(chkAvgsT, matchNamesV, chkNamesV)
 ## #######################
-
-
-## #######################
-## Check that the total counts for each taxa match the "total" column
-## (column #111).  There are a lot of these to check, so we take the
-## absolute differences between the our total counts and the "total"
-## column and make sure that the biggest difference is 0.
-max(indivT %>%
-  group_by(origName) %>%
-  summarize(totalCt = sum(counts)) %>%
-  left_join(rawAllT %>% select(origName, total)) %>%
-  mutate(absDiffOrigMyCalc = abs(total - totalCt)) %>%
-  select(absDiffOrigMyCalc)
-  )
-## #######################
-
-
-## #######################
-## Check that the total counts for each subject on each day match the
-## "Bacteria" row (row #233 in the tibble, #234 in the worksheet).
-
-## Save these totals in a table for use in calculating percentages.
-## We exclude "Bacteria" taxa because that line is supposed to contain
-## the totals of all the taxa, including the unclassified taxa.
-## Later, I'll re-do these counts to exclude the "unclassified" taxa.
-ctBySubjDayT <- indivT %>%
-  filter(origName!="Bacteria") %>%
-  group_by(days, subj) %>%
-  summarize(totals=sum(counts))
-
-## Compare the totals calculated above with the last row ("Bacteria")
-## of the individual counts.
-all.equal(
-    unite(ctBySubjDayT, subj_day, subj, days, sep="_T") %>%
-      spread(key=subj_day, value=totals),
-    wideIndivT %>% filter(origName=="Bacteria") %>% select(-origName)
-)
-## #######################
-
-rm(mainT, wideAvgsT, wideIndivT, reorderChkT)
-## ##################################################
 
 
 
 
 ## ##################################################
-## Columns 113-223 ("DI"-"HO") appear to be percentages for each taxa, by
-## day and pig.  Check these.
-## Columns 225-242: I haven't checked these yet.
+## Find the total percentage of counts which are unclassified.
 
-## #######################
-## Organize the information.
-
-## Put these columns in their own table.
-widePercT <- rawAllT[,113:223]
-
-## The first column contains the order names.
-colnames(widePercT)[1] <- "origName"
-
-## Identify column names starting with "A" (individuals A1-A6).
-namesA <- colnames(widePercT)[substring(first=1, last=1, colnames(widePercT))=="A"]
-wideIndivPercT <- rawAllT[,c("origName", namesA)]
-
-
-## Identify column names starting with "T" (averages across
-## individuals).
-namesT <- colnames(widePercT)[substring(first=1, last=1, colnames(widePercT))=="T"]
-wideAvgsPercT <- rawAllT[,c("origName", namesA)]
-
-rm(namesA, namesT)
-## #######################
-
-
-## #######################
-## Try to take the individual percentages from wide format to long
-## format.
-## indivPercT <- wideIndivPercT %>%
-##   gather(indiv_time, perc, -origName) %>%
-##   separate(indiv_time, sep="_T", into=c("subj", "days_with_extra"), convert=T) %>%
-##   separate(days_with_extra, sep="__", into=c("days", "extra_stuff"), convert=T) %>%
-##   select(-extra_stuff)
-## #######################
-
-
-## #######################
-## Check that these percentages straight from the worksheet are the
-## same as what we calculate based on the individual counts.
-
-## First, I calculate these percentages based on the individuals
-## counts and the sums (based on those counts) that I calculated
-## earlier.  I add this column to the main table.
-indivT <- indivT %>%
-  left_join(ctBySubjDayT) %>%
-  mutate(percByDaySubj = 100*counts/totals) %>%
-  select(-totals)
-
-
-## Try to put these percentages in wide format for comparison with the
-## raw numbers from the worksheet.
-chkPercT <- indivT %>%
-  select(-counts) %>%
-  mutate(extrachar="1") %>%
-  unite(subj_days, subj, days, sep="_T") %>%
-  unite(subj_days, subj_days, extrachar, sep="__") %>%
-  spread(key=subj_days, value=percByDaySubj)
-
-## Now check to see if this matches the numbers we got from the spreadsheet.
-if (!all.equal(chkPercT, wideIndivPercT))
-  stop("Something different between the two sets of percentages.")
-if (nrow(setdiff(chkPercT, wideIndivPercT)) != 0)
-  stop("Extra observations were created when working with indivT")
-if (nrow(setdiff(wideIndivPercT, chkPercT)) != 0)
-  stop("More observations were are in the original worksheet than created when working with indivT")
-
-
-rm(chkPercT, ctBySubjDayT, wideIndivPercT, widePercT, wideAvgsPercT)
-## #######################
+## About 28.47% are unclassified.
+pull(indivT %>% filter(grepl("_unclassified", taxon)) %>% summarize(total_uncl=sum(counts)), "total_uncl") / sum(indivT[,"counts"])
 ## ##################################################
 
 
 
 
-## ##################################################
-## Find the percentage of counts which are unclassified.
-
-## About 1.1% are unclassified.
-sum(subset(indivT, origName=="Unclassified")[,"counts"])/sum(subset(indivT, origName!="Bacteria")[,"counts"])
-## ##################################################
+## ######### WORKING HERE! #########
 
 
 
