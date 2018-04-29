@@ -113,35 +113,21 @@ pull(indivT %>% filter(grepl("_unclassified", taxon)) %>% summarize(total_uncl=s
 
 
 
-## ######### WORKING HERE! #########
-
-
-
-
 ## ##################################################
 ## Make other adjustments to the dataset so that it's easier to use.
 
-## Remove the Bacteria row (last row), since it is just the totals of
-## the taxa.  Remove the counts associated with unclassifed taxa.
-## Also, include accum. degree days in the tibble.
+## Remove the counts associated with unclassifed taxa (*_unclassified
+## in the name), "Incertae_Sedis", and "uncultured".  Also, include
+## accum. degree days in the tibble.
 indivT <- indivT %>%
-  filter(!(origName %in% c("Bacteria", "Unclassified"))) %>%
+  filter(!(taxon %in% c("Incertae_Sedis", "uncultured"))) %>%
+  filter(!(grepl("_unclassified", taxon))) %>%
   left_join(timeDF, by="days")
-
-
-## Make a new, more readable taxa column.
-## Column names with open brackets (e.g. "[Tissierellaceae]") causes
-## problems for functions expecting traditional data frame column
-## names.
-indivT$taxa <- gsub(indivT$origName, pattern="\\[", replacement="")
-indivT$taxa <- gsub(indivT$taxa, pattern="]", replacement="")
-## Column names with dashes can likewise be a problem, so I replace
-## dashes with underscores.
-indivT$taxa <- gsub(indivT$taxa, pattern="-", replacement="_")
-## Remova the taxonName column from the tibble to avoid confusion with
-## the next taxa column.
-indivT <- indivT %>% select(-origName)
 ## ##################################################
+
+
+
+## ######### WORKING HERE! #########
 
 
 
@@ -166,7 +152,7 @@ ctByDayT <- indivT %>%
 
 ## ##################################################
 ## Some taxa don't occur frequently.  It's hard to make a hard cutoff
-## for what constitutes "frequently".  There are 143 taxa in the
+## for what constitutes "frequently".  There are 166 taxa in the
 ## dataset, and a lot of them appear in less than 0.1% of samples.
 
 ## I'm going to set the cutoff at 1% (0.01).  This means that in order
@@ -179,7 +165,7 @@ freqCutoff <- 0.01
 data.frame(indivT %>%
   left_join(ctBySubjDayT) %>%
   mutate(fracBySubjDay = counts/totals) %>%
-  group_by(taxa) %>%
+  group_by(taxon) %>%
   summarize(maxFracBySubjDay = max(fracBySubjDay)) %>%
   arrange(desc(maxFracBySubjDay))
 )
@@ -190,19 +176,19 @@ data.frame(indivT %>%
 freqTaxaT <- indivT %>%
   left_join(ctBySubjDayT) %>%
   mutate(fracBySubjDay = counts/totals) %>%
-  group_by(taxa) %>%
+  group_by(taxon) %>%
   summarize(maxFracBySubjDay = max(fracBySubjDay)) %>%
   filter(maxFracBySubjDay >= freqCutoff) %>%
   arrange(desc(maxFracBySubjDay)) %>%
-  select(taxa)
+  select(taxon)
 
 
 ## Rename taxa that occur less than the frequency cutoff allows as
 ## "rare".  Then, sum all these "rare" taxa into one row.
 commontaxaT <- indivT
-commontaxaT[!(commontaxaT$taxa %in% freqTaxaT$taxa), "taxa"] <- "Rare"
+commontaxaT[!(commontaxaT$taxon %in% freqTaxaT$taxon), "taxon"] <- "Rare"
 commontaxaT <- commontaxaT %>%
-  group_by(days, degdays, subj, taxa) %>%
+  group_by(days, degdays, subj, taxon) %>%
   summarize(counts = sum(counts))
 
 ## Remove the list of taxa names that satisfied the frequence cutoff.
@@ -242,6 +228,5 @@ unique(
 ## I have to use the base R write.csv() routine, because write_csv
 ## will write out scientific notation, which read_csv() doesn't read
 ## in properly.
-## write_csv(commontaxaT, path="orders_massaged.csv")
-write.csv(commontaxaT, file="orders_massaged.csv", row.names=FALSE)
+write.csv(commontaxaT, file="families_massaged.csv", row.names=FALSE)
 ## ##################################################
