@@ -4,7 +4,7 @@ library("stringr")
 
 
 ## Read in data from Excel.
-fileNm <- "luisa_orig_data.xlsx"
+fileNm <- "luisa_updated_2018-04-29.xlsx"
 rawAllT <- read_excel(path=fileNm, sheet="Rank 4 - Order", skip=1)
 rm(fileNm)
 
@@ -23,7 +23,7 @@ sum(duplicated(colnames(rawAllT)))
 
 
 ## #######################
-## Put individual counts and average counts into different tables.
+## Put individual counts and daily sums into different tables.
 
 ## Identify column names starting with "A". Save these as the counts
 ## for individual pigs on the various days.
@@ -49,6 +49,13 @@ with(timeDF, cor(degdays, days))
 ## for each time point and taxon.
 wideSumsT <- rawAllT[,c("taxon", namesT)]
 
+## The last few rows are special cases, so I exclude them from the
+## tables of counts for the taxa.  They are: "Eukaryota",
+## '"Unclassified"', "% Unclassified", "Total Classified"
+wideIndivT <- wideIndivT %>% filter(!(taxon %in% c('Eukaryota', '"Unclassified"', "% Unclassified", "Total Classified")))
+wideSumsT <- wideSumsT %>% filter(!(taxon %in% c('Eukaryota', '"Unclassified"', "% Unclassified", "Total Classified")))
+
+
 rm(namesA, namesT)
 ## #######################
 
@@ -73,36 +80,103 @@ mysumsT <- indivT %>% group_by(taxon, days) %>% summarize(counts=sum(counts))
 ## characters of the original column names for comparison.
 mysumsT[,"compareDays"] <- paste0("T", as.vector(as.matrix(mysumsT[,"days"])), " - ")
 mysumsT <- mysumsT %>% select(-days) %>% spread(compareDays, counts)
-## Put column names of mysumsT into same order as those for wideSums. It's sufficient to just check that the "T##" part matches.
+## Put column names of mysumsT into same order as those for
+## wideSums. It's sufficient to just check that the "T##" part
+## matches.
 match.order <- match(substring(colnames(wideSumsT), first=1, last=4), substring(colnames(mysumsT), first=1, last=4))
 mysumsT <- mysumsT[,match.order]
 ## Put rows of mysumsT into same order as those for wideSums.
-match.order <- match(wideSumsT[,"taxon"], mysumsT[,"taxon"])
-## We have more than 1 row with taxons "Incertae_Sedis" and "uncultured".
+match.order <- match(wideSumsT$taxon, mysumsT$taxon)
+mysumsT <- mysumsT[match.order,]
+unique(as.vector(as.matrix(wideSumsT[,-1]) - as.matrix(mysumsT[,-1])))
 
-## ########### WORKING HERE! ###########
+rm(match.order, wideSumsT, mysumsT)
 ## ######
-
-
-## ######
-## Compare with the sums I read in from the sheet.
-## First, ensure taxonNames in same order.
-all.equal(wideAvgsT[,1], reorderChkT[,1])
-## Now check the counts, not the taxa names.
-apply(wideAvgsT[,-1] - reorderChkT[,-1], 2, summary)
-## There is a problem with column T1_27.  As an example, consider the
-## counts for Clostridiales on that day.
-subset(indivT, (days==1) & (origName=="Clostridiales"), "counts")
-## The average is given by:
-apply(subset(indivT, (days==1) & (origName=="Clostridiales"), "counts"), 2, mean)
-## But, this is not the average we read from the sheet.
-subset(wideAvgsT, (origName=="Clostridiales"), "T1_27")
-## It looks like they took the sum, not the mean.
-apply(subset(indivT, (days==1) & (origName=="Clostridiales"), "counts"), 2, sum)
-## Look at all the values for "T1_27".
-## cbind(reorderChkT[,"T1_27"], wideAvgsT[,"T1_27"], reorderChkT[,"T1_27"]- wideAvgsT[,"T1_27"] )
-rm(chkAvgsT, matchNamesV, chkNamesV)
 ## #######################
+## ##################################################
+
+
+
+
+## ##################################################
+## Find the total percentage of counts which are unclassified.
+
+## About 25.95% are unclassified.
+pull(indivT %>%
+     filter(grepl("_unclassified|_uncultured|Incertae_Sedis", taxon)) %>%
+     summarize(total_uncl=sum(counts)), "total_uncl") / sum(indivT[,"counts"])
+## ##################################################
+
+
+
+
+## ##################################################
+## Make other adjustments to the dataset so that it's easier to use.
+
+## Remove the counts associated with unclassifed taxa,
+## "Incertae_Sedis", and "uncultured" (*_unclassified, "_uncultured",
+## "Incertae_Sedis").  Also, include accum. degree days in the tibble.
+indivT <- indivT %>%
+  filter(!grepl("_unclassified|_uncultured|Incertae_Sedis", taxon)) %>%
+  left_join(timeDF, by="days")
+## ##################################################
+
+
+
+
+## ##################################################
+## For use in graphs and in calculating percentages later, we need
+## total counts (over all taxa, unclassified taxa excluded) by:
+##   Each pig and each day 
+##   Each day (all pigs combined)
+
+## Total taxa counts by day and subject (each pig separately).
+ctBySubjDayT <- indivT %>%
+  group_by(days, degdays, subj) %>%
+  summarize(totals=sum(counts))
+
+## Total taxa counts by day (all pigs combined).
+ctByDayT <- indivT %>%
+  group_by(days, degdays) %>%
+  summarize(totals = sum(counts))
+## ##################################################
+
+
+
+## ##################################################
+## Some taxa don't occur frequently.  It's hard to make a hard cutoff
+## for what constitutes "frequently".  There are 166 taxa in the
+## dataset, and a lot of them appear in less than 0.1% of samples.
+
+## I'm going to set the cutoff at 1% (0.01).  This means that in order
+## to be included in the dataset, a specific taxa must make up at
+## least 1% of the total counts on at least 1 day for at least 1
+## cadaver.
+freqCutoff <- 0.01
+
+## Get list of maximum taxa percentages sorted in descending order:
+data.frame(indivT %>%
+  left_join(ctBySubjDayT) %>%
+  mutate(fracBySubjDay = counts/totals) %>%
+  group_by(taxon) %>%
+  summarize(maxFracBySubjDay = max(fracBySubjDay)) %>%
+  arrange(desc(maxFracBySubjDay))
+)
+
+
+## Save the taxa names (in a tibble) which satisfy the frequency
+## cutoff.
+freqTaxaT <- indivT %>%
+  left_join(ctBySubjDayT) %>%
+  mutate(fracBySubjDay = counts/totals) %>%
+  group_by(taxon) %>%
+  summarize(maxFracBySubjDay = max(fracBySubjDay)) %>%
+  filter(maxFracBySubjDay >= freqCutoff) %>%
+  arrange(desc(maxFracBySubjDay)) %>%
+  select(taxon)
+
+
+## ######### WORKING HERE! #########
 
 
 ## #######################
