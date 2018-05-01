@@ -119,6 +119,13 @@ pull(indivT %>%
 indivT <- indivT %>%
   filter(!grepl("_unclassified|_uncultured|Incertae_Sedis", taxon)) %>%
   left_join(timeDF, by="days")
+
+
+## Remove the counts associated with order "Mammalia" (which is
+## probably the pig's DNA), and with order "Aves" (birds, not sure why
+## that's in there).
+indivT <- indivT %>%
+  filter(!grepl("Mammalia|Aves", taxon))
 ## ##################################################
 
 
@@ -176,224 +183,12 @@ freqTaxaT <- indivT %>%
   select(taxon)
 
 
-## ######### WORKING HERE! #########
-
-
-## #######################
-## Check that the total counts for each taxa match the "total" column
-## (column #111).  There are a lot of these to check, so we take the
-## absolute differences between the our total counts and the "total"
-## column and make sure that the biggest difference is 0.
-max(indivT %>%
-  group_by(origName) %>%
-  summarize(totalCt = sum(counts)) %>%
-  left_join(rawAllT %>% select(origName, total)) %>%
-  mutate(absDiffOrigMyCalc = abs(total - totalCt)) %>%
-  select(absDiffOrigMyCalc)
-  )
-## #######################
-
-
-## #######################
-## Check that the total counts for each subject on each day match the
-## "Bacteria" row (row #233 in the tibble, #234 in the worksheet).
-
-## Save these totals in a table for use in calculating percentages.
-## We exclude "Bacteria" taxa because that line is supposed to contain
-## the totals of all the taxa, including the unclassified taxa.
-## Later, I'll re-do these counts to exclude the "unclassified" taxa.
-ctBySubjDayT <- indivT %>%
-  filter(origName!="Bacteria") %>%
-  group_by(days, subj) %>%
-  summarize(totals=sum(counts))
-
-## Compare the totals calculated above with the last row ("Bacteria")
-## of the individual counts.
-all.equal(
-    unite(ctBySubjDayT, subj_day, subj, days, sep="_T") %>%
-      spread(key=subj_day, value=totals),
-    wideIndivT %>% filter(origName=="Bacteria") %>% select(-origName)
-)
-## #######################
-
-rm(mainT, wideAvgsT, wideIndivT, reorderChkT)
-## ##################################################
-
-
-
-
-## ##################################################
-## Columns 113-223 ("DI"-"HO") appear to be percentages for each taxa, by
-## day and pig.  Check these.
-## Columns 225-242: I haven't checked these yet.
-
-## #######################
-## Organize the information.
-
-## Put these columns in their own table.
-widePercT <- rawAllT[,113:223]
-
-## The first column contains the order names.
-colnames(widePercT)[1] <- "origName"
-
-## Identify column names starting with "A" (individuals A1-A6).
-namesA <- colnames(widePercT)[substring(first=1, last=1, colnames(widePercT))=="A"]
-wideIndivPercT <- rawAllT[,c("origName", namesA)]
-
-
-## Identify column names starting with "T" (averages across
-## individuals).
-namesT <- colnames(widePercT)[substring(first=1, last=1, colnames(widePercT))=="T"]
-wideAvgsPercT <- rawAllT[,c("origName", namesA)]
-
-rm(namesA, namesT)
-## #######################
-
-
-## #######################
-## Try to take the individual percentages from wide format to long
-## format.
-## indivPercT <- wideIndivPercT %>%
-##   gather(indiv_time, perc, -origName) %>%
-##   separate(indiv_time, sep="_T", into=c("subj", "days_with_extra"), convert=T) %>%
-##   separate(days_with_extra, sep="__", into=c("days", "extra_stuff"), convert=T) %>%
-##   select(-extra_stuff)
-## #######################
-
-
-## #######################
-## Check that these percentages straight from the worksheet are the
-## same as what we calculate based on the individual counts.
-
-## First, I calculate these percentages based on the individuals
-## counts and the sums (based on those counts) that I calculated
-## earlier.  I add this column to the main table.
-indivT <- indivT %>%
-  left_join(ctBySubjDayT) %>%
-  mutate(percByDaySubj = 100*counts/totals) %>%
-  select(-totals)
-
-
-## Try to put these percentages in wide format for comparison with the
-## raw numbers from the worksheet.
-chkPercT <- indivT %>%
-  select(-counts) %>%
-  mutate(extrachar="1") %>%
-  unite(subj_days, subj, days, sep="_T") %>%
-  unite(subj_days, subj_days, extrachar, sep="__") %>%
-  spread(key=subj_days, value=percByDaySubj)
-
-## Now check to see if this matches the numbers we got from the spreadsheet.
-if (!all.equal(chkPercT, wideIndivPercT))
-  stop("Something different between the two sets of percentages.")
-if (nrow(setdiff(chkPercT, wideIndivPercT)) != 0)
-  stop("Extra observations were created when working with indivT")
-if (nrow(setdiff(wideIndivPercT, chkPercT)) != 0)
-  stop("More observations were are in the original worksheet than created when working with indivT")
-
-
-rm(chkPercT, ctBySubjDayT, wideIndivPercT, widePercT, wideAvgsPercT)
-## #######################
-## ##################################################
-
-
-
-
-## ##################################################
-## Find the percentage of counts which are unclassified.
-
-## About 1.1% are unclassified.
-sum(subset(indivT, origName=="Unclassified")[,"counts"])/sum(subset(indivT, origName!="Bacteria")[,"counts"])
-## ##################################################
-
-
-
-
-## ##################################################
-## Make other adjustments to the dataset so that it's easier to use.
-
-## Remove the Bacteria row (last row), since it is just the totals of
-## the taxa.  Remove the counts associated with unclassifed taxa.
-## Also, include accum. degree days in the tibble.
-indivT <- indivT %>%
-  filter(!(origName %in% c("Bacteria", "Unclassified"))) %>%
-  left_join(timeDF, by="days")
-
-
-## Make a new, more readable taxa column.
-## Column names with open brackets (e.g. "[Tissierellaceae]") causes
-## problems for functions expecting traditional data frame column
-## names.
-indivT$taxa <- gsub(indivT$origName, pattern="\\[", replacement="")
-indivT$taxa <- gsub(indivT$taxa, pattern="]", replacement="")
-## Column names with dashes can likewise be a problem, so I replace
-## dashes with underscores.
-indivT$taxa <- gsub(indivT$taxa, pattern="-", replacement="_")
-## Remova the taxonName column from the tibble to avoid confusion with
-## the next taxa column.
-indivT <- indivT %>% select(-origName)
-## ##################################################
-
-
-
-## ##################################################
-## For use in graphs and in calculating percentages later, we need
-## total counts (over all taxa, unclassified taxa excluded) by:
-##   Each pig and each day 
-##   Each day (all pigs combined)
-
-## Total taxa counts by day and subject (each pig separately).
-ctBySubjDayT <- indivT %>%
-  group_by(days, degdays, subj) %>%
-  summarize(totals=sum(counts))
-
-## Total taxa counts by day (all pigs combined).
-ctByDayT <- indivT %>%
-  group_by(days, degdays) %>%
-  summarize(totals = sum(counts))
-## ##################################################
-
-
-
-## ##################################################
-## Some taxa don't occur frequently.  It's hard to make a hard cutoff
-## for what constitutes "frequently".  There are 143 taxa in the
-## dataset, and a lot of them appear in less than 0.1% of samples.
-
-## I'm going to set the cutoff at 1% (0.01).  This means that in order
-## to be included in the dataset, a specific taxa must make up at
-## least 1% of the total counts on at least 1 day for at least 1
-## cadaver.
-freqCutoff <- 0.01
-
-## Get list of maximum taxa percentages sorted in descending order:
-data.frame(indivT %>%
-  left_join(ctBySubjDayT) %>%
-  mutate(fracBySubjDay = counts/totals) %>%
-  group_by(taxa) %>%
-  summarize(maxFracBySubjDay = max(fracBySubjDay)) %>%
-  arrange(desc(maxFracBySubjDay))
-)
-
-
-## Save the taxa names (in a tibble) which satisfy the frequency
-## cutoff.
-freqTaxaT <- indivT %>%
-  left_join(ctBySubjDayT) %>%
-  mutate(fracBySubjDay = counts/totals) %>%
-  group_by(taxa) %>%
-  summarize(maxFracBySubjDay = max(fracBySubjDay)) %>%
-  filter(maxFracBySubjDay >= freqCutoff) %>%
-  arrange(desc(maxFracBySubjDay)) %>%
-  select(taxa)
-
-
 ## Rename taxa that occur less than the frequency cutoff allows as
 ## "rare".  Then, sum all these "rare" taxa into one row.
 commontaxaT <- indivT
-commontaxaT[!(commontaxaT$taxa %in% freqTaxaT$taxa), "taxa"] <- "Rare"
+commontaxaT[!(commontaxaT$taxon %in% freqTaxaT$taxon), "taxon"] <- "Rare"
 commontaxaT <- commontaxaT %>%
-  group_by(days, degdays, subj, taxa) %>%
+  group_by(days, degdays, subj, taxon) %>%
   summarize(counts = sum(counts))
 
 ## Remove the list of taxa names that satisfied the frequence cutoff.
@@ -420,7 +215,7 @@ unique(
            group_by(days, subj) %>%
            summarize(sumFracBySubjDay = sum(fracBySubjDay)) %>%
            ungroup() %>%
-           select(sumFracBySubjDay))
+         select(sumFracBySubjDay))
 )
 ## ##################################################
 
@@ -433,6 +228,5 @@ unique(
 ## I have to use the base R write.csv() routine, because write_csv
 ## will write out scientific notation, which read_csv() doesn't read
 ## in properly.
-## write_csv(commontaxaT, path="orders_massaged.csv")
 write.csv(commontaxaT, file="orders_massaged.csv", row.names=FALSE)
 ## ##################################################
