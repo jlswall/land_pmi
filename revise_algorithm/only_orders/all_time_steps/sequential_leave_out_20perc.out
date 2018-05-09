@@ -1,0 +1,297 @@
+
+R version 3.4.2 (2017-09-28) -- "Short Summer"
+Copyright (C) 2017 The R Foundation for Statistical Computing
+Platform: x86_64-pc-linux-gnu (64-bit)
+
+R is free software and comes with ABSOLUTELY NO WARRANTY.
+You are welcome to redistribute it under certain conditions.
+Type 'license()' or 'licence()' for distribution details.
+
+  Natural language support but running in an English locale
+
+R is a collaborative project with many contributors.
+Type 'contributors()' for more information and
+'citation()' on how to cite R or R packages in publications.
+
+Type 'demo()' for some demos, 'help()' for on-line help, or
+'help.start()' for an HTML browser interface to help.
+Type 'q()' to quit R.
+
+[Previously saved workspace restored]
+
+> library("tidyverse")
+Loading tidyverse: ggplot2
+Loading tidyverse: tibble
+Loading tidyverse: tidyr
+Loading tidyverse: readr
+Loading tidyverse: purrr
+Loading tidyverse: dplyr
+Conflicts with tidy packages ---------------------------------------------------
+filter(): dplyr, stats
+lag():    dplyr, stats
+> library("randomForest")
+randomForest 4.6-12
+Type rfNews() to see new features/changes/bug fixes.
+
+Attaching package: ‘randomForest’
+
+The following object is masked from ‘package:dplyr’:
+
+    combine
+
+The following object is masked from ‘package:ggplot2’:
+
+    margin
+
+> library("figdim")
+> 
+> 
+> ## ##################################################
+> ## Are we dealing with phlya, orders, or families?
+> taxalevel <- "orders"
+> 
+> ## Read in cleaned-up phyla, orders, or families taxa.
+> taxaT <- read_csv(paste0("../../", taxalevel, "_massaged.csv"))
+Parsed with column specification:
+cols(
+  days = col_integer(),
+  degdays = col_integer(),
+  subj = col_character(),
+  taxa = col_character(),
+  counts = col_integer(),
+  fracBySubjDay = col_double()
+)
+> ## ##################################################
+> 
+> 
+> 
+> ## ##################################################
+> ## Put the data in wide format; remove days, subj, and rare taxa.
+> 
+> ## Move back to wide format.
+> allT <- taxaT %>%
++   filter(taxa!="Rare") %>%
++   select(degdays, subj, taxa, fracBySubjDay) %>%
++   spread(taxa, fracBySubjDay) %>%
++   select(-subj)
+> 
+> ## Just for reference later, keep the days and degree days, so we can
+> ## look at the time correspondence.
+> timeT <- taxaT %>% distinct(days, degdays)
+> 
+> rm(taxaT)
+> ## ##################################################
+> 
+> 
+> 
+> ## ##################################################
+> ## Try random forests for regression using "days" as the response
+> ## variable.
+> 
+> ## #########
+> ## How many predictors?  (All columns except response: "degdays").
+> numPredictors <- ncol(allT) - 1
+> 
+> ## Try different numbers of bootstrap samples.
+> numBtSampsVec <- c(1260, 2520, 3780)
+> ## numBtSampsVec <- seq(4000, 5000, by=1000)
+> 
+> ## Try different values for mtry (which represents how many variables
+> ## can be chosen from at each split of the tree).
+> numVarSplitVec <- seq(4, 16, by=2)
+> 
+> ## Form matrix with all combinations of these.
+> combos <- expand.grid(numBtSamps=numBtSampsVec, numVarSplit=numVarSplitVec)
+> 
+> 
+> ## ###########################
+> ## Do cross-validation over and over, leaving out a different 20% of
+> ## the 93 observations each time.
+> 
+> set.seed(3502294)
+> 
+> ## Number of times to do cross-validation.
+> numCVs <- 1000
+> ## How many observations to reserve for testing each time.
+> numLeaveOut <- round(0.20 * nrow(allT))
+> 
+> 
+> ## For matrix to hold cross-validation results.
+> cvMSE <- matrix(NA, nrow(combos), ncol=numCVs)
+> cvErrFrac <- matrix(NA, nrow(combos), ncol=numCVs)
+> origUnitsqrtcvMSE <- matrix(NA, nrow(combos), ncol=numCVs)
+> origUnitsqrtcvErrFrac <- matrix(NA, nrow(combos), ncol=numCVs)
+> sqrtcvMSE <- matrix(NA, nrow(combos), ncol=numCVs)
+> sqrtcvErrFrac <- matrix(NA, nrow(combos), ncol=numCVs)
+> 
+> 
+> ## Do cross-validation.
+> for (i in 1:numCVs){
++   
++   ## Determine training and cross-validation set.
++   whichLeaveOut <- sample(1:nrow(allT), size=numLeaveOut, replace=F)    
++   subT <- allT[-whichLeaveOut,]
++   cvsetT <- allT[whichLeaveOut,]
++   
++   ## Calculate SSTotal for the cross-validation set.
++   SSTot <- sum( (cvsetT$degdays-mean(cvsetT$degdays))^2 )
++ 
++   for (j in 1:nrow(combos)){
++     rf <- randomForest(degdays ~ . , data=subT, mtry=combos[j,"numVarSplit"], ntree=combos[j,"numBtSamps"], importance=T)
++     fitTest <- predict(rf, newdata=cvsetT)
++     
++     fitResid <- fitTest - cvsetT$degdays
++     cvMSE[j,i] <- mean(fitResid^2)
++     cvErrFrac[j,i] <- sum(fitResid^2)/SSTot
++   }
++   rm(rf, fitTest, fitResid)
++ 
++   ## In sqrt units:
++   for (j in 1:nrow(combos)){
++     sqrtrf <- randomForest(sqrt(degdays) ~ . , data=subT, mtry=combos[j,"numVarSplit"], ntree=combos[j,"numBtSamps"], importance=T)
++     sqrtfitTest <- predict(sqrtrf, newdata=cvsetT)
++     sqrtfitResid <- sqrtfitTest - sqrt(cvsetT$degdays)
++     origUnitResid <- sqrtfitTest^2 - cvsetT$degdays
++     
++     sqrtcvMSE[j,i] <- mean(sqrtfitResid^2)
++     sqrtcvErrFrac[j,i] <- sum(sqrtfitResid^2)/sum( ( sqrt(cvsetT$degdays) - mean(sqrt(cvsetT$degdays)) )^2 )
++     origUnitsqrtcvMSE[j,i] <- mean(origUnitResid^2)
++     origUnitsqrtcvErrFrac[j,i] <- sum(origUnitResid^2)/SSTot
++   }
++   rm(sqrtrf, sqrtfitTest, sqrtfitResid, origUnitResid)
++ 
++   if (i %% 10 == 0)
++     print(paste0("Finishing cross-validation number ", i))
++ }
+[1] "Finishing cross-validation number 10"
+[1] "Finishing cross-validation number 20"
+[1] "Finishing cross-validation number 30"
+[1] "Finishing cross-validation number 40"
+[1] "Finishing cross-validation number 50"
+[1] "Finishing cross-validation number 60"
+[1] "Finishing cross-validation number 70"
+[1] "Finishing cross-validation number 80"
+[1] "Finishing cross-validation number 90"
+[1] "Finishing cross-validation number 100"
+[1] "Finishing cross-validation number 110"
+[1] "Finishing cross-validation number 120"
+[1] "Finishing cross-validation number 130"
+[1] "Finishing cross-validation number 140"
+[1] "Finishing cross-validation number 150"
+[1] "Finishing cross-validation number 160"
+[1] "Finishing cross-validation number 170"
+[1] "Finishing cross-validation number 180"
+[1] "Finishing cross-validation number 190"
+[1] "Finishing cross-validation number 200"
+[1] "Finishing cross-validation number 210"
+[1] "Finishing cross-validation number 220"
+[1] "Finishing cross-validation number 230"
+[1] "Finishing cross-validation number 240"
+[1] "Finishing cross-validation number 250"
+[1] "Finishing cross-validation number 260"
+[1] "Finishing cross-validation number 270"
+[1] "Finishing cross-validation number 280"
+[1] "Finishing cross-validation number 290"
+[1] "Finishing cross-validation number 300"
+[1] "Finishing cross-validation number 310"
+[1] "Finishing cross-validation number 320"
+[1] "Finishing cross-validation number 330"
+[1] "Finishing cross-validation number 340"
+[1] "Finishing cross-validation number 350"
+[1] "Finishing cross-validation number 360"
+[1] "Finishing cross-validation number 370"
+[1] "Finishing cross-validation number 380"
+[1] "Finishing cross-validation number 390"
+[1] "Finishing cross-validation number 400"
+[1] "Finishing cross-validation number 410"
+[1] "Finishing cross-validation number 420"
+[1] "Finishing cross-validation number 430"
+[1] "Finishing cross-validation number 440"
+[1] "Finishing cross-validation number 450"
+[1] "Finishing cross-validation number 460"
+[1] "Finishing cross-validation number 470"
+[1] "Finishing cross-validation number 480"
+[1] "Finishing cross-validation number 490"
+[1] "Finishing cross-validation number 500"
+[1] "Finishing cross-validation number 510"
+[1] "Finishing cross-validation number 520"
+[1] "Finishing cross-validation number 530"
+[1] "Finishing cross-validation number 540"
+[1] "Finishing cross-validation number 550"
+[1] "Finishing cross-validation number 560"
+[1] "Finishing cross-validation number 570"
+[1] "Finishing cross-validation number 580"
+[1] "Finishing cross-validation number 590"
+[1] "Finishing cross-validation number 600"
+[1] "Finishing cross-validation number 610"
+[1] "Finishing cross-validation number 620"
+[1] "Finishing cross-validation number 630"
+[1] "Finishing cross-validation number 640"
+[1] "Finishing cross-validation number 650"
+[1] "Finishing cross-validation number 660"
+[1] "Finishing cross-validation number 670"
+[1] "Finishing cross-validation number 680"
+[1] "Finishing cross-validation number 690"
+[1] "Finishing cross-validation number 700"
+[1] "Finishing cross-validation number 710"
+[1] "Finishing cross-validation number 720"
+[1] "Finishing cross-validation number 730"
+[1] "Finishing cross-validation number 740"
+[1] "Finishing cross-validation number 750"
+[1] "Finishing cross-validation number 760"
+[1] "Finishing cross-validation number 770"
+[1] "Finishing cross-validation number 780"
+[1] "Finishing cross-validation number 790"
+[1] "Finishing cross-validation number 800"
+[1] "Finishing cross-validation number 810"
+[1] "Finishing cross-validation number 820"
+[1] "Finishing cross-validation number 830"
+[1] "Finishing cross-validation number 840"
+[1] "Finishing cross-validation number 850"
+[1] "Finishing cross-validation number 860"
+[1] "Finishing cross-validation number 870"
+[1] "Finishing cross-validation number 880"
+[1] "Finishing cross-validation number 890"
+[1] "Finishing cross-validation number 900"
+[1] "Finishing cross-validation number 910"
+[1] "Finishing cross-validation number 920"
+[1] "Finishing cross-validation number 930"
+[1] "Finishing cross-validation number 940"
+[1] "Finishing cross-validation number 950"
+[1] "Finishing cross-validation number 960"
+[1] "Finishing cross-validation number 970"
+[1] "Finishing cross-validation number 980"
+[1] "Finishing cross-validation number 990"
+[1] "Finishing cross-validation number 1000"
+> rm(i, j, SSTot)
+> 
+> 
+> 
+> combos$avgcvMSE <- apply(cvMSE, 1, mean)
+> combos$avgcvErrFrac <- apply(cvErrFrac, 1, mean)
+> 
+> combos$avgsqrtcvMSE <- apply(sqrtcvMSE, 1, mean)
+> combos$avgsqrtcvErrFrac <- apply(sqrtcvErrFrac, 1, mean)
+> combos$avgorigUnitsqrtcvMSE <- apply(origUnitsqrtcvMSE, 1, mean)
+> combos$avgorigUnitsqrtcvErrFrac <- apply(origUnitsqrtcvErrFrac, 1, mean)
+> 
+> write_csv(combos, path="sequential_leave_out_20perc.csv")
+> 
+> 
+> ggplot(data=combos, aes(x=numBtSamps, y=avgcvMSE, color=as.factor(numVarSplit))) + geom_line()
+> ## X11()
+> ggplot(data=combos, aes(x=numBtSamps, y=avgsqrtcvMSE, color=as.factor(numVarSplit))) + geom_line()
+> ## X11()
+> ggplot(data=combos, aes(x=numBtSamps, y=avgorigUnitsqrtcvMSE, color=as.factor(numVarSplit))) + geom_line()
+> 
+> 
+> ggplot(data=combos, aes(x=numBtSamps, y=avgcvErrFrac, color=as.factor(numVarSplit))) + geom_line()
+> ## X11()
+> ggplot(data=combos, aes(x=numBtSamps, y=avgsqrtcvErrFrac, color=as.factor(numVarSplit))) + geom_line()
+> ## X11()
+> ggplot(data=combos, aes(x=numBtSamps, y=avgorigUnitsqrtcvErrFrac, color=as.factor(numVarSplit))) + geom_line()
+> ## ####################
+> 
+> proc.time()
+     user    system   elapsed 
+19894.976    26.904 19923.708 
