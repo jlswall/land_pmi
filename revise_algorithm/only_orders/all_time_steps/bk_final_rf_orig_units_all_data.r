@@ -37,13 +37,11 @@ rm(taxaT)
 ## for the random forest model.
 
 ## Number of bootstrap samples.
-numBtSamps <- 4000
+numBtSamps <- 5000
 
-## Repeated cross-validation runs (1000 of them), leaving out 20% of
-## the observations at a time, indicated that the number of variables
-## to consider at each split is about 11 for the response variable in
-## the original units.
-numVarSplit <- 11
+## Early runs indicated that the number of variables to consider at
+## each split is about 12 for response variable in the original units.
+numVarSplit <- 12
 ## ##################################################
 
 
@@ -53,9 +51,9 @@ numVarSplit <- 11
 ## the CV MSE looks like.
 
 ## Number of times to do cross-validation.
-numCVs <- 1000
+numCVs <- 100
 ## ## How many observations to reserve for testing each time.
-numLeaveOut <- round(0.20 * nrow(allT))
+numLeaveOut <- round(0.10 * nrow(allT))
 
 
 ## For matrix to hold cross-validation results.
