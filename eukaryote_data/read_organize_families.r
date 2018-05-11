@@ -4,7 +4,7 @@ library("stringr")
 
 
 ## Read in data from Excel.
-fileNm <- "luisa_orig_data.xlsx"
+fileNm <- "luisa_updated_2018-04-29.xlsx"
 rawAllT <- read_excel(path=fileNm, sheet="Rank 5 - Family", skip=1)
 rm(fileNm)
 
@@ -84,21 +84,15 @@ mysumsT <- mysumsT %>% select(-days) %>% spread(compareDays, counts)
 ## matches.
 match.order <- match(substring(colnames(wideSumsT), first=1, last=4), substring(colnames(mysumsT), first=1, last=4))
 mysumsT <- mysumsT[,match.order]
-## Put rows of mysumsT into same order as those for wideSums. There
-## are multiple rows marked "uncultured"and "Incertae_Sedis", and that
-## messes up the matching process below.  Also, the percent
-## unclassified for the individuals shouldn't be added, or we could
-## get a sum above 100%.  So we remove these rows, and check the taxa
-## that could be identified.
-wideSumsT <- wideSumsT %>% filter(!(taxon %in% c("uncultured", "Incertae_Sedis", "% Unclassified")))
-mysumsT <- mysumsT %>% filter(!(taxon %in% c("uncultured", "Incertae_Sedis", "% Unclassified")))
-match.order <- match(pull(wideSumsT, taxon), pull(mysumsT, taxon))
+## Put rows of mysumsT into same order as those for wideSums.
+match.order <- match(wideSumsT$taxon, mysumsT$taxon)
 mysumsT <- mysumsT[match.order,]
 unique(as.vector(as.matrix(wideSumsT[,-1]) - as.matrix(mysumsT[,-1])))
 
 rm(match.order, wideSumsT, mysumsT)
 ## ######
 ## #######################
+## ##################################################
 
 
 
@@ -106,8 +100,10 @@ rm(match.order, wideSumsT, mysumsT)
 ## ##################################################
 ## Find the total percentage of counts which are unclassified.
 
-## About 28.47% are unclassified.
-pull(indivT %>% filter(grepl("_unclassified", taxon)) %>% summarize(total_uncl=sum(counts)), "total_uncl") / sum(indivT[,"counts"])
+## About 32.76% are unclassified.
+pull(indivT %>%
+     filter(grepl("_unclassified|_uncultured|Incertae_Sedis", taxon)) %>%
+     summarize(total_uncl=sum(counts)), "total_uncl") / sum(indivT[,"counts"])
 ## ##################################################
 
 
@@ -116,18 +112,20 @@ pull(indivT %>% filter(grepl("_unclassified", taxon)) %>% summarize(total_uncl=s
 ## ##################################################
 ## Make other adjustments to the dataset so that it's easier to use.
 
-## Remove the counts associated with unclassifed taxa (*_unclassified
-## in the name), "Incertae_Sedis", and "uncultured".  Also, include
-## accum. degree days in the tibble.
+## Remove the counts associated with unclassifed taxa,
+## "Incertae_Sedis", and "uncultured" (*_unclassified, "_uncultured",
+## "Incertae_Sedis").  Also, include accum. degree days in the tibble.
 indivT <- indivT %>%
-  filter(!(taxon %in% c("Incertae_Sedis", "uncultured"))) %>%
-  filter(!(grepl("_unclassified", taxon))) %>%
+  filter(!grepl("_unclassified|_uncultured|Incertae_Sedis", taxon)) %>%
   left_join(timeDF, by="days")
+
+## Remove the counts associated with order "Mammalia" (which is
+## probably the pig's DNA), and with order "Aves" (birds, not sure why
+## that's in there).
+indivT <- indivT %>%
+  filter(!grepl("Mammalia|Aves", taxon))
 ## ##################################################
 
-
-
-## ######### WORKING HERE! #########
 
 
 
@@ -150,10 +148,12 @@ ctByDayT <- indivT %>%
 
 
 
+
 ## ##################################################
 ## Some taxa don't occur frequently.  It's hard to make a hard cutoff
-## for what constitutes "frequently".  There are 166 taxa in the
-## dataset, and a lot of them appear in less than 0.1% of samples.
+## for what constitutes "frequently".  There are 164 (classified) taxa
+## in the dataset, and a lot of them appear in less than 0.1% of
+## samples.
 
 ## I'm going to set the cutoff at 1% (0.01).  This means that in order
 ## to be included in the dataset, a specific taxa must make up at
@@ -218,6 +218,7 @@ unique(
            select(sumFracBySubjDay))
 )
 ## ##################################################
+
 
 
 
