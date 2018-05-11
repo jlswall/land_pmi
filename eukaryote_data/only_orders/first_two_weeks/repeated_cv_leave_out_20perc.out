@@ -1,0 +1,328 @@
+
+R version 3.4.2 (2017-09-28) -- "Short Summer"
+Copyright (C) 2017 The R Foundation for Statistical Computing
+Platform: x86_64-pc-linux-gnu (64-bit)
+
+R is free software and comes with ABSOLUTELY NO WARRANTY.
+You are welcome to redistribute it under certain conditions.
+Type 'license()' or 'licence()' for distribution details.
+
+  Natural language support but running in an English locale
+
+R is a collaborative project with many contributors.
+Type 'contributors()' for more information and
+'citation()' on how to cite R or R packages in publications.
+
+Type 'demo()' for some demos, 'help()' for on-line help, or
+'help.start()' for an HTML browser interface to help.
+Type 'q()' to quit R.
+
+> library("tidyverse")
+Loading tidyverse: ggplot2
+Loading tidyverse: tibble
+Loading tidyverse: tidyr
+Loading tidyverse: readr
+Loading tidyverse: purrr
+Loading tidyverse: dplyr
+Conflicts with tidy packages ---------------------------------------------------
+filter(): dplyr, stats
+lag():    dplyr, stats
+> library("randomForest")
+randomForest 4.6-12
+Type rfNews() to see new features/changes/bug fixes.
+
+Attaching package: ‘randomForest’
+
+The following object is masked from ‘package:dplyr’:
+
+    combine
+
+The following object is masked from ‘package:ggplot2’:
+
+    margin
+
+> library("figdim")
+> library("parallel")
+> 
+> ## In the first 15 days (448 degree days), observations were made
+> ## approx. every other day.  Then, there's a big gap between 15 days
+> ## and the next observation 26 days out.  Let's try the analysis with
+> ## just these observations.
+> 
+> 
+> ## ##################################################
+> ## Are we dealing with phlya, orders, or families?
+> taxalevel <- "orders"
+> 
+> ## Read in cleaned-up phyla, orders, or families taxa.
+> taxaT <- read_csv(paste0("../../", taxalevel, "_massaged.csv"))
+Parsed with column specification:
+cols(
+  days = col_integer(),
+  degdays = col_integer(),
+  subj = col_character(),
+  taxon = col_character(),
+  counts = col_integer(),
+  fracBySubjDay = col_double()
+)
+> ## ##################################################
+> 
+> 
+> 
+> ## ##################################################
+> ## Put the data in wide format and restrict to the first 15 days.
+> 
+> ## Move back to wide format.
+> earlyT <- taxaT %>%
++   filter((days <= 15) & (taxon!="Rare")) %>%
++   select(degdays, subj, taxon, fracBySubjDay) %>%
++   spread(taxon, fracBySubjDay) %>%
++   select(-subj)
+> 
+> ## Just for reference later, keep the days and degree days, so we can
+> ## look at the time correspondence.
+> timeT <- taxaT %>% distinct(days, degdays)
+> 
+> rm(taxaT)
+> ## ##################################################
+> 
+> 
+> 
+> ## ##################################################
+> ## Try random forests for regression using "days" as the response
+> ## variable.
+> 
+> ## #########
+> ## How many predictors?  (All columns except response: "degdays").
+> numPredictors <- ncol(earlyT) - 1
+> 
+> ## Try different numbers of bootstrap samples.
+> numBtSampsVec <- c(600, 1200, 2400, 3000, 3600)
+> 
+> ## Try different values for mtry (which represents how many variables
+> ## can be chosen from at each split of the tree).
+> numVarSplitVec <- seq(6, 20, by=1)
+> 
+> ## Form matrix with all combinations of these.
+> combos <- expand.grid(numBtSamps=numBtSampsVec, numVarSplit=numVarSplitVec)
+> ## #########
+> 
+> 
+> ## ###########################
+> ## Do cross-validation over and over, leaving out a different 20% of
+> ## the 93 observations each time.
+> 
+> set.seed(7500934)
+> 
+> ## Number of times to do cross-validation.
+> numCVs <- 1000
+> ## How many observations to reserve for testing each time.
+> numLeaveOut <- round(0.20 * nrow(earlyT))
+> 
+> 
+> ## For matrix to hold cross-validation results.
+> cvMSE <- matrix(NA, nrow(combos), ncol=numCVs)
+> cvErrFrac <- matrix(NA, nrow(combos), ncol=numCVs)
+> origUnitsqrtcvMSE <- matrix(NA, nrow(combos), ncol=numCVs)
+> origUnitsqrtcvErrFrac <- matrix(NA, nrow(combos), ncol=numCVs)
+> sqrtcvMSE <- matrix(NA, nrow(combos), ncol=numCVs)
+> sqrtcvErrFrac <- matrix(NA, nrow(combos), ncol=numCVs)
+> 
+> 
+> 
+> ## #########################################
+> ## Set up function for fitting random forest model using original
+> ## units.
+> origUnitsF <- function(x, jCombo){
++   rf <- randomForest(degdays ~ . , data=x$trainT, mtry=combos[jCombo, "numVarSplit"], ntree=combos[jCombo, "numBtSamps"], importance=T)
++   return(predict(rf, newdata=x$validT))
++ }
+> 
+> ## Set up function for fitting random forest model using square root
+> ## units.
+> sqrtUnitsF <- function(x, jCombo){
++   sqrtrf <- randomForest(sqrt(degdays) ~ . , data=x$trainT, mtry=combos[jCombo, "numVarSplit"], ntree=combos[jCombo, "numBtSamps"], importance=T)
++   return(predict(sqrtrf, newdata=x$validT))
++ }
+> ## #########################################
+> 
+> 
+> ## #########################################
+> ## Get set up for cross-validation.
+> crossvalidL <- vector("list", numCVs)
+> for (i in 1:numCVs){
++   lvOut <- sample(1:nrow(earlyT), size=numLeaveOut, replace=F)
++   trainT <- earlyT[-lvOut,]
++   validT <- earlyT[lvOut,]
++   crossvalidL[[i]] <- list(trainT=trainT, validT=validT)
++ }
+> rm(i, lvOut, trainT, validT)
+> 
+> 
+> ## Try using lapply to fit the random forests.
+> origFitL <- vector("list", nrow(combos))
+> for (j in 1:nrow(combos)){
++   origFitL[[j]] <- mclapply(crossvalidL, mc.cores=6, origUnitsF, jCombo=j)
++   if (j %% 2 == 0)
++     print(paste0("In orig units, finished combo number ", j))
++ }    
+[1] "In orig units, finished combo number 2"
+[1] "In orig units, finished combo number 4"
+[1] "In orig units, finished combo number 6"
+[1] "In orig units, finished combo number 8"
+[1] "In orig units, finished combo number 10"
+[1] "In orig units, finished combo number 12"
+[1] "In orig units, finished combo number 14"
+[1] "In orig units, finished combo number 16"
+[1] "In orig units, finished combo number 18"
+[1] "In orig units, finished combo number 20"
+[1] "In orig units, finished combo number 22"
+[1] "In orig units, finished combo number 24"
+[1] "In orig units, finished combo number 26"
+[1] "In orig units, finished combo number 28"
+[1] "In orig units, finished combo number 30"
+[1] "In orig units, finished combo number 32"
+[1] "In orig units, finished combo number 34"
+[1] "In orig units, finished combo number 36"
+[1] "In orig units, finished combo number 38"
+[1] "In orig units, finished combo number 40"
+[1] "In orig units, finished combo number 42"
+[1] "In orig units, finished combo number 44"
+[1] "In orig units, finished combo number 46"
+[1] "In orig units, finished combo number 48"
+[1] "In orig units, finished combo number 50"
+[1] "In orig units, finished combo number 52"
+[1] "In orig units, finished combo number 54"
+[1] "In orig units, finished combo number 56"
+[1] "In orig units, finished combo number 58"
+[1] "In orig units, finished combo number 60"
+[1] "In orig units, finished combo number 62"
+[1] "In orig units, finished combo number 64"
+[1] "In orig units, finished combo number 66"
+[1] "In orig units, finished combo number 68"
+[1] "In orig units, finished combo number 70"
+[1] "In orig units, finished combo number 72"
+[1] "In orig units, finished combo number 74"
+> rm(j)
+> 
+> sqrtFitL <- vector("list", nrow(combos))
+> for (j in 1:nrow(combos)){
++   sqrtFitL[[j]] <- mclapply(crossvalidL, mc.cores=6, sqrtUnitsF, jCombo=j)
++   if (j %% 2 == 0)
++     print(paste0("In sqrt units, finished combo number ", j))
++ }
+[1] "In sqrt units, finished combo number 2"
+[1] "In sqrt units, finished combo number 4"
+[1] "In sqrt units, finished combo number 6"
+[1] "In sqrt units, finished combo number 8"
+[1] "In sqrt units, finished combo number 10"
+[1] "In sqrt units, finished combo number 12"
+[1] "In sqrt units, finished combo number 14"
+[1] "In sqrt units, finished combo number 16"
+[1] "In sqrt units, finished combo number 18"
+[1] "In sqrt units, finished combo number 20"
+[1] "In sqrt units, finished combo number 22"
+[1] "In sqrt units, finished combo number 24"
+[1] "In sqrt units, finished combo number 26"
+[1] "In sqrt units, finished combo number 28"
+[1] "In sqrt units, finished combo number 30"
+[1] "In sqrt units, finished combo number 32"
+[1] "In sqrt units, finished combo number 34"
+[1] "In sqrt units, finished combo number 36"
+[1] "In sqrt units, finished combo number 38"
+[1] "In sqrt units, finished combo number 40"
+[1] "In sqrt units, finished combo number 42"
+[1] "In sqrt units, finished combo number 44"
+[1] "In sqrt units, finished combo number 46"
+[1] "In sqrt units, finished combo number 48"
+[1] "In sqrt units, finished combo number 50"
+[1] "In sqrt units, finished combo number 52"
+[1] "In sqrt units, finished combo number 54"
+[1] "In sqrt units, finished combo number 56"
+[1] "In sqrt units, finished combo number 58"
+[1] "In sqrt units, finished combo number 60"
+[1] "In sqrt units, finished combo number 62"
+[1] "In sqrt units, finished combo number 64"
+[1] "In sqrt units, finished combo number 66"
+[1] "In sqrt units, finished combo number 68"
+[1] "In sqrt units, finished combo number 70"
+[1] "In sqrt units, finished combo number 72"
+[1] "In sqrt units, finished combo number 74"
+> rm(j)
+> ## #########################################
+> 
+> 
+> ## #########################################
+> ## Now, calculate the various summary statistics for each cross-validation.
+> 
+> for (i in 1:numCVs){
++ 
++   ## Get the validation set for this run from the list.
++   validT <- crossvalidL[[i]][["validT"]]
++ 
++   ## Calculate SSTotal for the cross-validation set.
++   SSTot <- sum( (validT$degdays-mean(validT$degdays))^2 )
++   
++   for (j in 1:nrow(combos)){
++      
++     ## Calculate the MSE and error fraction of the SS Total for the
++     ## validation data in the original units.
++     resid <- origFitL[[j]][[i]] - validT$degdays
++     cvMSE[j,i] <- mean(resid^2)
++     cvErrFrac[j,i] <- sum(resid^2)/SSTot
++     rm(resid)
++   
++     ## Calculate the MSE and error fraction of the SS Total for the
++     ## validation data in the original units.
++     sqrtUnitResid <- sqrtFitL[[j]][[i]] - sqrt(validT$degdays)
++     origUnitResid <- sqrtFitL[[j]][[i]]^2 - validT$degdays
++     sqrtcvMSE[j,i] <- mean(sqrtUnitResid^2)
++     sqrtcvErrFrac[j,i] <- sum(sqrtUnitResid^2)/sum( ( sqrt(validT$degdays) - mean(sqrt(validT$degdays)) )^2 )
++     origUnitsqrtcvMSE[j,i] <- mean(origUnitResid^2)
++     origUnitsqrtcvErrFrac[j,i] <- sum(origUnitResid^2)/SSTot
++     rm(sqrtUnitResid, origUnitResid)
++   }
++ }
+> rm(i, j, validT, SSTot)
+> ## #########################################
+> 
+> 
+> 
+> ## #########################################
+> ## Calculate summary statistics over all the cross-validations.
+> 
+> combos$avgcvMSE <- apply(cvMSE, 1, mean)
+> combos$avgcvErrFrac <- apply(cvErrFrac, 1, mean)
+> 
+> combos$avgsqrtcvMSE <- apply(sqrtcvMSE, 1, mean)
+> combos$avgsqrtcvErrFrac <- apply(sqrtcvErrFrac, 1, mean)
+> combos$avgorigUnitsqrtcvMSE <- apply(origUnitsqrtcvMSE, 1, mean)
+> combos$avgorigUnitsqrtcvErrFrac <- apply(origUnitsqrtcvErrFrac, 1, mean)
+> 
+> write_csv(combos, path="repeated_cv_leave_out_20perc.csv")
+> ## #########################################
+> 
+> 
+> 
+> ## #########################################
+> ## Make plots showing these statistics for various combinations of
+> ## numbers of boot strap samples and number of variables to consider
+> ## at each split.
+> 
+> ggplot(data=combos, aes(x=numBtSamps, y=avgcvMSE, color=as.factor(numVarSplit))) + geom_line()
+> ## X11()
+> ggplot(data=combos, aes(x=numBtSamps, y=avgsqrtcvMSE, color=as.factor(numVarSplit))) + geom_line()
+> ## X11()
+> ggplot(data=combos, aes(x=numBtSamps, y=avgorigUnitsqrtcvMSE, color=as.factor(numVarSplit))) + geom_line()
+> 
+> 
+> ggplot(data=combos, aes(x=numBtSamps, y=avgcvErrFrac, color=as.factor(numVarSplit))) + geom_line()
+> ## X11()
+> ggplot(data=combos, aes(x=numBtSamps, y=avgsqrtcvErrFrac, color=as.factor(numVarSplit))) + geom_line()
+> ## X11()
+> ggplot(data=combos, aes(x=numBtSamps, y=avgorigUnitsqrtcvErrFrac, color=as.factor(numVarSplit))) + geom_line()
+> ## ####################
+> 
+> proc.time()
+    user   system  elapsed 
+40498.30   135.60  7198.69 
