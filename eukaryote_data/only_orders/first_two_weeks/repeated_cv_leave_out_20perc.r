@@ -47,11 +47,11 @@ rm(taxaT)
 numPredictors <- ncol(earlyT) - 1
 
 ## Try different numbers of bootstrap samples.
-numBtSampsVec <- c(600, 1200, 2400, 3000, 3600)
+numBtSampsVec <- c(420, 1200, 2400, 3000, 3600)
 
 ## Try different values for mtry (which represents how many variables
 ## can be chosen from at each split of the tree).
-numVarSplitVec <- seq(6, 20, by=1)
+numVarSplitVec <- seq(16, 24, by=1)
 
 ## Form matrix with all combinations of these.
 combos <- expand.grid(numBtSamps=numBtSampsVec, numVarSplit=numVarSplitVec)
@@ -62,7 +62,7 @@ combos <- expand.grid(numBtSamps=numBtSampsVec, numVarSplit=numVarSplitVec)
 ## Do cross-validation over and over, leaving out a different 20% of
 ## the 93 observations each time.
 
-set.seed(7500934)
+set.seed(4540904)
 
 ## Number of times to do cross-validation.
 numCVs <- 1000
