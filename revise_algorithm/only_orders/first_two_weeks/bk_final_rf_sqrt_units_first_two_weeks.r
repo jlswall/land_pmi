@@ -14,7 +14,7 @@ library("figdim")
 taxalevel <- "orders"
 
 ## Read in cleaned-up phyla, orders, or families taxa.
-earlyT <- read_csv(paste0(taxalevel, "_only_first_two_weeks.csv"))
+taxaT <- read_csv(paste0("../../", taxalevel, "_massaged.csv"))
 ## ##################################################
 
 
@@ -23,17 +23,17 @@ earlyT <- read_csv(paste0(taxalevel, "_only_first_two_weeks.csv"))
 ## Put the data in wide format and restrict to the first 15 days.
 
 ## Move back to wide format.
-wideT <- earlyT %>%
-  filter(taxa!="Rare") %>%
+earlyT <- taxaT %>%
+  filter((days <= 15) & (taxa!="Rare")) %>%
   select(degdays, subj, taxa, fracBySubjDay) %>%
   spread(taxa, fracBySubjDay) %>%
   select(-subj)
 
 ## Just for reference later, keep the days and degree days, so we can
 ## look at the time correspondence.
-timeT <- earlyT %>% distinct(days, degdays)
+timeT <- taxaT %>% distinct(days, degdays)
 
-rm(earlyT)
+rm(taxaT)
 ## ##################################################
 
 
@@ -45,8 +45,7 @@ rm(earlyT)
 ## Number of bootstrap samples.
 numBtSamps <- 5000
 
-## Simulation runs indicated that the number of splits is around 9
-## when using sqrt units.
+## Early runs indicated that the number of splits is around 9.
 numVarSplit <- 9
 ## ##################################################
 
@@ -59,7 +58,7 @@ numVarSplit <- 9
 ## Number of times to do cross-validation.
 numCVs <- 100
 ## ## How many observations to reserve for testing each time.
-numLeaveOut <- round(0.20 * nrow(wideT))
+numLeaveOut <- round(0.10 * nrow(earlyT))
 
 ## For matrix to hold cross-validation results.
 sqrtcvMSE <- rep(NA, numCVs)
@@ -68,15 +67,15 @@ origUnitsqrtcvMSE <- rep(NA, numCVs)
 origUnitsqrtcvErrFrac <- rep(NA, numCVs)
 
 
-set.seed(4702423)
+set.seed(8702423)
 
 ## Do cross-validation.
 for (i in 1:numCVs){
   
   ## Determine training and cross-validation set.
-  whichLeaveOut <- sample(1:nrow(wideT), size=numLeaveOut, replace=F)    
-  subT <- wideT[-whichLeaveOut,]
-  cvsetT <- wideT[whichLeaveOut,]
+  whichLeaveOut <- sample(1:nrow(earlyT), size=numLeaveOut, replace=F)    
+  subT <- earlyT[-whichLeaveOut,]
+  cvsetT <- earlyT[whichLeaveOut,]
   
   ## Calculate SSTotal for the cross-validation set.
   SSTot <- sum( (cvsetT$degdays-mean(cvsetT$degdays))^2 )
@@ -105,10 +104,10 @@ rm(sqrtcvMSE, sqrtcvErrFrac, origUnitsqrtcvMSE, origUnitsqrtcvErrFrac)
 ## Fit the final random forest with the first two weeks of the data
 ## (no cross-validation).
 
-set.seed(8250942)
+set.seed(5250942)
 
 ## Fit the random forest model on all the data (no cross-validation).
-rf <- randomForest(sqrt(degdays) ~ . , data=wideT, mtry=numVarSplit,
+rf <- randomForest(sqrt(degdays) ~ . , data=earlyT, mtry=numVarSplit,
                    ntree=numBtSamps, importance=T)
 
 init.fig.dimen(file=paste0("sqrt_units_first_two_weeks_orders_imp_plot.pdf"), width=8, height=6)
@@ -118,18 +117,18 @@ dev.off()
 
 ## In square root units:
 ## Find residuals:
-resids <- rf$predicted - sqrt(wideT$degdays)
+resids <- rf$predicted - sqrt(earlyT$degdays)
 ## Print out RMSE:
 sqrt( mean( resids^2 ) )
 ## Estimate of explained variance, which R documentation calls "pseudo
 ## R-squared"
-1 - ( sum(resids^2)/sum( (sqrt(wideT$degdays) - mean(sqrt(wideT$degdays)))^2 ) )
+1 - ( sum(resids^2)/sum( (sqrt(earlyT$degdays) - mean(sqrt(earlyT$degdays)))^2 ) )
 
 ## Projecting onto original units:
 ## Find estimated residuals:
-resids <- (rf$predicted^2) - wideT$degdays
+resids <- (rf$predicted^2) - earlyT$degdays
 ## Print out RMSE:
 sqrt( mean( resids^2 ) )
 ## Estimate of explained variance
-1 - ( sum(resids^2)/sum( (wideT$degdays - mean(wideT$degdays))^2 ) )
+1 - ( sum(resids^2)/sum( (earlyT$degdays - mean(earlyT$degdays))^2 ) )
 ## ##################################################
