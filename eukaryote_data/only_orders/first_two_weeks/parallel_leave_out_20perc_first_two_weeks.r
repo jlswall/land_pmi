@@ -3,71 +3,61 @@ library("randomForest")
 library("figdim")
 library("parallel")
 
-## In the first 15 days (448 degree days), observations were made
-## approx. every other day.  Then, there's a big gap between 15 days
-## and the next observation 26 days out.  Let's try the analysis with
-## just these observations.
-
 
 ## ##################################################
 ## Are we dealing with phlya, orders, or families?
 taxalevel <- "orders"
 
-## Read in cleaned-up phyla, orders, or families taxa.
-taxaT <- read_csv(paste0("../../", taxalevel, "_massaged.csv"))
+## Read in cleaned-up phyla, orders, or families taxa for JUST THE
+## FIRST 2 WEEKS.
+earlyT <- read_csv(paste0(taxalevel, "_only_first_two_weeks.csv"))
 ## ##################################################
 
 
 
+
 ## ##################################################
-## Put the data in wide format and restrict to the first 15 days.
+## Put the data in wide format; remove days, subj, and rare taxa.
 
 ## Move back to wide format.
-earlyT <- taxaT %>%
-  filter((days <= 15) & (taxon!="Rare")) %>%
+wideT <- earlyT %>%
+  filter(taxon!="Rare") %>%
   select(degdays, subj, taxon, fracBySubjDay) %>%
   spread(taxon, fracBySubjDay) %>%
   select(-subj)
-
-## Just for reference later, keep the days and degree days, so we can
-## look at the time correspondence.
-timeT <- taxaT %>% distinct(days, degdays)
-
-rm(taxaT)
 ## ##################################################
 
 
 
 ## ##################################################
-## Try random forests for regression using "days" as the response
+## Try random forests for regression using "degdays" as the response
 ## variable.
 
 ## #########
 ## How many predictors?  (All columns except response: "degdays").
-numPredictors <- ncol(earlyT) - 1
+numPredictors <- ncol(wideT) - 1
 
 ## Try different numbers of bootstrap samples.
-numBtSampsVec <- c(420, 1200, 2400, 3000, 3600)
+numBtSampsVec <- c(720, 1200, 2400, 3000)
 
 ## Try different values for mtry (which represents how many variables
 ## can be chosen from at each split of the tree).
-numVarSplitVec <- seq(16, 24, by=1)
+numVarSplitVec <- seq(22, 26, by=1)
 
 ## Form matrix with all combinations of these.
 combos <- expand.grid(numBtSamps=numBtSampsVec, numVarSplit=numVarSplitVec)
-## #########
 
 
 ## ###########################
 ## Do cross-validation over and over, leaving out a different 20% of
 ## the 93 observations each time.
 
-set.seed(4540904)
+set.seed(8634962)
 
 ## Number of times to do cross-validation.
 numCVs <- 1000
 ## How many observations to reserve for testing each time.
-numLeaveOut <- round(0.20 * nrow(earlyT))
+numLeaveOut <- round(0.20 * nrow(wideT))
 
 
 ## For matrix to hold cross-validation results.
@@ -98,17 +88,20 @@ sqrtUnitsF <- function(x, jCombo){
 
 
 ## #########################################
-## Get set up for cross-validation.
+## For each cross-validation we plan to do, randomly select training
+## and validation training sets.
 crossvalidL <- vector("list", numCVs)
 for (i in 1:numCVs){
-  lvOut <- sample(1:nrow(earlyT), size=numLeaveOut, replace=F)
-  trainT <- earlyT[-lvOut,]
-  validT <- earlyT[lvOut,]
+  lvOut <- sample(1:nrow(wideT), size=numLeaveOut, replace=F)
+  trainT <- wideT[-lvOut,]
+  validT <- wideT[lvOut,]
   crossvalidL[[i]] <- list(trainT=trainT, validT=validT)
 }
 rm(i, lvOut, trainT, validT)
+## #########################################
 
 
+## #########################################
 ## Try using lapply to fit the random forests.
 origFitL <- vector("list", nrow(combos))
 for (j in 1:nrow(combos)){
@@ -164,8 +157,6 @@ rm(i, j, validT, SSTot)
 
 
 
-## #########################################
-## Calculate summary statistics over all the cross-validations.
 
 combos$avgcvMSE <- apply(cvMSE, 1, mean)
 combos$avgcvErrFrac <- apply(cvErrFrac, 1, mean)
@@ -175,15 +166,8 @@ combos$avgsqrtcvErrFrac <- apply(sqrtcvErrFrac, 1, mean)
 combos$avgorigUnitsqrtcvMSE <- apply(origUnitsqrtcvMSE, 1, mean)
 combos$avgorigUnitsqrtcvErrFrac <- apply(origUnitsqrtcvErrFrac, 1, mean)
 
-write_csv(combos, path="repeated_cv_leave_out_20perc.csv")
-## #########################################
+write_csv(combos, path="parallel_leave_out_20perc_first_two_weeks.csv")
 
-
-
-## #########################################
-## Make plots showing these statistics for various combinations of
-## numbers of boot strap samples and number of variables to consider
-## at each split.
 
 ggplot(data=combos, aes(x=numBtSamps, y=avgcvMSE, color=as.factor(numVarSplit))) + geom_line()
 ## X11()
