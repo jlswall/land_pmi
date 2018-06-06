@@ -271,18 +271,6 @@ indivT <- indivT %>% select(-origName)
 
 
 ## ##################################################
-## For subject A3, on day 40 (degree day 1130), the total
-## count is ONLY 53.  This is VERY different from the other
-## totals, which range between 17000 and 92000.  Later, we'll write out
-## datasets with and without this day.
-## Use: indivT %>% group_by(days, degdays, subj) %>%
-##        summarize(totals=sum(counts)) %>% arrange(totals)
-indivT <- indivT %>% filter((subj!="A3") | (days!=40))
-## ##################################################
-
-
-
-## ##################################################
 ## For use in graphs and in calculating percentages later, we need
 ## total counts (over all taxa, unclassified taxa excluded) by:
 ##   Each pig and each day 
@@ -385,5 +373,5 @@ unique(
 ## though I didn't have the problems here that I did with the orders
 ## and the phyla.  That way, it remains consistent, and hopefully I
 ## prevent future issues with write_csv and scientific notation.
-write.csv(commontaxaT, file="families_massaged.csv", row.names=FALSE)
+write.csv(commontaxaT, file="with_weird_subjA3day40_families_massaged.csv", row.names=FALSE)
 ## ##################################################
