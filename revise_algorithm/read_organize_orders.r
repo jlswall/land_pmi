@@ -280,6 +280,18 @@ indivT <- indivT %>% select(-origName)
 
 
 ## ##################################################
+## For subject A3, on day 40 (degree day 1130), the total
+## count is ONLY 53.  This is VERY different from the other
+## totals, which range between 17000 and 92000.  Later, we'll write out
+## datasets with and without this day.
+## Use: indivT %>% group_by(days, degdays, subj) %>%
+##        summarize(totals=sum(counts)) %>% arrange(totals)
+indivT <- indivT %>% filter((subj!="A3") | (days!=40))
+## ##################################################
+
+
+
+## ##################################################
 ## For use in graphs and in calculating percentages later, we need
 ## total counts (over all taxa, unclassified taxa excluded) by:
 ##   Each pig and each day 
@@ -289,11 +301,6 @@ indivT <- indivT %>% select(-origName)
 ctBySubjDayT <- indivT %>%
   group_by(days, degdays, subj) %>%
   summarize(totals=sum(counts))
-## NOTE: For subject A3, on day 40 (degree day 1130), the total
-## count is ONLY 53.  This is VERY different from the other
-## totals, which range between 17000 and 92000.  Later, we'll write out
-## datasets with and without this day.
-## Use: ctBySubjDayT %>% arrange(totals)
 
 ## Total taxa counts by day (all pigs combined).
 ctByDayT <- indivT %>%
@@ -381,12 +388,5 @@ unique(
 ## I have to use the base R write.csv() routine, because write_csv
 ## will write out scientific notation, which read_csv() doesn't read
 ## in properly.
-## write_csv(commontaxaT, path="orders_massaged.csv")
-write.csv(commontaxaT, file="with_weird_subjday_orders_massaged.csv", row.names=FALSE)
-
-## Also, write out a version of this table without the data for
-## subject A3, day 40, since the total counts for this subject and
-## day were ONLY 53.
-exclWeirdT <- commontaxaT %>% filter((subj!="A3") | (days!=40))
-write.csv(exclWeirdT, file="orders_massaged.csv", row.names=FALSE)
+write.csv(commontaxaT, file="orders_massaged.csv", row.names=FALSE)
 ## ##################################################
