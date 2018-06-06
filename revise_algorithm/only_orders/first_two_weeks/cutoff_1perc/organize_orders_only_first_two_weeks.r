@@ -2,7 +2,7 @@ library("tidyverse")
 
 
 ## When I organized the data, any taxa which didn't get to at least
-## at certain frequence (I made it 1%) for at least one day and one
+## at certain frequency (I made it 1%) for at least one day and one
 ## individual during *the whole time period* got folded into the
 ## "Rare" taxa group.  Now, I'm only using data for the first couple
 ## of weeks, so I need to check that all of these taxa have at least
@@ -19,7 +19,7 @@ freqCutoff <- 0.01
 taxalevel <- "orders"
 
 ## Read in cleaned-up phyla, orders, or families taxa.
-taxaT <- read_csv(paste0("../../", taxalevel, "_massaged.csv"))
+taxaT <- read_csv(paste0("../../../", taxalevel, "_massaged.csv"))
 
 ## We're only looking at the first 15 days (approx. 2 weeks).
 earlyT <- taxaT %>% filter(days <= 15)
@@ -64,7 +64,7 @@ unique(
 )
 
 
-## Remove the list of taxa names that satisfied the frequence cutoff.
+## Remove the list of taxa names that satisfied the frequency cutoff.
 rm(freqTaxaT, earlyT)
 ## ##################################################
 
