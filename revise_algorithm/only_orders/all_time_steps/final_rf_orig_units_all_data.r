@@ -1,6 +1,7 @@
 library("tidyverse")
 library("randomForest")
 library("figdim")
+library("parallel")
 
 
 ## ##################################################
@@ -37,13 +38,13 @@ rm(taxaT)
 ## for the random forest model.
 
 ## Number of bootstrap samples.
-numBtSamps <- 4000
+numBtSamps <- 3000
 
 ## Repeated cross-validation runs (1000 of them), leaving out 20% of
 ## the observations at a time, indicated that the number of variables
-## to consider at each split is about 11 for the response variable in
-## the original units.
-numVarSplit <- 11
+## to consider at each split is about 10 (flanked closely by 11) for
+## the response variable in the original units.
+numVarSplit <- 10
 ## ##################################################
 
 
@@ -52,39 +53,65 @@ numVarSplit <- 11
 ## Run the cross-validation for this model, so that we can see what
 ## the CV MSE looks like.
 
+set.seed(9835963)
+
 ## Number of times to do cross-validation.
 numCVs <- 1000
-## ## How many observations to reserve for testing each time.
+## How many observations to reserve for testing each time.
 numLeaveOut <- round(0.20 * nrow(allT))
 
 
+## ###########################
+## Set up function for fitting random forest model using original
+## units.
+origUnitsF <- function(x, mtry, ntree){
+  rf <- randomForest(degdays ~ . , data=x$trainT, mtry=mtry, ntree=ntree, importance=T)
+  return(predict(rf, newdata=x$validT))
+}
+## ###########################
+
+
+## ###########################
+## Get set up for cross-validation.
+crossvalidL <- vector("list", numCVs)
+for (i in 1:numCVs){
+  lvOut <- sample(1:nrow(allT), size=numLeaveOut, replace=F)
+  trainT <- allT[-lvOut,]
+  validT <- allT[lvOut,]
+  crossvalidL[[i]] <- list(trainT=trainT, validT=validT)
+}
+rm(i, lvOut, trainT, validT)
+
+## Conduct cross-validation.
+origFitL <- mclapply(crossvalidL, mc.cores=2, origUnitsF, mtry=numVarSplit, ntree=numBtSamps)
+## ###########################
+
+
+## ###########################
 ## For matrix to hold cross-validation results.
 cvMSE <- rep(NA, numCVs)
 cvErrFrac <- rep(NA, numCVs)
 
-set.seed(9433029)
+set.seed(3633029)
 
 
-## Do cross-validation.
+## Now, calculate the various summary statistics for each cross-validation.
 for (i in 1:numCVs){
-  
-  ## Determine training and cross-validation set.
-  whichLeaveOut <- sample(1:nrow(allT), size=numLeaveOut, replace=F)    
-  subT <- allT[-whichLeaveOut,]
-  cvsetT <- allT[whichLeaveOut,]
-  
-  ## Calculate SSTotal for the cross-validation set.
-  SSTot <- sum( (cvsetT$degdays-mean(cvsetT$degdays))^2 )
 
-  rf <- randomForest(degdays ~ . , data=subT, mtry=numVarSplit,
-                     ntree=numBtSamps, importance=T)
-  fitTest <- predict(rf, newdata=cvsetT)
-    
-  fitResid <- fitTest - cvsetT$degdays
-  cvMSE[i] <- mean(fitResid^2)
-  cvErrFrac[i] <- sum(fitResid^2)/SSTot
+  ## Get the validation set for this run from the list.
+  validT <- crossvalidL[[i]][["validT"]]
+
+  ## Calculate SSTotal for the cross-validation set.
+  SSTot <- sum( (validT$degdays-mean(validT$degdays))^2 )
+
+  ## Calculate the MSE and error fraction of the SS Total for the
+  ## validation data in the original units.
+  resid <- origFitL[[i]] - validT$degdays
+  cvMSE[i] <- mean(resid^2)
+  cvErrFrac[i] <- sum(resid^2)/SSTot
+  rm(resid)
 }
-rm(whichLeaveOut, subT, cvsetT, SSTot, rf, fitTest, fitResid, numLeaveOut, i)
+rm(i, validT, SSTot)
 
 write_csv(data.frame(cvMSE, cvErrFrac), path="final_rf_orig_units_cvstats_all_data.csv")
 rm(cvMSE, cvErrFrac)
@@ -95,7 +122,7 @@ rm(cvMSE, cvErrFrac)
 ## ##################################################
 ## Fit the final random forest with all the data (no cross-validation).
 
-set.seed(880933)
+set.seed(880936)
 
 ## Fit the random forest model on all the data (no cross-validation).
 rf <- randomForest(degdays ~ . , data=allT, mtry=numVarSplit,

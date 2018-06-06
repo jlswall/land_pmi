@@ -1,6 +1,7 @@
 library("tidyverse")
 library("randomForest")
 library("figdim")
+library("parallel")
 
 
 ## ##################################################
@@ -37,25 +38,56 @@ rm(taxaT)
 ## for the random forest model.
 
 ## Number of bootstrap samples.
-numBtSamps <- 4000
+numBtSamps <- 3000
 
-## Using more cross-validations (1000) and leaving 20% out, we revised
-## the number of variables to consider at each split from 11 to 9 for
-## modeling the response variable in sqrt units.
-numVarSplit <- 11
+## Using more cross-validations (1000) and leaving 20% out, it seems
+## the number of variables to consider at each split should be 9 (or
+## maybe 8 or 10, as they're close).  This is using the response
+## variable in sqrt units.
+numVarSplit <- 9
 ## ##################################################
 
 
 
 ## ##################################################
-## Run the cross-validation for this model, so that we can see what
+## Run the cross-validation, for this model, so that we can see what
 ## the CV MSE looks like.
 
+set.seed(8835963)
+
 ## Number of times to do cross-validation.
-numCVs <- 500
-## ## How many observations to reserve for testing each time.
+numCVs <- 1000
+## How many observations to reserve for testing each time.
 numLeaveOut <- round(0.20 * nrow(allT))
 
+
+## ###########################
+## Set up function for fitting random forest model using square root
+## units.
+sqrtUnitsF <- function(x, mtry, ntree){
+  sqrtrf <- randomForest(sqrt(degdays) ~ . , data=x$trainT, mtry=mtry, ntree=ntree, importance=T)
+  return(predict(sqrtrf, newdata=x$validT))
+}
+## ###########################
+
+
+## ###########################
+## Get set up for cross-validation.
+crossvalidL <- vector("list", numCVs)
+for (i in 1:numCVs){
+  lvOut <- sample(1:nrow(allT), size=numLeaveOut, replace=F)
+  trainT <- allT[-lvOut,]
+  validT <- allT[lvOut,]
+  crossvalidL[[i]] <- list(trainT=trainT, validT=validT)
+}
+rm(i, lvOut, trainT, validT)
+
+## Conduct cross-validation.
+sqrtFitL <- mclapply(crossvalidL, mc.cores=6, sqrtUnitsF, mtry=numVarSplit, ntree=numBtSamps)
+## ###########################
+
+
+## ###########################
 ## For matrix to hold cross-validation results.
 sqrtcvMSE <- rep(NA, numCVs)
 sqrtcvErrFrac <- rep(NA, numCVs)
@@ -63,32 +95,28 @@ origUnitsqrtcvMSE <- rep(NA, numCVs)
 origUnitsqrtcvErrFrac <- rep(NA, numCVs)
 
 
-set.seed(9402440)
+set.seed(9402492)
 
-## Do cross-validation.
+## Now, calculate the various summary statistics for each cross-validation.
 for (i in 1:numCVs){
-  
-  ## Determine training and cross-validation set.
-  whichLeaveOut <- sample(1:nrow(allT), size=numLeaveOut, replace=F)    
-  subT <- allT[-whichLeaveOut,]
-  cvsetT <- allT[whichLeaveOut,]
-  
-  ## Calculate SSTotal for the cross-validation set.
-  SSTot <- sum( (cvsetT$degdays-mean(cvsetT$degdays))^2 )
 
-  sqrtrf <- randomForest(sqrt(degdays) ~ . , data=subT, mtry=numVarSplit, ntree=numBtSamps, importance=T)
-  sqrtfitTest <- predict(sqrtrf, newdata=cvsetT)
-  sqrtfitResid <- sqrtfitTest - sqrt(cvsetT$degdays)
-  origUnitResid <- sqrtfitTest^2 - cvsetT$degdays
-    
-  sqrtcvMSE[i] <- mean(sqrtfitResid^2)
-  sqrtcvErrFrac[i] <- sum(sqrtfitResid^2)/sum( ( sqrt(cvsetT$degdays) - mean(sqrt(cvsetT$degdays)) )^2 )
+  ## Get the validation set for this run from the list.
+  validT <- crossvalidL[[i]][["validT"]]
+
+  ## Calculate SSTotal for the cross-validation set.
+  SSTot <- sum( (validT$degdays-mean(validT$degdays))^2 )
+
+  ## Calculate the MSE and error fraction of the SS Total for the
+  ## validation data in the original units.
+  sqrtUnitResid <- sqrtFitL[[i]] - sqrt(validT$degdays)
+  origUnitResid <- sqrtFitL[[i]]^2 - validT$degdays
+  sqrtcvMSE[i] <- mean(sqrtUnitResid^2)
+  sqrtcvErrFrac[i] <- sum(sqrtUnitResid^2) / sum( ( sqrt(validT$degdays) - mean(sqrt(validT$degdays)) )^2 )
   origUnitsqrtcvMSE[i] <- mean(origUnitResid^2)
   origUnitsqrtcvErrFrac[i] <- sum(origUnitResid^2)/SSTot
+  rm(sqrtUnitResid, origUnitResid)
 }
-rm(whichLeaveOut, subT, cvsetT, SSTot, i)
-rm(sqrtrf, sqrtfitTest, sqrtfitResid, origUnitResid)
-
+rm(i, validT, SSTot)
 
 write_csv(data.frame(sqrtcvMSE, sqrtcvErrFrac, origUnitsqrtcvMSE, origUnitsqrtcvErrFrac), path="final_rf_sqrt_units_cvstats_all_data.csv")
 rm(sqrtcvMSE, sqrtcvErrFrac, origUnitsqrtcvMSE, origUnitsqrtcvErrFrac)
@@ -99,7 +127,7 @@ rm(sqrtcvMSE, sqrtcvErrFrac, origUnitsqrtcvMSE, origUnitsqrtcvErrFrac)
 ## ##################################################
 ## Fit the final random forest with all the data (no cross-validation).
 
-set.seed(5857933)
+set.seed(6857933)
 
 ## Fit the random forest model on all the data (no cross-validation).
 rf <- randomForest(sqrt(degdays) ~ . , data=allT, mtry=numVarSplit,
