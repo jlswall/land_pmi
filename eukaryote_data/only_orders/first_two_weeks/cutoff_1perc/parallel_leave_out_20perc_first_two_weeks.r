@@ -38,11 +38,11 @@ wideT <- earlyT %>%
 numPredictors <- ncol(wideT) - 1
 
 ## Try different numbers of bootstrap samples.
-numBtSampsVec <- c(900, 1500, 2400, 3000)
+numBtSampsVec <- c(900, 1500, 2100, 2400, 3000)
 
 ## Try different values for mtry (which represents how many variables
 ## can be chosen from at each split of the tree).
-numVarSplitVec <- seq(6, 39, by=3)
+numVarSplitVec <- seq(15, 33, by=1)
 
 ## Form matrix with all combinations of these.
 combos <- expand.grid(numBtSamps=numBtSampsVec, numVarSplit=numVarSplitVec)
@@ -52,7 +52,7 @@ combos <- expand.grid(numBtSamps=numBtSampsVec, numVarSplit=numVarSplitVec)
 ## Do cross-validation over and over, leaving out a different 20% of
 ## the observations each time.
 
-set.seed(4634462)
+set.seed(9838462)
 
 ## Number of times to do cross-validation.
 numCVs <- 1000
