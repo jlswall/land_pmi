@@ -9,7 +9,7 @@ library("parallel")
 taxalevel <- "orders"
 
 ## Read in cleaned-up phyla, orders, or families taxa.
-taxaT <- read_csv(paste0("../../", taxalevel, "_massaged.csv"))
+taxaT <- read_csv(paste0("../../../", taxalevel, "_massaged.csv"))
 ## ##################################################
 
 
@@ -18,7 +18,7 @@ taxaT <- read_csv(paste0("../../", taxalevel, "_massaged.csv"))
 ## Put the data in wide format; remove days, subj, and rare taxa.
 
 ## Move back to wide format.
-allT <- taxaT %>%
+wideT <- taxaT %>%
   filter(taxa!="Rare") %>%
   select(degdays, subj, taxa, fracBySubjDay) %>%
   spread(taxa, fracBySubjDay) %>%
@@ -58,7 +58,7 @@ set.seed(9835963)
 ## Number of times to do cross-validation.
 numCVs <- 1000
 ## How many observations to reserve for testing each time.
-numLeaveOut <- round(0.20 * nrow(allT))
+numLeaveOut <- round(0.20 * nrow(wideT))
 
 
 ## ###########################
@@ -75,9 +75,9 @@ origUnitsF <- function(x, mtry, ntree){
 ## Get set up for cross-validation.
 crossvalidL <- vector("list", numCVs)
 for (i in 1:numCVs){
-  lvOut <- sample(1:nrow(allT), size=numLeaveOut, replace=F)
-  trainT <- allT[-lvOut,]
-  validT <- allT[lvOut,]
+  lvOut <- sample(1:nrow(wideT), size=numLeaveOut, replace=F)
+  trainT <- wideT[-lvOut,]
+  validT <- wideT[lvOut,]
   crossvalidL[[i]] <- list(trainT=trainT, validT=validT)
 }
 rm(i, lvOut, trainT, validT)
@@ -125,7 +125,7 @@ rm(cvMSE, cvErrFrac)
 set.seed(880936)
 
 ## Fit the random forest model on all the data (no cross-validation).
-rf <- randomForest(degdays ~ . , data=allT, mtry=numVarSplit,
+rf <- randomForest(degdays ~ . , data=wideT, mtry=numVarSplit,
                    ntree=numBtSamps, importance=T)
 
 init.fig.dimen(file=paste0("orig_units_all_data_orders_imp_plot.pdf"), width=8, height=6)
@@ -134,10 +134,14 @@ dev.off()
 
 
 ## Find residuals:
-resids <- rf$predicted - allT$degdays
+resids <- rf$predicted - wideT$degdays
+
 ## Print out RMSE:
 sqrt( mean( resids^2 ) )
+## RMSE: 230.1906
+
 ## Estimate of explained variance, which R documentation calls "pseudo
 ## R-squared"
-1 - ( sum(resids^2)/sum( (allT$degdays - mean(allT$degdays))^2 ) )
+1 - ( sum(resids^2)/sum( (wideT$degdays - mean(wideT$degdays))^2 ) )
+## Frac. expl.: 0.8281319
 ## ##################################################
