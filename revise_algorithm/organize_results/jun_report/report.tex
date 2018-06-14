@@ -1,0 +1,84 @@
+\documentclass{article}
+
+
+%% Bring the margins down to 1 inch, like the old ``fullpage'' package.
+\usepackage[margin=1.0in]{geometry}
+
+\usepackage{graphicx}
+\usepackage{caption}
+\usepackage{subcaption}
+
+
+%% Gives the equivalent of one-and-a-half line spacing.
+\linespread{1.3}
+
+\begin{document}
+
+\section{Overview of Shanes's original data}
+
+Our earlier work determined that analyses at the phylum-level did not
+provide as much predictive efficacy as did models built on
+family-level and order-level taxa.  Therefore, we focused on these
+taxa.  These taxa were obtained from 6 cadavers on 16 different days.
+However, taxa counts are not available for
+- subject A1 on days 7 and 9
+- subject A4 on day 7
+
+
+Since our last meeting, I realized that the data collected from
+subject A3 on day 40 (degree day 1130) appears to be defective.  The
+total number of taxa (including unclassifed taxa) counted for this
+cadaver and day was 54.  This is several orders of magnitude less than
+the counts for the other cadavers and days, which ranged from 18050 to
+93665 (both orders and families).  For this reason, the taxa from
+subject A3 on day 40 were omitted from the analyses.  The omission of
+the A3, day 40 data does not affect the analyses which only consider
+the first two weeks or data.
+
+For the analyses considered all time steps, we have 92 observations
+(16 days $\times$ 6 cadavers, minus the 4 missing cadaver-day
+combinations mentioned in the previous paragraphs).  For the analyses
+considering the first 15 days (approximately two weeks), we have 57
+observations (10 days $\times$ 6 cadavers, minus the 3 missing
+cadaver-day combinations occuring during this period).
+
+
+\section{Cross-validation procedures}
+
+I had some concerns about how well our model would perform in
+prediction mode.  We have only 6 cadavers, and we only have
+observations at certain time steps.  I'm continuing to use
+cross-validation, but I've reduced the training set to 80\% of the
+data, reserving 20\% to use as a test set.  When using all the data,
+this means training on a set of 74 observations, and testing on a size
+of 18.  Previously, the split was 90\% and 10\%.  This made very
+little difference in the choice of models, which relieved some of my
+concern.
+
+Since our last meeting, I figured out how to parallelize some of the
+computational work, which allowed me to use some additional
+cross-valiation runs and to try additional models.
+
+
+\section{Results for order-level taxa}
+
+\subsection{All time steps}
+
+Original cutoff considers 20 possible order-level taxa.
+Stricter cutoff considers 15 possible order-level taxa.
+
+\begin{tabular}{ll}
+Inclusion cutoff & Units  & RMSE & Explained variation\\
+1\% at least once  & Orig.~units & 230.19 & 82.81\%\\
+1\% at least twice & Orig.~units & 230.65 & 82.74\%\\
+%% 1\% at least once  & Sqrt.~units &   4.38 & 87.62\%\\
+%% Didn't do the sqrt runs with the stricter cutoff.
+\end{tabular}
+
+
+
+
+\subsection{First 15 days}
+
+
+\end{document}

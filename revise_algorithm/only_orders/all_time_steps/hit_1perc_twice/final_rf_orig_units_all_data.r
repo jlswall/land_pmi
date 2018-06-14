@@ -83,7 +83,7 @@ for (i in 1:numCVs){
 rm(i, lvOut, trainT, validT)
 
 ## Conduct cross-validation.
-origFitL <- mclapply(crossvalidL, mc.cores=2, origUnitsF, mtry=numVarSplit, ntree=numBtSamps)
+origFitL <- mclapply(crossvalidL, mc.cores=6, origUnitsF, mtry=numVarSplit, ntree=numBtSamps)
 ## ###########################
 
 
@@ -135,9 +135,13 @@ dev.off()
 
 ## Find residuals:
 resids <- rf$predicted - wideT$degdays
+
 ## Print out RMSE:
 sqrt( mean( resids^2 ) )
+## RMSE: 230.6547
+
 ## Estimate of explained variance, which R documentation calls "pseudo
 ## R-squared"
 1 - ( sum(resids^2)/sum( (wideT$degdays - mean(wideT$degdays))^2 ) )
+## Expl. frac.: 0.8274382
 ## ##################################################
