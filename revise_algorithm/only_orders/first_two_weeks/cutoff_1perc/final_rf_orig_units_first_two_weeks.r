@@ -141,10 +141,10 @@ resids <- rf$predicted - wideT$degdays
 
 ## Print out RMSE:
 sqrt( mean( resids^2 ) )
-## RMSE: 54.24327
+## RMSE: 53.93092
 
 ## Estimate of explained variance, which R documentation calls "pseudo
 ## R-squared"
 1 - ( sum(resids^2)/sum( (wideT$degdays - mean(wideT$degdays))^2 ) )
-## Expl. frac.: 0.874493
+## Expl. frac.: 0.8759343
 ## ##################################################

@@ -51,9 +51,10 @@ observations at certain time steps.  I'm continuing to use
 cross-validation, but I've reduced the training set to 80\% of the
 data, reserving 20\% to use as a test set.  When using all the data,
 this means training on a set of 74 observations, and testing on a size
-of 18.  Previously, the split was 90\% and 10\%.  This made very
-little difference in the choice of models, which relieved some of my
-concern.
+of 18.  Previously, the split was 90\% and 10\%.  When using just the
+first 15 days of data, this means training on a set of 46 observations,
+and testing on a size of 11.  This made very little difference in the
+choice of models, which relieved some of my concern.
 
 Since our last meeting, I figured out how to parallelize some of the
 computational work, which allowed me to use some additional
@@ -80,5 +81,11 @@ Inclusion cutoff & Units  & RMSE & Explained variation\\
 
 \subsection{First 15 days}
 
+Original cutoff considers 16 possible order-level taxa.
 
+\begin{tabular}{ll}
+Inclusion cutoff & Units  & RMSE & Explained variation\\
+1\% at least once  & Orig.~units & 53.93 & 87.59\%\\
+1\% at least twice & Orig.~units &  & \%\\
+%% 1\% at least once  & Sqrt.~units & 2.01 & 90.81\%\\
 \end{document}
