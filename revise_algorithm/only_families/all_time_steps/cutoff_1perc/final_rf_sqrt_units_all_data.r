@@ -141,17 +141,26 @@ dev.off()
 ## In square root units:
 ## Find residuals:
 resids <- rf$predicted - sqrt(wideT$degdays)
+
 ## Print out RMSE:
 sqrt( mean( resids^2 ) )
+## RMSE: 4.179662
+
 ## Estimate of explained variance, which R documentation calls "pseudo
 ## R-squared"
 1 - ( sum(resids^2)/sum( (sqrt(wideT$degdays) - mean(sqrt(wideT$degdays)))^2 ) )
+## Expl. frac.: 0.8870438
+
 
 ## Projecting onto original units:
 ## Find estimated residuals:
 resids <- (rf$predicted^2) - wideT$degdays
+
 ## Print out RMSE:
 sqrt( mean( resids^2 ) )
+## RMSE projected onto original units: 216.5482
+
 ## Estimate of explained variance
 1 - ( sum(resids^2)/sum( (wideT$degdays - mean(wideT$degdays))^2 ) )
+## Expl. frac. using projections to orig. units: 0.8479
 ## ##################################################
