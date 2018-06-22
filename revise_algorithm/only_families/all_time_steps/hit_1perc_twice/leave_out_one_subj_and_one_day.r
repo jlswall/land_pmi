@@ -35,93 +35,71 @@ rm(taxaT)
 
 
 ## ##################################################
-## Try random forests for regression using "degdays" as the response
-## variable.
+## From earlier experiments, we figured out these parameters work best
+## for the random forest model.
 
-## #########
-## How many predictors?  (All columns except response: "degdays").
-numPredictors <- ncol(wideT) - 1
+## Number of bootstrap samples.
+numBtSamps <- 3000
 
-## Try different numbers of bootstrap samples.
-numBtSampsVec <- c(300, 600, 1500, 3000)
-
-## Try different values for mtry (which represents how many variables
-## can be chosen from at each split of the tree).
-numVarSplitVec <- seq(6, 12, by=1)
-
-## Form matrix with all combinations of these.
-combos <- expand.grid(numBtSamps=numBtSampsVec, numVarSplit=numVarSplitVec)
+## Repeated cross-validation runs (1000 of them), leaving out 20% of
+## the observations at a time, indicated that the number of variables
+## to consider at each split is about 8 (also 9 is very close)
+## for the response variable in the original units.
+numVarSplit <- 8
+## ##################################################
 
 
-## ###########################
-## Do cross-validation: For each subject and day in turn, train the
-## model without observations from that subject or day.  Then, try to
-## predict that subject on that day.
 
+## ##################################################
+## Set up these training and valiation datasets, plus matrices to hold
+## cross-valiation results.
 
-## Set up these various datasets in advance.
-excludeMat <- expand.grid(unique(wideT$subj), unique(wideT$degdays))
+## We exclude each combination of individual and degree day. This is
+## 16 degree days x 6 individuals = 96 combos.
+excludeMat <- expand.grid(unique(wideT$subj), unique(wideT$degdays),
+                          stringsAsFactors=FALSE)
 colnames(excludeMat) <- c("subj", "degdays")
 numCVs <- nrow(excludeMat)
 
-## ###### WORKING HERE!!
-
+## Set up the training and validation datasets corresponding to each
+## combo.
 crossvalidL <- vector("list", numCVs)
 for (i in 1:numCVs){
-  lvOut <- sample(1:nrow(wideT), size=numLeaveOut, replace=F)
-  trainT <- wideT[-lvOut,]
-  validT <- wideT[lvOut,]
+  lvOut <- (wideT$subj==excludeMat[i,"subj"]) | (wideT$degdays==excludeMat[i,"degdays"])
+  trainT <- wideT[!lvOut,] %>% select(-subj)
+  validT <- wideT[lvOut,] %>% select(-subj)
   crossvalidL[[i]] <- list(trainT=trainT, validT=validT)
 }
 rm(i, lvOut, trainT, validT)
 
 
-
-## For matrix to hold cross-validation results.
-cvMSE <- matrix(NA, nrow(combos), ncol=numCVs)
-cvErrFrac <- matrix(NA, nrow(combos), ncol=numCVs)
-## origUnitsqrtcvMSE <- matrix(NA, nrow(combos), ncol=numCVs)
-## origUnitsqrtcvErrFrac <- matrix(NA, nrow(combos), ncol=numCVs)
-## sqrtcvMSE <- matrix(NA, nrow(combos), ncol=numCVs)
-## sqrtcvErrFrac <- matrix(NA, nrow(combos), ncol=numCVs)
+## Set up vectors to hold cross-validation results.
+cvMSE <- rep(NA, numCVs)
+cvErrFrac <- rep(NA, numCVs)
+## #########################################
 
 
 
 ## #########################################
 ## Set up function for fitting random forest model using original
 ## units.
-origUnitsF <- function(x, jCombo){
-  rf <- randomForest(degdays ~ . , data=x$trainT, mtry=combos[jCombo, "numVarSplit"], ntree=combos[jCombo, "numBtSamps"], importance=T)
+origUnitsF <- function(x, mtry, ntree){
+  rf <- randomForest(degdays ~ ., data=x$trainT, mtry=mtry, ntree=ntree, importance=T)
   return(predict(rf, newdata=x$validT))
 }
 
+## Try using lapply to fit the random forests.
+origFitL <- mclapply(crossvalidL, mc.cores=4, origUnitsF, mtry=numVarSplit, ntree=numBtSamps)
+
+
 ## Set up function for fitting random forest model using square root
 ## units.
-sqrtUnitsF <- function(x, jCombo){
-  sqrtrf <- randomForest(sqrt(degdays) ~ . , data=x$trainT, mtry=combos[jCombo, "numVarSplit"], ntree=combos[jCombo, "numBtSamps"], importance=T)
-  return(predict(sqrtrf, newdata=x$validT))
-}
-## #########################################
-
-
-## #########################################
-## Try using lapply to fit the random forests.
-origFitL <- vector("list", nrow(combos))
-for (j in 1:nrow(combos)){
-  origFitL[[j]] <- mclapply(crossvalidL, mc.cores=2, origUnitsF, jCombo=j)
-  if (j %% 2 == 0)
-    print(paste0("In orig units, finished combo number ", j))
-}    
-rm(j)
-
-## sqrtFitL <- vector("list", nrow(combos))
-## for (j in 1:nrow(combos)){
-##   sqrtFitL[[j]] <- mclapply(crossvalidL, mc.cores=6, sqrtUnitsF, jCombo=j)
-##   if (j %% 2 == 0)
-##     print(paste0("In sqrt units, finished combo number ", j))
+## sqrtUnitsF <- function(x, jCombo){
+##   sqrtrf <- randomForest(sqrt(degdays) ~ . -subj, data=x$trainT, mtry=combos[jCombo, "numVarSplit"], ntree=combos[jCombo, "numBtSamps"], importance=T)
+##   return(predict(sqrtrf, newdata=x$validT))
 ## }
-## rm(j)
 ## #########################################
+
 
 
 ## #########################################
@@ -135,53 +113,65 @@ for (i in 1:numCVs){
   ## Calculate SSTotal for the cross-validation set.
   SSTot <- sum( (validT$degdays-mean(validT$degdays))^2 )
   
-  for (j in 1:nrow(combos)){
-     
-    ## Calculate the MSE and error fraction of the SS Total for the
-    ## validation data in the original units.
-    resid <- origFitL[[j]][[i]] - validT$degdays
-    cvMSE[j,i] <- mean(resid^2)
-    cvErrFrac[j,i] <- sum(resid^2)/SSTot
-    rm(resid)
-  
-    ## ## Calculate the MSE and error fraction of the SS Total for the
-    ## ## validation data in the original units.
-    ## sqrtUnitResid <- sqrtFitL[[j]][[i]] - sqrt(validT$degdays)
-    ## origUnitResid <- sqrtFitL[[j]][[i]]^2 - validT$degdays
-    ## sqrtcvMSE[j,i] <- mean(sqrtUnitResid^2)
-    ## sqrtcvErrFrac[j,i] <- sum(sqrtUnitResid^2)/sum( ( sqrt(validT$degdays) - mean(sqrt(validT$degdays)) )^2 )
-    ## origUnitsqrtcvMSE[j,i] <- mean(origUnitResid^2)
-    ## origUnitsqrtcvErrFrac[j,i] <- sum(origUnitResid^2)/SSTot
-    ## rm(sqrtUnitResid, origUnitResid)
-  }
+  ## Calculate the MSE and error fraction of the SS Total for the
+  ## validation data in the original units.
+  resid <- origFitL[[i]] - validT$degdays
+  cvMSE[i] <- mean(resid^2)
+  cvErrFrac[i] <- sum(resid^2)/SSTot
+  rm(resid)
 }
-rm(i, j, validT, SSTot)
+rm(i, validT, SSTot)
 ## #########################################
 
 
 
+## #########################################
+## Make a plot showing how much error we have when we make predictions
+## without using a particular day.
 
-combos$avgcvMSE <- apply(cvMSE, 1, mean)
-combos$avgcvErrFrac <- apply(cvErrFrac, 1, mean)
+residsDF <- NULL
+for (i in 1:numCVs){
 
-## combos$avgsqrtcvMSE <- apply(sqrtcvMSE, 1, mean)
-## combos$avgsqrtcvErrFrac <- apply(sqrtcvErrFrac, 1, mean)
-## combos$avgorigUnitsqrtcvMSE <- apply(origUnitsqrtcvMSE, 1, mean)
-## combos$avgorigUnitsqrtcvErrFrac <- apply(origUnitsqrtcvErrFrac, 1, mean)
+  ## Get the validation set for this run from the list.
+  validT <- crossvalidL[[i]][["validT"]]
 
-write_csv(combos, path="parallel_cv_hit_cutoff_twice.csv")
+  ## Calculate the residuals for this validation set.
+  resids <- origFitL[[i]] - validT$degdays
+
+  ## Find residuals which correspond to the degree day which was left
+  ## out in the training dataset.
+  dayOfInterest <- excludeMat[i,"degdays"]
+  whichItems <- validT$degdays==dayOfInterest
+  residsOfInterest <- resids[whichItems]
+
+  ## Build a data frame with these residuals, along with the day and
+  ## individual that were left out in this validation.
+  iDayDF <- data.frame(degdays=excludeMat[i,"degdays"],
+                       subj=excludeMat[i,"subj"],
+                       yhat=origFitL[[i]][whichItems],
+                       resids=residsOfInterest)
+  ## Add this data.frame to the what we've already collected.
+  residsDF <- rbind(residsDF, iDayDF)
+}
+rm(i, validT, resids, dayOfInterest, residsOfInterest, iDayDF)
+## #########################################
+
+ggplot(residsDF, aes(x=degdays, y=resids)) +
+  geom_point(aes(col=subj)) +
+  labs(x="Degree day", y="Residual")
+
+ggplot(residsDF, aes(x=degdays, y=resids)) +
+  geom_point(aes(col=subj)) +
+  labs(x="Degree day", y="Residual")
 
 
-ggplot(data=combos, aes(x=numBtSamps, y=avgcvMSE, color=as.factor(numVarSplit))) + geom_line()
-## X11()
-## ggplot(data=combos, aes(x=numBtSamps, y=avgsqrtcvMSE, color=as.factor(numVarSplit))) + geom_line()
-## ## X11()
-## ggplot(data=combos, aes(x=numBtSamps, y=avgorigUnitsqrtcvMSE, color=as.factor(numVarSplit))) + geom_line()
 
+ggplot(residsDF, aes(x=degdays, y=resids)) +
+  facet_wrap(~subj) +
+  geom_point(aes(col=subj)) +
+  labs(x="Actual degree day", y="Residual")
 
-ggplot(data=combos, aes(x=numBtSamps, y=avgcvErrFrac, color=as.factor(numVarSplit))) + geom_line()
-## X11()
-## ggplot(data=combos, aes(x=numBtSamps, y=avgsqrtcvErrFrac, color=as.factor(numVarSplit))) + geom_line()
-## ## X11()
-## ggplot(data=combos, aes(x=numBtSamps, y=avgorigUnitsqrtcvErrFrac, color=as.factor(numVarSplit))) + geom_line()
-## ####################
+ggplot(residsDF, aes(x=yhat, y=resids)) +
+  facet_wrap(~subj) +
+  geom_point(aes(col=subj)) +
+  labs(x="Predicted degree day", y="Residual")
