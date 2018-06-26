@@ -129,49 +129,53 @@ rm(i, validT, SSTot)
 ## Make a plot showing how much error we have when we make predictions
 ## without using a particular day.
 
-residsDF <- NULL
+residDF <- NULL
 for (i in 1:numCVs){
 
   ## Get the validation set for this run from the list.
   validT <- crossvalidL[[i]][["validT"]]
 
   ## Calculate the residuals for this validation set.
-  resids <- origFitL[[i]] - validT$degdays
+  resid <- validT$degdays - origFitL[[i]]
 
   ## Find residuals which correspond to the degree day which was left
   ## out in the training dataset.
   dayOfInterest <- excludeMat[i,"degdays"]
   whichItems <- validT$degdays==dayOfInterest
-  residsOfInterest <- resids[whichItems]
+  residOfInterest <- resid[whichItems]
 
   ## Build a data frame with these residuals, along with the day and
   ## individual that were left out in this validation.
   iDayDF <- data.frame(degdays=excludeMat[i,"degdays"],
                        subj=excludeMat[i,"subj"],
                        yhat=origFitL[[i]][whichItems],
-                       resids=residsOfInterest)
+                       resid=residOfInterest)
   ## Add this data.frame to the what we've already collected.
-  residsDF <- rbind(residsDF, iDayDF)
+  residDF <- rbind(residDF, iDayDF)
 }
-rm(i, validT, resids, dayOfInterest, residsOfInterest, iDayDF)
+rm(i, validT, resid, dayOfInterest, residOfInterest, iDayDF)
+
+
+## Write this info out.
+write.csv(residDF, file="resids_leave_out_one_subj_and_one_day.csv")
 ## #########################################
 
-ggplot(residsDF, aes(x=degdays, y=resids)) +
+
+
+
+ggplot(residDF, aes(x=degdays, y=resid)) +
   geom_point(aes(col=subj)) +
   labs(x="Degree day", y="Residual")
 
-ggplot(residsDF, aes(x=degdays, y=resids)) +
-  geom_point(aes(col=subj)) +
-  labs(x="Degree day", y="Residual")
 
 
 
-ggplot(residsDF, aes(x=degdays, y=resids)) +
+ggplot(residDF, aes(x=degdays, y=resid)) +
   facet_wrap(~subj) +
   geom_point(aes(col=subj)) +
   labs(x="Actual degree day", y="Residual")
 
-ggplot(residsDF, aes(x=yhat, y=resids)) +
+ggplot(residDF, aes(x=yhat, y=resid)) +
   facet_wrap(~subj) +
   geom_point(aes(col=subj)) +
   labs(x="Predicted degree day", y="Residual")

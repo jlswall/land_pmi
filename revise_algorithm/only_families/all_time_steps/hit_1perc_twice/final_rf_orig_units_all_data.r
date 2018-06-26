@@ -96,6 +96,7 @@ set.seed(4586079)
 
 
 ## Now, calculate the various summary statistics for each cross-validation.
+residsDF <- NULL
 for (i in 1:numCVs){
 
   ## Get the validation set for this run from the list.
@@ -104,15 +105,25 @@ for (i in 1:numCVs){
   ## Calculate SSTotal for the cross-validation set.
   SSTot <- sum( (validT$degdays-mean(validT$degdays))^2 )
 
+  ## Calculate the residuals for this validation set.
+  resid <- validT$degdays - origFitL[[i]]
+
+  ## Build a data frame with the actual response and the estimated
+  ## response.
+  iCaseDF <- data.frame(yactual=validT$degdays, yhat=origFitL[[i]],
+                        resid=resid)
+  ## Add this data frame to what we've already collected.
+  residsDF <- rbind(residsDF, iCaseDF)
+  
   ## Calculate the MSE and error fraction of the SS Total for the
   ## validation data in the original units.
-  resid <- origFitL[[i]] - validT$degdays
   cvMSE[i] <- mean(resid^2)
   cvErrFrac[i] <- sum(resid^2)/SSTot
-  rm(resid)
+  rm(resid, iCaseDF)
 }
 rm(i, validT, SSTot)
 
+write_csv(residsDF, path="final_rf_orig_units_residuals_all_data.csv")
 write_csv(data.frame(cvMSE, cvErrFrac), path="final_rf_orig_units_cvstats_all_data.csv")
 rm(cvMSE, cvErrFrac)
 ## ##################################################
