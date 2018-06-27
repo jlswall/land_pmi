@@ -71,11 +71,6 @@ for (i in 1:numCVs){
   crossvalidL[[i]] <- list(trainT=trainT, validT=validT)
 }
 rm(i, lvOut, trainT, validT)
-
-
-## Set up vectors to hold cross-validation results.
-cvMSE <- rep(NA, numCVs)
-cvErrFrac <- rep(NA, numCVs)
 ## #########################################
 
 
@@ -87,6 +82,10 @@ origUnitsF <- function(x, mtry, ntree){
   rf <- randomForest(degdays ~ ., data=x$trainT, mtry=mtry, ntree=ntree, importance=T)
   return(predict(rf, newdata=x$validT))
 }
+
+
+## Set random seed for reproducibility.
+set.seed(410943)
 
 ## Try using lapply to fit the random forests.
 origFitL <- mclapply(crossvalidL, mc.cores=4, origUnitsF, mtry=numVarSplit, ntree=numBtSamps)
@@ -103,31 +102,12 @@ origFitL <- mclapply(crossvalidL, mc.cores=4, origUnitsF, mtry=numVarSplit, ntre
 
 
 ## #########################################
-## Now, calculate the various summary statistics for each cross-validation.
+## Collect the residusals, making a note about which day and
+## individual were left out.
 
-for (i in 1:numCVs){
-
-  ## Get the validation set for this run from the list.
-  validT <- crossvalidL[[i]][["validT"]]
-
-  ## Calculate SSTotal for the cross-validation set.
-  SSTot <- sum( (validT$degdays-mean(validT$degdays))^2 )
-  
-  ## Calculate the MSE and error fraction of the SS Total for the
-  ## validation data in the original units.
-  resid <- origFitL[[i]] - validT$degdays
-  cvMSE[i] <- mean(resid^2)
-  cvErrFrac[i] <- sum(resid^2)/SSTot
-  rm(resid)
-}
-rm(i, validT, SSTot)
-## #########################################
-
-
-
-## #########################################
-## Make a plot showing how much error we have when we make predictions
-## without using a particular day.
+## Set up vectors to hold cross-validation results.
+cvMSE <- rep(NA, numCVs)
+cvErrFrac <- rep(NA, numCVs)
 
 residDF <- NULL
 for (i in 1:numCVs){
@@ -135,47 +115,49 @@ for (i in 1:numCVs){
   ## Get the validation set for this run from the list.
   validT <- crossvalidL[[i]][["validT"]]
 
+  ## Calculate SSTotal for the cross-validation set.
+  SSTot <- sum( (validT$degdays-mean(validT$degdays))^2 )
+
   ## Calculate the residuals for this validation set.
   resid <- validT$degdays - origFitL[[i]]
 
-  ## Find residuals which correspond to the degree day which was left
-  ## out in the training dataset.
-  dayOfInterest <- excludeMat[i,"degdays"]
-  whichItems <- validT$degdays==dayOfInterest
-  residOfInterest <- resid[whichItems]
+  ## Overall cross-validations statistics, using all residuals.
+  cvMSE[i] <- mean(resid^2)
+  cvErrFrac[i] <- sum(resid^2)/SSTot
+  
+  ## ## Find residuals which correspond to the degree day which was left
+  ## ## out in the training dataset.
+  ## dayOfInterest <- excludeMat[i,"degdays"]
+  ## whichItems <- validT$degdays==dayOfInterest
+  ## residOfInterest <- resid[whichItems]
 
   ## Build a data frame with these residuals, along with the day and
   ## individual that were left out in this validation.
-  iDayDF <- data.frame(degdays=excludeMat[i,"degdays"],
-                       subj=excludeMat[i,"subj"],
-                       yhat=origFitL[[i]][whichItems],
-                       resid=residOfInterest)
+  iresidDF <- data.frame(dayOmit=excludeMat[i,"degdays"],
+                         subjOmit=excludeMat[i,"subj"],
+                         yactual=validT$degdays,
+                         yhat=origFitL[[i]],
+                         resid=resid)
   ## Add this data.frame to the what we've already collected.
-  residDF <- rbind(residDF, iDayDF)
+  residDF <- rbind(residDF, iresidDF)
 }
-rm(i, validT, resid, dayOfInterest, residOfInterest, iDayDF)
+rm(i, validT, resid, iresidDF)
 
 
 ## Write this info out.
-write.csv(residDF, file="resids_leave_out_one_subj_and_one_day.csv")
+write.csv(residDF, file="resids_leave_out_one_subj_and_one_day.csv", row.names=FALSE)
 ## #########################################
 
 
 
-
-ggplot(residDF, aes(x=degdays, y=resid)) +
-  geom_point(aes(col=subj)) +
+## #########################################
+ggplot(residDF %>% filter(dayOmit==yactual), aes(x=yactual, y=resid)) +
+  geom_point(aes(col=subjOmit)) +
   labs(x="Degree day", y="Residual")
 
 
-
-
-ggplot(residDF, aes(x=degdays, y=resid)) +
-  facet_wrap(~subj) +
-  geom_point(aes(col=subj)) +
+ggplot(residDF, aes(x=yactual, y=resid)) +
+  facet_wrap(~subjOmit) +
+  geom_point(aes(col=subjOmit)) +
   labs(x="Actual degree day", y="Residual")
-
-ggplot(residDF, aes(x=yhat, y=resid)) +
-  facet_wrap(~subj) +
-  geom_point(aes(col=subj)) +
-  labs(x="Predicted degree day", y="Residual")
+## #########################################
