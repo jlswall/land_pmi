@@ -27,7 +27,7 @@ days.  However, taxa counts are not available for\\
 
 Since our last meeting, I realized that the data collected from
 subject A3 on day 40 (degree day 1130) appears to be defective.  The
-total number of taxa (including unclassifed taxa) counted for this
+total number of taxa (including unclassified taxa) counted for this
 cadaver and day was 54.  This is several orders of magnitude less than
 the counts for the other cadavers and days, which ranged from 18050 to
 93665 (both orders and families).  For this reason, the taxa from
@@ -40,7 +40,7 @@ observations (16 days $\times$ 6 cadavers, minus the 4 missing
 cadaver-day combinations mentioned in the previous paragraphs).  For
 the analyses considering the first 15 days (approximately two weeks),
 we have 57 observations (10 days $\times$ 6 cadavers, minus the 3
-missing cadaver-day combinations occuring during this period).
+missing cadaver-day combinations occurring during this period).
 
 
 \section{Cross-validation procedures}
@@ -62,7 +62,7 @@ relieved some of my concern.
 
 Since our last meeting, I figured out how to parallelize some of the
 computational work, which allowed me to use some additional
-cross-valiation runs and to try additional models, compared to what I
+cross-validation runs and to try additional models, compared to what I
 had done previously.
 
 
@@ -158,8 +158,6 @@ explanatory value of this model is almost as strong.
 \end{figure}
 
 
-%% Top four predictors: Peptostreptococcaceae, Microbacteriaceae,
-%% Turicibacteraceae, Oxalobacteraceae
 \begin{table}
   \centering
 \caption{\label{tbl:family_all_data_model_stats}Model statistics using family-level taxa}
@@ -175,17 +173,52 @@ Inclusion cutoff & Units  & RMSE & Explained variation\\ \hline
 
 \subsection{Results for order-level taxa}
 
-Original cutoff considers 20 possible order-level taxa.
-Stricter cutoff considers 15 possible order-level taxa.
+For the order-level taxa, I also ran the analysis both ways, with the
+stricter inclusion criterion (requiring 1\% for at least two cadavers)
+and the weaker, original one.  Again, the model performance is similar
+for both, so I think we should go with the stricter cutoff.  With the
+stricter cutoff, the model considers 15 order-level taxa, versus 20
+taxa with the original criterion.  The relevant performance statistics
+are given in Table \ref{tbl:order_all_data_model_stats}.
 
+\begin{table}
+  \centering
+  \caption{\label{tbl:order_all_data_model_stats}Model statistics using order-level taxa}
 \begin{tabular}{llll}
-Inclusion cutoff & Units  & RMSE & Explained variation\\
-1\% at least once  & Orig.~units & 230.19 & 82.81\%\\
-1\% at least twice & Orig.~units & 230.65 & 82.74\%\\
-1\% at least once  & Sqrt.~units &   4.38 & 87.62\%\\
-Didn't do the sqrt runs with the stricter cutoff.
+Inclusion cutoff & Units  & RMSE & Explained variation\\ \hline
+1\% at least once (weaker)  & Orig.~units & 230.19 & 82.81\%\\
+1\% at least twice (stricter) & Orig.~units & 230.65 & 82.74\%
+%% 1\% at least once  & Sqrt.~units &   4.38 & 87.62\%\\
+%% Didn't do the sqrt runs with the stricter cutoff.
 \end{tabular}
+\end{table}
 
+Fig.~\ref{fig:infl_order_taxa_stric_crit} shows the ten orders found
+to be most influential in building the random forest model using the
+stricter inclusion criterion.  These are similar to those found
+previously, using the weaker inclusion criterion, with the one
+noticeable difference being the elimination of the Bifidobacteriales
+order.  This order exceeded 1\% of the total counts for only one
+cadaver, so it could not be considered under the stricter inclusion
+criterion.  Fig.~\ref{fig:scatter_order_taxa} shows the fraction of
+counts associated with the six order taxa that were most influential
+in the order-level random forest model.  Again, note the varying
+scales of the y-axes across the panels.
+
+\begin{figure}
+  \centering
+  \includegraphics{../../only_orders/all_time_steps/hit_1perc_twice/orig_units_all_data_orders_barchart}
+  \caption{Ten most influential order-level taxa, modeled using a stricter inclusion criterion}
+  \label{fig:infl_order_taxa_stric_crit}
+\end{figure}
+
+
+\begin{figure}
+  \centering
+  \includegraphics{../../only_orders/all_time_steps/influential_order_taxa_panel}
+  \caption{Some of the influential order-level taxa, by degree day}
+  \label{fig:scatter_order_taxa}
+\end{figure}
 
 
 
