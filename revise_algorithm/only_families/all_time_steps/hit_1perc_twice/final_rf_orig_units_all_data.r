@@ -142,16 +142,7 @@ rf <- randomForest(degdays ~ . , data=wideT, mtry=numVarSplit,
 init.fig.dimen(file=paste0("orig_units_all_data_families_imp_plot.pdf"), width=8, height=6)
 varImpPlot(rf, main="Importance of family taxa (orig. units, all time steps)")
 dev.off()
-## To find the families in order of importance accroding to the
-## %IncMSE, (see help for "importance"), use:
-## importance(rf)[order(importance(rf)[,1], decreasing=T),]
 
-## Turn importance measures into a tibble.
-importanceT <- importance(rf) %>% as.data.frame() %>% as_tibble() %>% rownames_to_column("family") %>% rename(PercIncMSE='%IncMSE')
-## WORKING HERE - WILL HAVE TO TURN INTO FACTORS.
-ggplot(importanceT %>% arrange(desc(PercIncMSE)),
-       aes(x=reorder(family, importanceT$family), PercIncMSE)) +
-  geom_col()
 
 ## Find residuals:
 resids <- rf$predicted - wideT$degdays
@@ -164,4 +155,26 @@ sqrt( mean( resids^2 ) )
 ## R-squared"
 1 - ( sum(resids^2)/sum( (wideT$degdays - mean(wideT$degdays))^2 ) )
 ## Expl. frac.: 0.8607805
+## ##################################################
+
+
+
+## ##################################################
+## Make graph of just IncNodePurity alone.
+
+## Turn importance measures into a tibble, sorted by IncNodePurity in
+## increasing order.
+importanceT <- importance(rf) %>%
+  as.data.frame() %>% as_tibble() %>%
+  rownames_to_column("family") %>%
+  arrange(IncNodePurity)
+## Turn family names into factors, so that we can make the bar chart
+## with the bars in decreasing order.
+importanceT$family <- factor(importanceT$family, levels=importanceT$family)
+ggplot(importanceT %>% top_n(10, wt=IncNodePurity),
+       aes(x=family, y=IncNodePurity)) +
+  coord_flip() +
+  geom_col() +
+  labs(x="Family", y="Decrease in node impurity")
+ggsave(filename="orig_units_all_data_families_barchart.pdf", height=2.5, width=4, units="in")
 ## ##################################################
