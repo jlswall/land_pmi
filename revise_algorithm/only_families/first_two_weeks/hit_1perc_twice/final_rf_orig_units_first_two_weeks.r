@@ -96,7 +96,7 @@ set.seed(7137029)
 
 
 ## Now, calculate the various summary statistics for each cross-validation.
-residsDF <- NULL
+residDF <- NULL
 for (i in 1:numCVs){
 
   ## Get the validation set for this run from the list.
@@ -113,7 +113,7 @@ for (i in 1:numCVs){
   iCaseDF <- data.frame(yactual=validT$degdays, yhat=origFitL[[i]],
                         resid=resid)
   ## Add this data frame to what we've already collected.
-  residsDF <- rbind(residsDF, iCaseDF)
+  residDF <- rbind(residDF, iCaseDF)
 
   
   ## Calculate the MSE and error fraction of the SS Total for the
@@ -124,7 +124,7 @@ for (i in 1:numCVs){
 }
 rm(i, validT, SSTot)
 
-write_csv(residsDF, path="final_rf_orig_units_residuals_first_two_weeks.csv")
+write_csv(residDF, path="final_rf_orig_units_residuals_first_two_weeks.csv")
 write_csv(data.frame(cvMSE, cvErrFrac), path="final_rf_orig_units_cvstats_first_two_weeks.csv")
 rm(cvMSE, cvErrFrac)
 ## ##################################################
@@ -178,4 +178,16 @@ ggplot(importanceT %>% top_n(10, wt=IncNodePurity),
   geom_col() +
   labs(x="Family", y="Decrease in node impurity")
 ggsave(filename="orig_units_first_two_weeks_families_barchart.pdf", height=2.5, width=4, units="in")
+## ##################################################
+
+
+
+## ##################################################
+## Make plot of residuals.
+
+ggplot(residDF, aes(x=yactual, y=resid)) +
+  geom_point() +
+  geom_hline(yintercept=0) + 
+  labs(x="Actual degree days", y="Error (actual - estimated)")
+ggsave(filename="orig_units_first_two_weeks_families_residuals.pdf", height=3.5, width=4, units="in")
 ## ##################################################

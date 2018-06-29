@@ -9,7 +9,7 @@ library("parallel")
 taxalevel <- "families"
 
 ## Read in cleaned-up phyla, orders, or families taxa.
-taxaT <- read_csv(paste0(taxalevel, "_hit_cutoff_twice_all_time_steps.csv"))
+taxaT <- read_csv(paste0(taxalevel, "_hit_cutoff_twice_first_two_weeks.csv"))
 ## ##################################################
 
 
@@ -41,11 +41,11 @@ rm(taxaT)
 ## Number of bootstrap samples.
 numBtSamps <- 3000
 
-## Repeated cross-validation runs (1000 of them), leaving out 20% of
+## Repeated cross-validation runs, leaving out 20% of
 ## the observations at a time, indicated that the number of variables
-## to consider at each split is about 8 (also 9 is very close)
+## to consider at each split is about 9 (with 8 and 10 close)
 ## for the response variable in the original units.
-numVarSplit <- 8
+numVarSplit <- 9
 ## ##################################################
 
 
@@ -55,7 +55,7 @@ numVarSplit <- 8
 ## cross-valiation results.
 
 ## We exclude each combination of individual and degree day. This is
-## 16 degree days x 6 individuals = 96 combos.
+## 10 degree days x 6 individuals = 60 combos.
 excludeMat <- expand.grid(unique(wideT$subj), unique(wideT$degdays),
                           stringsAsFactors=FALSE)
 colnames(excludeMat) <- c("subj", "degdays")
@@ -85,7 +85,7 @@ origUnitsF <- function(x, mtry, ntree){
 
 
 ## Set random seed for reproducibility.
-set.seed(410943)
+set.seed(390948)
 
 ## Try using lapply to fit the random forests.
 origFitL <- mclapply(crossvalidL, mc.cores=4, origUnitsF, mtry=numVarSplit, ntree=numBtSamps)
@@ -160,6 +160,7 @@ ggplot(residDF %>% filter(dayOmit==yactual), aes(x=yactual, y=resid)) +
   geom_hline(yintercept=0) +
   labs(x="Actual degree days", y="Error (actual - estimated)")
 ggsave(filename="leave_out_one_day_residuals.pdf", height=3.5, width=4, units="in")
+
 
 ggplot(residDF, aes(x=yactual, y=resid)) +
   facet_wrap(~subjOmit) +
