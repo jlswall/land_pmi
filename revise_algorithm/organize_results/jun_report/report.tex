@@ -65,7 +65,7 @@ use the models to predict the values for the validation dataset, and
 calculate the errors (actual number of degree days from the validation
 dataset minus the number of degree days estimated by the model).  The
 setting for \texttt{numVarSplit} which produces the smallest error and
-the greated fraction of variability explained is the one I use for the
+the greatest fraction of variability explained is the one I use for the
 final model.
 
 I had some concerns about how well our model would perform in
@@ -86,7 +86,7 @@ had done previously.
 
 
 
-\subsection{All time steps}
+\subsection{Models using all time steps}
 
 In this section, we utilize data collected on all available days.  The
 number of days post mortem, along with the corresponding accumulated
@@ -434,7 +434,7 @@ this reduces the number of taxa to consider, and hopefully makes the
 analysis more resistant to outliers and easier to implement in a
 real-life estimation.
 
-\subsection{All time steps}
+\subsection{Models using all time steps}
 
 \subsubsection{Results for family-level taxa}
 
@@ -538,6 +538,58 @@ Inclusion cutoff & Units  & RMSE & Explained variation\\ \hline
   \label{fig:scatter_eukaryote_order_taxa}
 \end{figure}
 
+
+
+\subsection{Models using only the first 15 days of data}
+
+\subsubsection{Results for family-level taxa}
+
+The model performance statistics are shown in Table
+\ref{tbl:eukaryote_family_first_15days_model_stats}.  These seems to
+indicate a better fit than using the bacteria-only dataset shown in
+the previous section.
+
+\begin{table}
+  \centering
+\caption{\label{tbl:eukaryote_family_first_15days_model_stats}Model statistics using family-level eukaryote taxa}
+\begin{tabular}{llll}
+Inclusion cutoff & Units  & RMSE & Explained variation\\ \hline
+1\% at least twice (stricter) & Orig.~units & 58.6 & 84.65\% 
+\end{tabular}
+\end{table}
+
+Figures \ref{fig:infl_eukaryote_family_taxa_first_15days} and
+\ref{fig:scatter_eukaryote_family_taxa_first_15days} show a few of the
+family taxa which the model showed to be influential when modeling
+just the first 15 days.
+
+\begin{figure}
+  \centering
+  \includegraphics{../../../eukaryote_data/only_families/first_two_weeks/hit_1perc_twice/orig_units_first_two_weeks_families_barchart}
+  \caption{Ten most influential eukaryote family-level taxa, first 15 days}
+  \label{fig:infl_eukaryote_family_taxa_first_15days}
+\end{figure}
+
+\begin{figure}
+  \centering
+  \includegraphics{../../../eukaryote_data/only_families/first_two_weeks/influential_family_taxa_panel_first_two_weeks}
+  \caption{Some of the influential eukaryote family-level taxa, by degree day (first 15 days)}
+  \label{fig:scatter_eukaryote_family_taxa_first_15days}
+\end{figure}
+
+Figure \ref{fig:leave_one_out_resids_eukaryote_family_taxa_first_15days}
+shows a plot of the model residuals for our simulations of cases in
+which we leave out all the observations from one day and one subject,
+and try to predict the missing day and subject.  The pattern is
+similar to that seen in previous, similar plots.  The RMSE for
+predictions in these cases is about 93.4.
+
+\begin{figure}
+  \centering
+  \includegraphics{../../../eukaryote_data/only_families/first_two_weeks/hit_1perc_twice/leave_out_one_subj_and_one_day_residuals}
+  \caption{Residuals for model runs leaving out one subject and one day (eukaryote family-level taxa, first15 days)}
+  \label{fig:leave_one_out_resids_eukaryote_family_taxa_first_15days}
+\end{figure}
 
 \end{document}
 
