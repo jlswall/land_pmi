@@ -222,20 +222,49 @@ scales of the y-axes across the panels.
 
 
 
-\section{First 15 days}
+\section{Models using only the first 15 days of data}
 
 \subsection{Results for family-level taxa}
 
-Original cutoff considers 37 possible family-level taxa.
-Stricter cutoff considers 35 possible family-level taxa.
+Table \ref{tbl:family_first_15days_model_stats} shows the model
+performance statistics for the model using just the first 15 days of
+family-level taxa.  Whether we use the weaker or stronger inclusion
+criteria, model performance is much the same, so we go with the
+stricter criterion for each of interpretation and implementation.  For
+the first 15 days of data, we consider 35 possible family-level taxa.
+As we might expect, the influential taxa for this early period are
+different than those for the full time period.  The top 10 such taxa
+are shown in Figure
+\ref{fig:infl_family_taxa_first_15days_stric_crit}.  Scatterplots of
+six of these taxa are found in Figure
+\ref{fig:scatter_family_taxa_first_15days}.  Again, note the
+difference in scaling of the y-axis among the various panels.
 
+\begin{table}
+  \centering
+  \caption{\label{tbl:family_first_15days_model_stats}Model statistics using family-level taxa for the first 15 days}
 \begin{tabular}{llll}
-Inclusion cutoff & Units  & RMSE & Explained variation\\
+Inclusion cutoff & Units  & RMSE & Explained variation\\ \hline
 1\% at least once  & Orig.~units & 64.98 & 81.99\%\\
-1\% at least twice & Orig.~units & 64.25 & 82.39\%\\
-1\% at least once  & Sqrt.~units & 2.31 & 87.87\%\\
-1\% at least twice & Sqrt.~units & 2.28 & 88.20\%
+1\% at least twice & Orig.~units & 64.25 & 82.39\%
+%% 1\% at least once  & Sqrt.~units & 2.31 & 87.87\%\\
+%% 1\% at least twice & Sqrt.~units & 2.28 & 88.20\%
 \end{tabular}
+\end{table}
+
+\begin{figure}
+  \centering
+  \includegraphics{../../only_families/first_two_weeks/hit_1perc_twice/orig_units_first_two_weeks_families_barchart}
+  \caption{Ten most influential family-level taxa in the first 15 days, modeled using a stricter inclusion criterion}
+  \label{fig:infl_family_taxa_first_15days_stric_crit}
+\end{figure}
+
+\begin{figure}
+  \centering
+  \includegraphics{../../only_families/first_two_weeks/influential_family_taxa_panel_first_two_weeks}
+  \caption{Some of the influential family-level taxa, by degree day}
+  \label{fig:scatter_family_taxa_first_15days}
+\end{figure}
 
 
 
