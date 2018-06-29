@@ -459,7 +459,7 @@ Inclusion cutoff & Units  & RMSE & Explained variation\\ \hline
 Thirty-nine taxa were considered in the random forest model, using the
 stricter criterion.  The top 10 taxa indicated by the model to be the
 most influential in the random forest model are shown in Figure
-\ref{fig:infl_eukaryote_family_taxa_orig_crit}.  A scatterplot of
+\ref{fig:infl_eukaryote_family_taxa}.  A scatterplot of
 fractional make-up vs. degree day is shown for several of these taxa
 in Figure \ref{fig:scatter_eukaryote_family_taxa}.
 
@@ -467,7 +467,7 @@ in Figure \ref{fig:scatter_eukaryote_family_taxa}.
   \centering
   \includegraphics{../../../eukaryote_data/only_families/all_time_steps/hit_1perc_twice/orig_units_all_data_families_barchart}
   \caption{Ten most influential eukaryote family-level taxa}
-  \label{fig:infl_eukaryote_family_taxa_orig_crit}
+  \label{fig:infl_eukaryote_family_taxa}
 \end{figure}
 
 \begin{figure}
@@ -506,6 +506,37 @@ bacteria-only dataset.
 \end{figure}
 
 
+\subsubsection{Results for order-level taxa}
+
+Table \ref{tbl:eukaryote_order_all_data_model_stats} shows the model
+performance statistics for the eukaryote order-level taxa, which again
+seems to indicated a better fit than the model for the same level taxa
+in Shane's dataset.  Figures \ref{fig:infl_eukaryote_order_taxa} and
+\ref{fig:scatter_eukaryote_order_taxa} show some of the influential
+order-level taxa.
+
+\begin{table}
+  \centering
+\caption{\label{tbl:eukaryote_order_all_data_model_stats}Model statistics using order-level eukaryote taxa}
+\begin{tabular}{llll}
+Inclusion cutoff & Units  & RMSE & Explained variation\\ \hline
+1\% at least twice (stricter) & Orig.~units & 193.2 & 87.67\% 
+\end{tabular}
+\end{table}
+
+\begin{figure}
+  \centering
+  \includegraphics{../../../eukaryote_data/only_orders/all_time_steps/hit_1perc_twice/orig_units_all_data_orders_barchart}
+  \caption{Ten most influential eukaryote order-level taxa}
+  \label{fig:infl_eukaryote_order_taxa}
+\end{figure}
+
+\begin{figure}
+  \centering
+  \includegraphics{../../../eukaryote_data/only_orders/all_time_steps/influential_order_taxa_panel}
+  \caption{Some of the influential eukaryote order-level taxa, by degree day}
+  \label{fig:scatter_eukaryote_order_taxa}
+\end{figure}
 
 
 \end{document}
