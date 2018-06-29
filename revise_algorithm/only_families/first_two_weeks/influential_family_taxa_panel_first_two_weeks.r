@@ -9,7 +9,8 @@ topChoices <- c("Lactobacillaceae", "Dermabacteraceae", "Dietziaceae", "Intraspo
 indivT <- read_csv("../../families_massaged.csv")
 
 chooseT <- indivT %>%
-  filter(taxa %in% topChoices)
+  filter(taxa %in% topChoices) %>%
+  filter(days <= 15)
 chooseT$taxa <- factor(chooseT$taxa, levels=topChoices)
 
 ggplot(chooseT, aes(degdays, fracBySubjDay)) +

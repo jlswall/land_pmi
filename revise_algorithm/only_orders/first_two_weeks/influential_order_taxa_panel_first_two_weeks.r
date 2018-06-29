@@ -9,7 +9,8 @@ topChoices <- c("JG30_KF_CM45", "Rhizobiales", "Burkholderiales", "Pseudomonadal
 indivT <- read_csv("../../orders_massaged.csv")
 
 chooseT <- indivT %>%
-  filter(taxa %in% topChoices)
+  filter(taxa %in% topChoices) %>%
+  filter(days <= 15)
 chooseT$taxa <- factor(chooseT$taxa, levels=topChoices)
 
 ggplot(chooseT, aes(degdays, fracBySubjDay)) +
