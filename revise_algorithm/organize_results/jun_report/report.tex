@@ -45,20 +45,37 @@ missing cadaver-day combinations occurring during this period).
 
 \section{Cross-validation procedures}
 
+As a reminder, we use cross-validation to help us choose certain
+settings for the random forest model.  The main parameter to optimize
+is the number of variables which the model can consider at each
+branching of the decision tree.  In my code, I call this value
+\texttt{numVarSplit}.  A secondary parameter is the number of bootstrap
+samples to use to build the random forest, but I found that about 300
+samples seems to be sufficient for all the cases we've considered.
+
+To estimate the \texttt{numVarSplit}, I used cross-validation
+runs.  For each run, I randomly select a certain subset (a minority)
+of the available observations to hold back as a ``validation'' data
+set.  The rest of the observations make up the ``training'' dataset.
+We then fit a series of random forest models on the training dataset,
+using a variety of possible values for \texttt{numVarSplit}.  We then
+use the models to predict the values for the validation dataset, and
+calculate the errors (actual number of degree days from the validation
+dataset minus the number of degree days estimated by the model).  The
+setting for \texttt{numVarSplit} which produces the smallest error and
+the greated fraction of variability explained is the one I use for the
+final model.
+
 I had some concerns about how well our model would perform in
 prediction mode.  We have only 6 cadavers, and we only have
-observations at certain time steps.  I'm continuing to use
-cross-validation, but I've reduced the training set to 80\% of the
-data, reserving 20\% to use as a test set.  (Previously, the split was
-90\% and 10\%.)  When using all the data, this means training on a set
-of 74 observations, and testing on a size of 18.  When using just the
-first 15 days of data, this means training on a set of 46
-observations, and testing on a size of 11.  For each model that I fit,
-I did 1000 cross-validation runs.  For each of these runs, we randomly
-select which 20\% of the observations will be left out of the random
-forest algorithm and used to test the model.  The change from 90\% to
-80\% made very little difference in the choice of models, which
-relieved some of my concern.
+observations at certain time steps.  Since our last conversation, I've
+reduced the training set to 80\% of the data, reserving 20\% to use as
+a test set.  (Previously, the split was 90\% and 10\%.)  When using
+all the data, this means training on a set of 74 observations, and
+testing on a size of 18.  When using just the first 15 days of data,
+this means training on a set of 46 observations, and testing on a size
+of 11.  The change from 90\% to 80\% made very little difference in
+the choice of models, which relieved some of my concern.
 
 Since our last meeting, I figured out how to parallelize some of the
 computational work, which allowed me to use some additional
@@ -189,10 +206,10 @@ estimates are biased toward the average degree day.
   \label{fig:resids_cv_family_taxa}
 \end{figure}
 
-In practice, we would be using this model to predict the accummulated
+In practice, we would be using this model to predict the accumulated
 degree days based on the counts of family-level taxa from a never
 before observed cadaver.  The post mortem interval in such a case
-would not necessarily correspond with a number of acccummulated degree
+would not necessarily correspond with a number of accumulated degree
 days which we have observed before.  For instance, we might observe a
 cadaver at a time associated with 100 degree days or 500 degree days.
 To get a better idea about how the model might be expected to perform
@@ -212,7 +229,8 @@ available data, while these runs purposefully left out all the data
 for a certain subject and for a certain day.  Second, by construction,
 these test runs were conducted while omitting all information about a
 particular degree day, so that there is a gap in the information
-availble.
+available.  In contrast, the RMSE associated with estimates for
+left-out subjects on days that were not left out is only about 220.9
 
 \begin{figure}
   \centering
@@ -256,7 +274,9 @@ cadaver, so it could not be considered under the stricter inclusion
 criterion.  Figure \ref{fig:scatter_order_taxa} shows the fraction of
 counts associated with the six order taxa that were most influential
 in the order-level random forest model.  Again, note the varying
-scales of the y-axes across the panels.
+scales of the y-axes across the panels.  The error patterns for the
+models using order-level taxa are very similar to those for the
+family-level taxa, so I haven't included them here.
 
 \begin{figure}
   \centering
@@ -319,6 +339,37 @@ Inclusion cutoff & Units  & RMSE & Explained variation\\ \hline
   \label{fig:scatter_family_taxa_first_15days}
 \end{figure}
 
+Looking at the residuals, we see the same patterns that we saw for the
+model using all time steps.  Figure
+\ref{fig:resids_cv_first_15days_family_taxa} shows the errors
+associated with 1000 cross-validation runs, with the training and
+validation sets selected randomly.  However, since the analysis is
+limited to the first two weeks, the RMSE is correspondingly lower.
+
+\begin{figure}
+  \centering
+  \includegraphics{../../only_families/first_two_weeks/hit_1perc_twice/orig_units_first_two_weeks_families_residuals}
+  \caption{Residuals from the cross-validation runs for the family taxa model, first 15 days}
+  \label{fig:resids_cv_first_15days_family_taxa}
+\end{figure}
+
+Figure \ref{fig:leave_out_one_resids_family_taxa_first_15days} shows
+the residuals when we each combination of one subject and one time
+step out of the model-fitting process.  Again, this is very similar to
+the pattern we saw when using the data from the whole time period.
+The RMSE for these runs is about 83.5.  This means that in a real-life
+situation, in which it's likely that we do not have observations from
+the applicable degree day, the RMSE is substantially higher than the
+RMSE for the fitted model.
+%% The RMSE for situations where we are predicting the left-out
+%% individual for days which are present in the model is about 66.1.
+
+\begin{figure}
+  \centering
+  \includegraphics{../../only_families/first_two_weeks/hit_1perc_twice/leave_out_one_subj_and_one_day_residuals}
+  \caption{Residuals for model runs leaving out one subject and one day, first 15 days (family-level taxa)}
+  \label{fig:leave_out_one_resids_family_taxa_first_15days}
+\end{figure}
 
 
 \subsection{Results for order-level taxa}
@@ -360,6 +411,7 @@ Inclusion cutoff & Units  & RMSE & Explained variation\\ \hline
   \caption{Some of the influential order-level taxa, for the first 15 days}
   \label{fig:scatter_order_taxa_first_15days}
 \end{figure}
+
 
 
 \end{document}
