@@ -151,9 +151,15 @@ write.csv(residDF, file="resids_leave_out_one_subj_and_one_day.csv", row.names=F
 
 
 ## #########################################
+## Make plot showing the residuals associated with days which were
+## completely left out of the model.
+
 ggplot(residDF %>% filter(dayOmit==yactual), aes(x=yactual, y=resid)) +
-  geom_point(aes(col=subjOmit)) +
-  labs(x="Degree day", y="Residual")
+  geom_point() +
+  ## geom_point(aes(col=subjOmit)) +
+  geom_hline(yintercept=0) +
+  labs(x="Actual degree days", y="Error (actual - estimated)")
+ggsave(filename="leave_out_one_day_residuals.pdf", height=3.5, width=4, units="in")
 
 
 ggplot(residDF, aes(x=yactual, y=resid)) +

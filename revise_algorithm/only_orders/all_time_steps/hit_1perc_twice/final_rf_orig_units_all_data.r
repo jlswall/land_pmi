@@ -178,3 +178,15 @@ ggplot(importanceT %>% top_n(10, wt=IncNodePurity),
   labs(x="Order", y="Decrease in node impurity")
 ggsave(filename="orig_units_all_data_orders_barchart.pdf", height=2.5, width=4, units="in")
 ## ##################################################
+
+
+
+## ##################################################
+## Make plot of residuals.
+
+ggplot(residDF, aes(x=yactual, y=resid)) +
+  geom_point() +
+  geom_hline(yintercept=0) + 
+  labs(x="Actual degree days", y="Error (actual - estimated)")
+ggsave(filename="orig_units_all_data_orders_residuals.pdf", height=3.5, width=4, units="in")
+## ##################################################
