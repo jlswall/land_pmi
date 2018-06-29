@@ -67,7 +67,8 @@ crossvalidL <- vector("list", numCVs)
 for (i in 1:numCVs){
   lvOut <- (wideT$subj==excludeMat[i,"subj"]) | (wideT$degdays==excludeMat[i,"degdays"])
   trainT <- wideT[!lvOut,] %>% select(-subj)
-  validT <- wideT[lvOut,] %>% select(-subj)
+  ##  validT <- wideT[lvOut,] %>% select(-subj)
+  validT <- wideT[lvOut,]
   crossvalidL[[i]] <- list(trainT=trainT, validT=validT)
 }
 rm(i, lvOut, trainT, validT)
@@ -135,6 +136,7 @@ for (i in 1:numCVs){
   ## individual that were left out in this validation.
   iresidDF <- data.frame(dayOmit=excludeMat[i,"degdays"],
                          subjOmit=excludeMat[i,"subj"],
+                         subjactual=validT$subj,
                          yactual=validT$degdays,
                          yhat=origFitL[[i]],
                          resid=resid)
@@ -154,12 +156,15 @@ write.csv(residDF, file="resids_leave_out_one_subj_and_one_day.csv", row.names=F
 ## Make plot showing the residuals associated with days which were
 ## completely left out of the model.
 
-ggplot(residDF %>% filter(dayOmit==yactual), aes(x=yactual, y=resid)) +
+ggplot(residDF %>%
+       filter(dayOmit==yactual) %>%
+       filter(subjOmit==subjactual),
+       aes(x=yactual, y=resid)) +
   geom_point() +
   ## geom_point(aes(col=subjOmit)) +
   geom_hline(yintercept=0) +
   labs(x="Actual degree days", y="Error (actual - estimated)")
-ggsave(filename="leave_out_one_day_residuals.pdf", height=3.5, width=4, units="in")
+ggsave(filename="leave_out_one_subj_and_one_day_residuals.pdf", height=3.5, width=4, units="in")
 
 
 ggplot(residDF, aes(x=yactual, y=resid)) +
