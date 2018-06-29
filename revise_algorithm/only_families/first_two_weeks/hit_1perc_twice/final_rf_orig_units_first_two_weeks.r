@@ -83,7 +83,7 @@ for (i in 1:numCVs){
 rm(i, lvOut, trainT, validT)
 
 ## Conduct cross-validation.
-origFitL <- mclapply(crossvalidL, mc.cores=2, origUnitsF, mtry=numVarSplit, ntree=numBtSamps)
+origFitL <- mclapply(crossvalidL, mc.cores=4, origUnitsF, mtry=numVarSplit, ntree=numBtSamps)
 ## ###########################
 
 
@@ -96,6 +96,7 @@ set.seed(7137029)
 
 
 ## Now, calculate the various summary statistics for each cross-validation.
+residsDF <- NULL
 for (i in 1:numCVs){
 
   ## Get the validation set for this run from the list.
@@ -104,15 +105,26 @@ for (i in 1:numCVs){
   ## Calculate SSTotal for the cross-validation set.
   SSTot <- sum( (validT$degdays-mean(validT$degdays))^2 )
 
+  ## Calculate the residuals for this validation set.
+  resid <- validT$degdays - origFitL[[i]]
+
+  ## Build a data frame with the actual response and the estimated
+  ## response.
+  iCaseDF <- data.frame(yactual=validT$degdays, yhat=origFitL[[i]],
+                        resid=resid)
+  ## Add this data frame to what we've already collected.
+  residsDF <- rbind(residsDF, iCaseDF)
+
+  
   ## Calculate the MSE and error fraction of the SS Total for the
   ## validation data in the original units.
-  resid <- origFitL[[i]] - validT$degdays
   cvMSE[i] <- mean(resid^2)
   cvErrFrac[i] <- sum(resid^2)/SSTot
-  rm(resid)
+  rm(resid, iCaseDF)
 }
 rm(i, validT, SSTot)
 
+write_csv(residsDF, path="final_rf_orig_units_residuals_first_two_weeks.csv")
 write_csv(data.frame(cvMSE, cvErrFrac), path="final_rf_orig_units_cvstats_first_two_weeks.csv")
 rm(cvMSE, cvErrFrac)
 ## ##################################################
@@ -144,4 +156,26 @@ sqrt( mean( resids^2 ) )
 ## R-squared"
 1 - ( sum(resids^2)/sum( (wideT$degdays - mean(wideT$degdays))^2 ) )
 ## Expl. frac.: 0.8238913
+## ##################################################
+
+
+
+## ##################################################
+## Make graph of just IncNodePurity alone.
+
+## Turn importance measures into a tibble, sorted by IncNodePurity in
+## increasing order.
+importanceT <- importance(rf) %>%
+  as.data.frame() %>% as_tibble() %>%
+  rownames_to_column("family") %>%
+  arrange(IncNodePurity)
+## Turn family names into factors, so that we can make the bar chart
+## with the bars in decreasing order.
+importanceT$family <- factor(importanceT$family, levels=importanceT$family)
+ggplot(importanceT %>% top_n(10, wt=IncNodePurity),
+       aes(x=family, y=IncNodePurity)) +
+  coord_flip() +
+  geom_col() +
+  labs(x="Family", y="Decrease in node impurity")
+ggsave(filename="orig_units_first_two_weeks_families_barchart.pdf", height=2.5, width=4, units="in")
 ## ##################################################
