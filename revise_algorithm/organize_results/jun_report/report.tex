@@ -14,7 +14,9 @@
 
 \begin{document}
 
-\section{Overview of Shanes's original data}
+\section{Shanes's original bacteria data}
+
+\subsection{Overview}
 
 Our earlier work determined that analyses at the phylum-level did not
 explain nearly as much of the variability as did models built on
@@ -43,7 +45,7 @@ we have 57 observations (10 days $\times$ 6 cadavers, minus the 3
 missing cadaver-day combinations occurring during this period).
 
 
-\section{Cross-validation procedures}
+\subsection{Cross-validation procedures}
 
 As a reminder, we use cross-validation to help us choose certain
 settings for the random forest model.  The main parameter to optimize
@@ -84,7 +86,7 @@ had done previously.
 
 
 
-\section{All time steps}
+\subsection{All time steps}
 
 In this section, we utilize data collected on all available days.  The
 number of days post mortem, along with the corresponding accumulated
@@ -99,7 +101,7 @@ degree days, are shown below.
 
 
 
-\subsection{Results for family-level taxa}
+\subsubsection{Results for family-level taxa}
 
 In our original analysis, we excluded from the model any taxa which
 made up less than 1\% of the observed taxa for all cadavers and all
@@ -242,7 +244,7 @@ left-out subjects on days that were not left out is only about 220.9
 
 
 
-\subsection{Results for order-level taxa}
+\subsubsection{Results for order-level taxa}
 
 For the order-level taxa, I also ran the analysis both ways, with the
 stricter inclusion criterion (requiring 1\% for at least two cadavers)
@@ -295,9 +297,9 @@ family-level taxa, so I haven't included them here.
 
 
 
-\section{Models using only the first 15 days of data}
+\subsection{Models using only the first 15 days of data}
 
-\subsection{Results for family-level taxa}
+\subsubsection{Results for family-level taxa}
 
 Table \ref{tbl:family_first_15days_model_stats} shows the model
 performance statistics for the model using just the first 15 days of
@@ -372,7 +374,7 @@ RMSE for the fitted model.
 \end{figure}
 
 
-\subsection{Results for order-level taxa}
+\subsubsection{Results for order-level taxa}
 
 Looking at the model for the first 15 days, using the order-level
 taxa, the models with the stricter and weaker inclusion cutoffs are
@@ -411,6 +413,98 @@ Inclusion cutoff & Units  & RMSE & Explained variation\\ \hline
   \caption{Some of the influential order-level taxa, for the first 15 days}
   \label{fig:scatter_order_taxa_first_15days}
 \end{figure}
+
+
+\section{Working with Luisa's eukaryote data}
+
+\subsection{Overview}
+
+I applied the same methods to Luisa's eukaryote data, again focusing
+on family-level and order-level taxa.  I did not find any day/subject
+combination with an unusually low count, as I did for subject A3 on
+day 40 of Shane's data.  However, I did find very small numbers of
+counts from orders Mammalia and Aves, which I excluded from the
+analysis.
+
+The cross-validation procedures I used were also the same as those
+used previously.  I focused on the stricter inclusion criterion,
+meaning that, for inclusion in the analysis, a taxon must make up more
+than 1\% of the total daily counts on at least 2 cadavers.  Again,
+this reduces the number of taxa to consider, and hopefully makes the
+analysis more resistant to outliers and easier to implement in a
+real-life estimation.
+
+\subsection{All time steps}
+
+\subsubsection{Results for family-level taxa}
+
+The model statistics for the final random forest model, using both the
+weaker and stronger inclusion criteria, are found in Table
+\ref{tbl:eukaryote_family_all_data_model_stats}.  As before, the
+goodness-of-fit is very similar, so for the remainder of the analyses,
+I will stick with models following the stricter criterion.  Note that
+this model seems to fit better than the model making use of the
+previous bacteria-only dataset.
+
+\begin{table}
+  \centering
+\caption{\label{tbl:eukaryote_family_all_data_model_stats}Model statistics using family-level eukaryote taxa}
+\begin{tabular}{llll}
+Inclusion cutoff & Units  & RMSE & Explained variation\\ \hline
+1\% at least once (weaker)  & Orig.~units & 175.7 & 89.80\%\\
+1\% at least twice (stricter) & Orig.~units & 178.1 & 89.51\% 
+\end{tabular}
+\end{table}
+
+Thirty-nine taxa were considered in the random forest model, using the
+stricter criterion.  The top 10 taxa indicated by the model to be the
+most influential in the random forest model are shown in Figure
+\ref{fig:infl_eukaryote_family_taxa_orig_crit}.  A scatterplot of
+fractional make-up vs. degree day is shown for several of these taxa
+in Figure \ref{fig:scatter_eukaryote_family_taxa}.
+
+\begin{figure}
+  \centering
+  \includegraphics{../../../eukaryote_data/only_families/all_time_steps/hit_1perc_twice/orig_units_all_data_families_barchart}
+  \caption{Ten most influential eukaryote family-level taxa}
+  \label{fig:infl_eukaryote_family_taxa_orig_crit}
+\end{figure}
+
+\begin{figure}
+  \centering
+  \includegraphics{../../../eukaryote_data/only_families/all_time_steps/influential_family_taxa_panel}
+  \caption{Some of the influential eukaryote family-level taxa, by degree day}
+  \label{fig:scatter_eukaryote_family_taxa}
+\end{figure}
+
+Figure \ref{fig:resids_cv_eukaryote_family_taxa} shows a scatterplot
+of the errors vs.~the actual degree days, across all 1000
+cross-validation runs.  The pattern is much the same as those
+identified in the earlier sections, using Shane's data.  In a
+real-world application, though, we may not have any observations
+corresponding to the actual degree days accumulated post mortem.
+Figure \ref{fig:leave_one_out_resids_eukaryote_family_taxa} shows
+these residuals, which again show patterns similar to those seen in
+earlier sections.  The root mean squared estimation error in these
+cases is about 243.6, which is better than that using the
+bacteria-only dataset.
+%% The RMSE for predictions of left-out individuals on days where we do
+%% have data is about 186.2.
+
+\begin{figure}
+  \centering
+  \includegraphics{../../../eukaryote_data/only_families/all_time_steps/hit_1perc_twice/orig_units_all_data_families_residuals}
+  \caption{Residuals from the cross-validation runs for the eukaryote family-level taxa model}
+  \label{fig:resids_cv_eukaryote_family_taxa}
+\end{figure}
+
+\begin{figure}
+  \centering
+  \includegraphics{../../../eukaryote_data/only_families/all_time_steps/hit_1perc_twice/leave_out_one_subj_and_one_day_residuals}
+  \caption{Residuals for model runs leaving out one subject and one day (eukaryote family-level taxa)}
+  \label{fig:leave_one_out_resids_eukaryote_family_taxa}
+\end{figure}
+
 
 
 
