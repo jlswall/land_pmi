@@ -170,6 +170,59 @@ Inclusion cutoff & Units  & RMSE & Explained variation\\ \hline
 \end{tabular}
 \end{table}
 
+To get an idea of the errors (also called residuals) made by the
+random forest model, I used cross-validation runs.  Remember, the
+cross-validations are done by randomly choosing 20\% of the dataset to
+leave out the model-fitting procedure.  Then, the model (fitted on the
+remaining 80\%) is used to estimate the responses for the observations
+that were left out.  Figure \ref{fig:resids_cv_family_taxa}
+illustrates the model errors (actual minus estimated) vs.~the actual
+values, taken across 1000 cross-validation runs.  For the beginning of
+the time period (lower degree days), the model is over-predicting,
+while the opposite is true at the end of the time period.  The model
+estimates are biased toward the average degree day.
+
+\begin{figure}
+  \centering
+  \includegraphics{../../only_families/all_time_steps/hit_1perc_twice/orig_units_all_data_families_residuals}
+  \caption{Residuals from the cross-validation runs for the family taxa model}
+  \label{fig:resids_cv_family_taxa}
+\end{figure}
+
+In practice, we would be using this model to predict the accummulated
+degree days based on the counts of family-level taxa from a never
+before observed cadaver.  The post mortem interval in such a case
+would not necessarily correspond with a number of acccummulated degree
+days which we have observed before.  For instance, we might observe a
+cadaver at a time associated with 100 degree days or 500 degree days.
+To get a better idea about how the model might be expected to perform
+in such a situation, we fit the model 96 times, leaving one subject
+and one degree day out each time (16 degree days X 6 subjects).  Then,
+we calculate the errors in the model estimates made for the subject
+which was left out on the day which was left out.
+
+Figure \ref{fig:leave_one_out_resids_family_taxa} shows the residuals
+for all combinations of degree day and subject.  The RMSE for these
+runs is about 274.8, which is higher than the RMSE for the model
+including all data, which is given in Table
+\ref{tbl:family_all_data_model_stats}.  This larger error stems from
+two sources.  First, Table \ref{tbl:family_all_data_model_stats} shows
+the model performance statistics based on fitting the model with all
+available data, while these runs purposefully left out all the data
+for a certain subject and for a certain day.  Second, by construction,
+these test runs were conducted while omitting all information about a
+particular degree day, so that there is a gap in the information
+availble.
+
+\begin{figure}
+  \centering
+  \includegraphics{../../only_families/all_time_steps/hit_1perc_twice/leave_out_one_subj_and_one_day_residuals}
+  \caption{Residuals for model runs leaving out one subject and one day (family-level taxa)}
+  \label{fig:leave_one_out_resids_family_taxa}
+\end{figure}
+
+
+
 
 \subsection{Results for order-level taxa}
 
