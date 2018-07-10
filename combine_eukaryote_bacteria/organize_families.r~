@@ -1,6 +1,0 @@
-library("tidyverse")
-
-## Read the eukaryote and bacteria data which we previously organized
-## separately.
-eukT <- read_csv("../eukaryote_data/families_massaged.csv")
-bacT <- read_csv("../revise_algorithm/families_massaged.csv")
