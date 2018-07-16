@@ -42,11 +42,11 @@ rm(taxaT)
 numPredictors <- ncol(wideT) - 1
 
 ## Try different numbers of bootstrap samples.
-numBtSampsVec <- c(300, 600, 1500, 3000)
+numBtSampsVec <- c(900, 1200, 1500, 2100, 3000)
 
 ## Try different values for mtry (which represents how many variables
 ## can be chosen from at each split of the tree).
-numVarSplitVec <- seq(9, 18, by=1)
+numVarSplitVec <- seq(12, 16, by=1)
 
 ## Form matrix with all combinations of these.
 combos <- expand.grid(numBtSamps=numBtSampsVec, numVarSplit=numVarSplitVec)
@@ -56,7 +56,7 @@ combos <- expand.grid(numBtSamps=numBtSampsVec, numVarSplit=numVarSplitVec)
 ## Do cross-validation over and over, leaving out a different 20% of
 ## the observations each time.
 
-set.seed(8733389)
+set.seed(4703189)
 
 ## Number of times to do cross-validation.
 numCVs <- 1000
@@ -106,7 +106,7 @@ rm(i, lvOut, trainT, validT)
 ## Try using lapply to fit the random forests.
 origFitL <- vector("list", nrow(combos))
 for (j in 1:nrow(combos)){
-  origFitL[[j]] <- mclapply(crossvalidL, mc.cores=7, origUnitsF, jCombo=j)
+  origFitL[[j]] <- mclapply(crossvalidL, mc.cores=6, origUnitsF, jCombo=j)
   if (j %% 2 == 0)
     print(paste0("In orig units, finished combo number ", j))
 }    

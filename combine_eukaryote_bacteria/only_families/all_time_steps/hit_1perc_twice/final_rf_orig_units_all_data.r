@@ -42,9 +42,9 @@ numBtSamps <- 3000
 
 ## Repeated cross-validation runs (1000 of them), leaving out 20% of
 ## the observations at a time, indicated that the number of variables
-## to consider at each split is about 13 (with 12-16 close)
-## for the response variable in the original units.
-numVarSplit <- 8
+## to consider at each split is about 15 (with 13 and 14) for the
+## response variable in the original units.
+numVarSplit <- 15
 ## ##################################################
 
 
@@ -133,7 +133,7 @@ rm(cvMSE, cvErrFrac)
 ## ##################################################
 ## Fit the final random forest with all the data (no cross-validation).
 
-set.seed(780630)
+set.seed(7820630)
 
 ## Fit the random forest model on all the data (no cross-validation).
 rf <- randomForest(degdays ~ . , data=wideT, mtry=numVarSplit,
@@ -149,12 +149,12 @@ resids <- rf$predicted - wideT$degdays
 
 ## Print out RMSE:
 sqrt( mean( resids^2 ) )
-## RMSE: 175.2186
+## RMSE: 173.2571
 
 ## Estimate of explained variance, which R documentation calls "pseudo
 ## R-squared"
 1 - ( sum(resids^2)/sum( (wideT$degdays - mean(wideT$degdays))^2 ) )
-## Expl. frac.: 0.9004181
+## Expl. frac.: 0.9026352
 ## ##################################################
 
 
