@@ -83,7 +83,7 @@ for (i in 1:numCVs){
 rm(i, lvOut, trainT, validT)
 
 ## Conduct cross-validation.
-origFitL <- mclapply(crossvalidL, mc.cores=4, origUnitsF, mtry=numVarSplit, ntree=numBtSamps)
+origFitL <- mclapply(crossvalidL, mc.cores=6, origUnitsF, mtry=numVarSplit, ntree=numBtSamps)
 ## ###########################
 
 
@@ -140,7 +140,7 @@ rf <- randomForest(degdays ~ . , data=wideT, mtry=numVarSplit,
                    ntree=numBtSamps, importance=T)
 
 init.fig.dimen(file=paste0("orig_units_all_data_families_imp_plot.pdf"), width=8, height=6)
-varImpPlot(rf, main="Importance of family taxa (orig. units, all time steps)")
+varImpPlot(rf, main="Importance of bacterial family-level taxa (all time steps)")
 dev.off()
 
 
@@ -175,8 +175,30 @@ ggplot(importanceT %>% top_n(10, wt=IncNodePurity),
        aes(x=family, y=IncNodePurity)) +
   coord_flip() +
   geom_col() +
-  labs(x="Family", y="Decrease in node impurity")
-ggsave(filename="orig_units_all_data_families_barchart.pdf", height=2.5, width=4, units="in")
+  labs(x="Bacterial family-level taxa", y="Decrease in node impurity")
+ggsave(filename="orig_units_all_data_families_IncNodePurity_barchart.pdf", height=2.5, width=4, units="in")
+## ##################################################
+
+
+
+## ##################################################
+## Make graph of just %IncMSE alone.
+
+## Turn importance measures into a tibble, sorted by IncNodePurity in
+## increasing order.
+importanceT <- importance(rf) %>%
+  as.data.frame() %>% as_tibble() %>%
+  rownames_to_column("family") %>%
+  arrange(`%IncMSE`)
+## Turn family names into factors, so that we can make the bar chart
+## with the bars in decreasing order.
+importanceT$family <- factor(importanceT$family, levels=importanceT$family)
+ggplot(importanceT %>% top_n(10, wt=`%IncMSE`),
+       aes(x=family, y=`%IncMSE`)) +
+  coord_flip() +
+  geom_col() +
+  labs(x="Bacterial family-level taxa", y="Mean % decrease in MSE when taxon excluded")
+ggsave(filename="orig_units_all_data_families_PercIncMSE_barchart.pdf", height=2.5, width=4, units="in")
 ## ##################################################
 
 
@@ -187,6 +209,6 @@ ggsave(filename="orig_units_all_data_families_barchart.pdf", height=2.5, width=4
 ggplot(residDF, aes(x=yactual, y=resid)) +
   geom_point() +
   geom_hline(yintercept=0) + 
-  labs(x="Actual degree days", y="Error (actual - estimated)")
+  labs(x="Actual accumulated degree days", y="Error (actual - estimated)")
 ggsave(filename="orig_units_all_data_families_residuals.pdf", height=3.5, width=4, units="in")
 ## ##################################################
