@@ -104,6 +104,7 @@ rm(match.order, wideSumsT, mysumsT)
 pull(indivT %>%
      filter(grepl("_unclassified|_uncultured|Incertae_Sedis", taxon)) %>%
      summarize(total_uncl=sum(counts)), "total_uncl") / sum(indivT[,"counts"])
+## Unclassified: 0.3276325
 ## ##################################################
 
 
