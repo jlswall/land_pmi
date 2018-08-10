@@ -176,7 +176,7 @@ ggplot(importanceT %>% top_n(10, wt=IncNodePurity),
   coord_flip() +
   geom_col() +
   labs(x="Bacterial family-level taxa", y="Decrease in node impurity")
-ggsave(filename="orig_units_all_data_families_IncNodePurity_barchart.pdf", height=2.5, width=4, units="in")
+ggsave(filename="orig_units_all_data_families_IncNodePurity_barchart.pdf", height=2.5, width=4.5, units="in")
 ## ##################################################
 
 
@@ -197,8 +197,8 @@ ggplot(importanceT %>% top_n(10, wt=`%IncMSE`),
        aes(x=family, y=`%IncMSE`)) +
   coord_flip() +
   geom_col() +
-  labs(x="Bacterial family-level taxa", y="Mean % decrease in MSE when taxon excluded")
-ggsave(filename="orig_units_all_data_families_PercIncMSE_barchart.pdf", height=2.5, width=4, units="in")
+  labs(x="Bacterial family-level taxa", y="Mean % decrease in MSE when excluded")
+ggsave(filename="orig_units_all_data_families_PercIncMSE_barchart.pdf", height=2.5, width=4.5, units="in")
 ## ##################################################
 
 
