@@ -131,18 +131,18 @@ for the error to converge to a minimum.  In our cross-validation
 studies, 3000 bootstrapped trees appeared to well exceed the number
 required, so I used 3000 trees for each model.
 
-To estimate the \texttt{numVarSplit}, I used cross-validation
-runs.  For each run, I randomly select a certain subset (a minority)
-of the available observations to hold back as a ``validation'' data
-set.  The rest of the observations make up the ``training'' dataset.
-We then fit a series of random forest models on the training dataset,
-using a variety of possible values for \texttt{numVarSplit}.  We then
-use the models to predict the values for the validation dataset, and
-calculate the errors (actual number of degree days from the validation
-dataset minus the number of degree days estimated by the model).  The
-setting for \texttt{numVarSplit} which produces the smallest error and
-the greatest fraction of variability explained is the one I use for the
-final model.
+To estimate the \texttt{numVarSplit} parameter, I used
+cross-validation runs.  For each run, I randomly select a certain
+subset (a minority) of the available observations to hold back as a
+``validation'' data set.  The rest of the observations make up the
+``training'' dataset.  We then fit a series of random forest models on
+the training dataset, using a variety of possible values for
+\texttt{numVarSplit}.  We then use the models to predict the values
+for the validation dataset, and calculate the errors (actual number of
+degree days from the validation dataset minus the number of degree
+days estimated by the model).  The setting for \texttt{numVarSplit}
+which produces the smallest error and the greatest fraction of
+variability explained is the one I use for the final model.
 
 I had some concerns about how well our model would perform in
 prediction mode.  We have only 6 cadavers, and we only have
@@ -173,9 +173,6 @@ the taxa were ``unclassified''.  There were 39 family-level taxa
 considered as potential predictors, when doing analyses for the whole
 time period.
 
-
-\subsubsection{Results for family-level taxa}
-
 Figure \ref{fig:infl_bac_family_taxa} shows measures of model
 importance for the ten most influential taxa.  The measure of
 importance is the mean percentage increase in the mean-square error of
@@ -195,11 +192,11 @@ on the ranking of taxa influence, they generally tell the same story.
 
 \begin{table}
   \centering
-\caption{\label{tbl:family_all_data_model_stats}Model statistics using
-  bacterial family-level taxa}
-\begin{tabular}{llll}
-Source data & RMSE & Explained variation\\ \hline
-Bacteria, family-level & 207.2 & 86.1\% %%\\
+\caption{\label{tbl:family_all_data_model_stats}Model statistics using family-level taxa, all time steps}
+\begin{tabular}{ccccc}
+Source data & Level & RMSE (all data) & Explained variation & RMSE (as likely used)\\ \hline
+Bacteria  & Family-level & 207.2 & 86.1\% & 274.8\\
+Eukaryote & Family-level & 178.1 & 89.5\% & 243.6 %%\\
 \end{tabular}
 \end{table}
 
@@ -267,8 +264,35 @@ left-out subjects on days that were not left out is only about 220.9.
 \end{figure}
 
 
+\subsection{Using Luisa's eukaryote data}
 
+In the eukaryote data, we don't have missing data for any day-subject
+combinations.  Therefore, we have a total of 96 observations (16 days
+$\times$ 6 cadavers), which is 4 more observations than were available
+with the bacterial data.  Across all days and cadavers, about 32.76\%
+of the taxa were ``unclassified''.  There were 39 family-level taxa
+considered as potential predictors, when doing analyses for the whole
+time period.
 
+Figure \ref{fig:infl_euk_family_taxa} shows measures of model
+importance for the ten most influential eukaryotic family-level taxa.
+The measure of importance is the same used for the bacteria
+family-level taxa, as in Figure \ref{fig:infl_bac_family_taxa}.
+\begin{figure}
+  \centering
+  \includegraphics{../eukaryote_data/only_families/all_time_steps/hit_1perc_twice/orig_units_all_data_families_PercIncMSE_barchart}
+  \caption{Ten most influential eukaryotic family-level taxa}
+  \label{fig:infl_euk_family_taxa}
+\end{figure}
+
+The final model with eukaryote data is a better fit than that using
+the bacterial data, as shown in Table
+\ref{tbl:family_all_data_model_stats}.  The RMSE is about 178.1, which
+is about 30 ADD less than that for the bacterial data.  When we look
+at the more ``real-life'' cross-validation study (leaving out all data
+associated with one combination of subject and day, in turn), the
+cross-validation RMSE is about 243.6, which is again less than that
+for the bacterial ``real-life'' cross-validation tests.
 
 
 \section{Models using only the first 15 days}
