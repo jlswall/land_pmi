@@ -174,7 +174,7 @@ considered as potential predictors, when doing analyses for the whole
 time period.
 
 Figure \ref{fig:infl_bac_family_taxa} shows measures of model
-importance for the ten most influential taxa.  The measure of
+importance for the most influential taxa.  The measure of
 importance is the mean percentage increase in the mean-square error of
 model predictions, when we consider models in which the variable in
 question is left out of the model.  It should be noted that this
@@ -184,17 +184,22 @@ purity'', is harder to explain.  While these meaures sometimes differ
 on the ranking of taxa influence, they generally tell the same story.
 \begin{figure}
   \centering
-  \includegraphics{../revise_algorithm/only_families/all_time_steps/hit_1perc_twice/orig_units_all_data_families_PercIncMSE_barchart}
-  \caption{Ten most influential bacterial family-level taxa}
+  \includegraphics[width=4in]{../revise_algorithm/only_families/all_time_steps/hit_1perc_twice/orig_units_all_data_families_PercIncMSE_barchart}
+  \caption{Most influential bacterial family-level taxa}
   \label{fig:infl_bac_family_taxa}
 \end{figure}
+
+Figure \ref{fig:infl_bac_family_scatter} provides scatterplots
+corresponding to these eight taxa.  Each point in the plots below
+corresponds to the fraction of classified bacteria belonging to the
+taxa observed on each of the degree days.  Note that the scales of the
+vertical axes differ among the taxa.
 \begin{figure}
   \centering
   \includegraphics[width=7.5in]{../revise_algorithm/only_families/all_time_steps/hit_1perc_twice/infl_bac_family_all_data_scatter}
   \caption{Scatterplots for influential family-level taxa}
   \label{fig:infl_bac_family_scatter}
 \end{figure}
-
 
 \begin{table}
   \centering
@@ -220,7 +225,7 @@ responses for the observations that were left out.  Figure
 (lower degree days), the model is over-predicting, while the opposite
 is true at the end of the time period.  The model estimates are biased
 toward the average degree day.  This error pattern looks similar to
-that in Fig.~S9 in the Metcalf et al. (2015) supplementary material.
+that in Figure S9 in the Metcalf et al. (2015) supplementary material.
 
 \begin{figure}
   \centering
@@ -281,13 +286,13 @@ considered as potential predictors, when doing analyses for the whole
 time period.
 
 Figure \ref{fig:infl_euk_family_taxa} shows measures of model
-importance for the ten most influential eukaryotic family-level taxa.
+importance for the most influential eukaryotic family-level taxa.
 The measure of importance is the same used for the bacteria
 family-level taxa, as in Figure \ref{fig:infl_bac_family_taxa}.
 \begin{figure}
   \centering
   \includegraphics{../eukaryote_data/only_families/all_time_steps/hit_1perc_twice/orig_units_all_data_families_PercIncMSE_barchart}
-  \caption{Ten most influential eukaryotic family-level taxa}
+  \caption{Most influential eukaryotic family-level taxa}
   \label{fig:infl_euk_family_taxa}
 \end{figure}
 
@@ -356,9 +361,9 @@ to consider and outlying taxa are less likely to affect the fit.
 
 To illustrate the differences, consider the analysis using
 family-level taxa for all time steps.  Using the original cutoff
-criterion, the model considers 49 possible family-level taxa.  The top
-ten most influential taxa identified by the resulting model are shown
-in Figure \ref{fig:infl_family_taxa_orig_crit}.  Their influence on the
+criterion, the model considers 49 possible family-level taxa.  The
+most influential taxa identified by the resulting model are shown in
+Figure \ref{fig:infl_family_taxa_orig_crit}.  Their influence on the
 model is determined by how much the node impurity (i.e., the
 variability in the ``leaves'' of the decision tree) is reduced by
 including these particular family-level taxa in the random forest
@@ -368,7 +373,7 @@ decrease in this variability.
 \begin{figure}
   \centering
   \includegraphics{../../only_families/all_time_steps/cutoff_1perc/orig_units_all_data_families_barchart}
-  \caption{Ten most influential family-level taxa, modeled using a weak inclusion criterion}
+  \caption{Most influential family-level taxa, modeled using a weak inclusion criterion}
   \label{fig:infl_family_taxa_orig_crit}
 \end{figure}
 
@@ -404,7 +409,7 @@ explanatory value of this model is almost as strong.
 \begin{figure}
   \centering
   \includegraphics{../../only_families/all_time_steps/hit_1perc_twice/orig_units_all_data_families_barchart}
-  \caption{Ten most influential family-level taxa, modeled using a stricter inclusion criterion}
+  \caption{Most influential family-level taxa, modeled using a stricter inclusion criterion}
   \label{fig:infl_family_taxa_stric_crit}
 \end{figure}
 
@@ -498,7 +503,7 @@ Inclusion cutoff & Units  & RMSE & Explained variation\\ \hline
 \end{tabular}
 \end{table}
 
-Figure \ref{fig:infl_order_taxa_stric_crit} shows the ten orders found
+Figure \ref{fig:infl_order_taxa_stric_crit} shows the orders found
 to be most influential in building the random forest model using the
 stricter inclusion criterion.  These are similar to those found
 previously, using the weaker inclusion criterion, with the one
@@ -515,7 +520,7 @@ family-level taxa, so I haven't included them here.
 \begin{figure}
   \centering
   \includegraphics{../../only_orders/all_time_steps/hit_1perc_twice/orig_units_all_data_orders_barchart}
-  \caption{Ten most influential order-level taxa, modeled using a stricter inclusion criterion}
+  \caption{Most influential order-level taxa, modeled using a stricter inclusion criterion}
   \label{fig:infl_order_taxa_stric_crit}
 \end{figure}
 
@@ -562,7 +567,7 @@ Inclusion cutoff & Units  & RMSE & Explained variation\\ \hline
 \begin{figure}
   \centering
   \includegraphics{../../only_families/first_two_weeks/hit_1perc_twice/orig_units_first_two_weeks_families_barchart}
-  \caption{Ten most influential family-level taxa in the first 15 days, modeled using a stricter inclusion criterion}
+  \caption{Most influential family-level taxa in the first 15 days, modeled using a stricter inclusion criterion}
   \label{fig:infl_family_taxa_first_15days_stric_crit}
 \end{figure}
 
@@ -635,7 +640,7 @@ Inclusion cutoff & Units  & RMSE & Explained variation\\ \hline
 \begin{figure}
   \centering
   \includegraphics{../../only_orders/first_two_weeks/hit_1perc_twice/orig_units_first_two_weeks_orders_barchart}
-  \caption{Ten most influential order-level taxa in the first 15 days, modeled using a stricter inclusion criterion}
+  \caption{Most influential order-level taxa in the first 15 days, modeled using a stricter inclusion criterion}
   \label{fig:infl_order_taxa_first_15days_stric_crit}
 \end{figure}
 
@@ -698,7 +703,7 @@ in Figure \ref{fig:scatter_eukaryote_family_taxa}.
 \begin{figure}
   \centering
   \includegraphics{../../../eukaryote_data/only_families/all_time_steps/hit_1perc_twice/orig_units_all_data_families_barchart}
-  \caption{Ten most influential eukaryote family-level taxa}
+  \caption{Most influential eukaryote family-level taxa}
   \label{fig:infl_eukaryote_family_taxa}
 \end{figure}
 
@@ -759,7 +764,7 @@ Inclusion cutoff & Units  & RMSE & Explained variation\\ \hline
 \begin{figure}
   \centering
   \includegraphics{../../../eukaryote_data/only_orders/all_time_steps/hit_1perc_twice/orig_units_all_data_orders_barchart}
-  \caption{Ten most influential eukaryote order-level taxa}
+  \caption{Most influential eukaryote order-level taxa}
   \label{fig:infl_eukaryote_order_taxa}
 \end{figure}
 
@@ -798,7 +803,7 @@ just the first 15 days.
 \begin{figure}
   \centering
   \includegraphics{../../../eukaryote_data/only_families/first_two_weeks/hit_1perc_twice/orig_units_first_two_weeks_families_barchart}
-  \caption{Ten most influential eukaryote family-level taxa, first 15 days}
+  \caption{Most influential eukaryote family-level taxa, first 15 days}
   \label{fig:infl_eukaryote_family_taxa_first_15days}
 \end{figure}
 
