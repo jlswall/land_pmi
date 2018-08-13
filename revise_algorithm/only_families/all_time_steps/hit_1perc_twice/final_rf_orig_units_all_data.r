@@ -210,18 +210,6 @@ ggsave(filename="orig_units_all_data_families_PercIncMSE_barchart.pdf", height=2
 
 
 ## ##################################################
-## Make plot of residuals.
-
-ggplot(residDF, aes(x=yactual, y=resid)) +
-  geom_point() +
-  geom_hline(yintercept=0) + 
-  labs(x="Actual accumulated degree days", y="Error (actual - estimated)")
-ggsave(filename="orig_units_all_data_families_residuals.pdf", height=3.5, width=4, units="in")
-## ##################################################
-
-
-
-## ##################################################
 ## Make scatter plots of the percentages over time (by taxa) for the
 ## top n taxa in terms of %IncMSE.
 
@@ -240,7 +228,21 @@ chooseT$taxa <- factor(chooseT$taxa, levels=topChoices)
 ggplot(chooseT, aes(degdays, fracBySubjDay)) +
   geom_point(aes(color=subj)) +
   labs(x="Degree days", y="Fraction", color="Cadaver") +
+  theme(legend.title=element_text(size=rel(0.8)), legend.text=element_text(size=rel(0.8))) + 
   ## Allow diff. y-scales across panels.
   facet_wrap(~taxa, ncol=4, scales="free_y") 
   ## facet_wrap(~taxa)  ## Keep y-scales same across panels.
 ggsave("infl_bac_family_all_data_scatter.pdf", width=8, height=4, units="in")
+## ##################################################
+
+
+
+## ##################################################
+## Make plot of residuals.
+
+ggplot(residDF, aes(x=yactual, y=resid)) +
+  geom_point() +
+  geom_hline(yintercept=0) + 
+  labs(x="Actual accumulated degree days", y="Error (actual - estimated)")
+ggsave(filename="orig_units_all_data_families_residuals.pdf", height=3.5, width=4, units="in")
+## ##################################################
