@@ -232,6 +232,6 @@ ggplot(chooseT, aes(degdays, fracBySubjDay)) +
   geom_point(aes(color=subj)) +
   labs(x="Degree days", y="Fraction") +
   ## Allow diff. y-scales across panels.
-  facet_wrap(~taxa, ncol=5, scales="free_y") 
+  facet_wrap(~taxa, ncol=2, scales="free_y") 
   ## facet_wrap(~taxa)  ## Keep y-scales same across panels.
-ggsave("infl_bac_family_all_data_scatter.pdf", width=7, height=4, units="in")
+ggsave("infl_bac_family_all_data_scatter.pdf", width=4.75, height=7.5, units="in")
