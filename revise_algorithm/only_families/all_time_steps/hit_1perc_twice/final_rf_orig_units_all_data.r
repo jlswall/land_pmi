@@ -234,4 +234,4 @@ ggplot(chooseT, aes(degdays, fracBySubjDay)) +
   ## Allow diff. y-scales across panels.
   facet_wrap(~taxa, ncol=5, scales="free_y") 
   ## facet_wrap(~taxa)  ## Keep y-scales same across panels.
-ggsave("influ_bac_family_all_data_panel.pdf", width=7, height=4, units="in")
+ggsave("infl_bac_family_all_data_scatter.pdf", width=7, height=4, units="in")
