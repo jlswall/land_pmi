@@ -28,7 +28,7 @@ wideT <- taxaT %>%
 ## look at the time correspondence.
 timeT <- taxaT %>% distinct(days, degdays)
 
-rm(taxaT)
+## rm(taxaT)  ## Use to make plot of influential taxa at finish.
 ## ##################################################
 
 
@@ -212,3 +212,26 @@ ggplot(residDF, aes(x=yactual, y=resid)) +
   labs(x="Actual accumulated degree days", y="Error (actual - estimated)")
 ggsave(filename="orig_units_all_data_families_residuals.pdf", height=3.5, width=4, units="in")
 ## ##################################################
+
+
+
+## ##################################################
+## Make scatter plots of the percentages over time (by taxa) for the
+## top 10 taxa in terms of %IncMSE.
+
+## Save the names of the families that are in the top 10 in
+## terms of %IncMSE.
+topChoices <- as.character(importanceT %>% arrange(desc(`%IncMSE`)) %>% pull(family))[1:10]
+
+## Find the percentages for these taxa.
+chooseT <- taxaT %>%
+  filter(taxa %in% topChoices)
+chooseT$taxa <- factor(chooseT$taxa, levels=topChoices)
+
+ggplot(chooseT, aes(degdays, fracBySubjDay)) +
+  geom_point(aes(color=subj)) +
+  labs(x="Degree days", y="Fraction") +
+  ## Allow diff. y-scales across panels.
+  facet_wrap(~taxa, ncol=5, scales="free_y") 
+  ## facet_wrap(~taxa)  ## Keep y-scales same across panels.
+ggsave("influ_bac_family_all_data_panel.pdf", width=7, height=4, units="in")
