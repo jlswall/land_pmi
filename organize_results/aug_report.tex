@@ -70,20 +70,21 @@ analyses.  (Note that the omission of the A3, day 40 data does not
 affect the analyses which only consider the first 15 days of the
 study.)
 
-Whether working with bacteria or eukaryote data, we did not utilize
-raw counts.  Exploratory analyses showed a great deal of variability
-in the raw counts between individual cadavers and between days.  Raw
-counts would likely to vary widely between experiments, also, which
-would make our model less applicable to future experiments.  Instead,
-we utilized fractions.  First, we excluded all counts of unclassified
-taxa from the dataset.  Then, for each taxon, we calculated the
-fraction of the counts corresponding to that taxon for that particular
-sample (i.e. for that day and for that cadaver).  To be included in
-our models, a taxon had to make up at least 1\% of the daily taxa
-counts for at least 2 different cadavers, whether on the same day or
-on different days.  All taxa which did not meet this criterion were
-grouped together as ``rare'' taxa.  This ``rare'' category was not
-included in our predictive models.
+Whether working with bacteria or eukaryote data, we did not directly
+utilize raw counts in our statistical models.  Exploratory analyses
+showed a great deal of variability in the raw counts between
+individual cadavers and between days.  Raw counts would likely to vary
+widely between experiments, also, which would make our model less
+applicable to future experiments.  Instead, we utilized fractions.
+First, we excluded all counts of unclassified taxa from the dataset.
+Then, for each taxon, we calculated the fraction of the counts
+corresponding to that taxon for that particular sample (i.e. for that
+day and for that cadaver).  To be included in our models, a taxon had
+to make up at least 1\% of the daily taxa counts for at least 2
+different cadavers, whether on the same day or on different days.  All
+taxa which did not meet this criterion were grouped together as
+``rare'' taxa.  This ``rare'' category was not included in our
+predictive models.
 
 While this requirement may seem strange, it prevents a rare taxon
 found on just one cadaver from adversely affecting the model.  In my
@@ -197,7 +198,7 @@ vertical axes differ among the taxa.
 \begin{figure}
   \centering
   \includegraphics[width=7.5in]{../revise_algorithm/only_families/all_time_steps/hit_1perc_twice/infl_bac_family_all_data_scatter}
-  \caption{Scatterplots for influential family-level taxa}
+  \caption{Scatterplots for influential bacterial family-level taxa}
   \label{fig:infl_bac_family_scatter}
 \end{figure}
 
@@ -281,14 +282,18 @@ In the eukaryote data, we don't have missing data for any day-subject
 combinations.  Therefore, we have a total of 96 observations (16 days
 $\times$ 6 cadavers), which is 4 more observations than were available
 with the bacterial data.  Across all days and cadavers, about 32.76\%
-of the taxa were ``unclassified''.  There were 39 family-level taxa
-considered as potential predictors, when doing analyses for the whole
+of the taxa were unclassified.  As before, ``unclassified'' counts
+were excluded from the analysis.  There were 39 family-level taxa
+considered as potential predictors when doing analyses for the entire
 time period.
 
 Figure \ref{fig:infl_euk_family_taxa} shows measures of model
-importance for the most influential eukaryotic family-level taxa.
-The measure of importance is the same used for the bacteria
-family-level taxa, as in Figure \ref{fig:infl_bac_family_taxa}.
+importance for the most influential eukaryotic family-level taxa.  The
+measure of importance is the same used for the bacteria family-level
+taxa, as in Figure \ref{fig:infl_bac_family_taxa}.  These same taxa
+are featured in Figure \ref{fig:infl_euk_family_all_data_scatter},
+which shows how the fraction of counts attributed to them change over
+the time period and across individual cadavers.
 \begin{figure}
   \centering
   \includegraphics{../eukaryote_data/only_families/all_time_steps/hit_1perc_twice/orig_units_all_data_families_PercIncMSE_barchart}
@@ -296,23 +301,47 @@ family-level taxa, as in Figure \ref{fig:infl_bac_family_taxa}.
   \label{fig:infl_euk_family_taxa}
 \end{figure}
 
-The final model with eukaryote data is a better fit than that using
-the bacterial data, as shown in Table
-\ref{tbl:family_all_data_model_stats}.  The RMSE is about 178.1, which
-is about 30 ADD less than that for the bacterial data.  When we look
-at the more ``real-life'' cross-validation study (leaving out all data
-associated with one combination of subject and day, in turn), the
-cross-validation RMSE is about 243.6, which is again less than that
-for the bacterial ``real-life'' cross-validation tests.
+\begin{figure}
+  \centering
+  \includegraphics[width=7.5in]{../eukaryote_data/only_families/all_time_steps/hit_1perc_twice/infl_euk_family_all_data_scatter}
+  \caption{Scatterplots for influential eukaryotic family-level taxa}
+  \label{fig:infl_euk_family_all_data_scatter}
+\end{figure}
 
 
-\section{Models using only the first 15 days}
+The final model using the eukaryote data is a better fit than that
+using the bacteria data, as shown in the model performance statistics
+featured in Table \ref{tbl:family_all_data_model_stats}.  The RMSE is
+about 178.1, which is about 30 ADD less than that for the bacterial
+data.  When we look at the more ``real-life'' cross-validation study
+(leaving out all data associated with one combination of subject and
+day, in turn), the cross-validation RMSE is about 243.6, which is also
+substantially less than that for the bacterial ``real-life''
+cross-validation tests.
+
+
+\section{Models using only the first 15 days of the study period}
 
 \subsection{Using Shanes's original bacteria data}
 
 For the analyses considering the first 15 days (approximately two
-weeks), we have 57 observations (10 days $\times$ 6 cadavers, minus
-the 3 missing cadaver-day combinations occurring during this period).
+weeks), we have 57 observations.  These represent observations on 6
+cadavers on 10 observation days, minus the 3 missing cadaver-day
+combinations occurring during this period.  This includes the missing
+data for subject A1 on days 7 and 9 and the missing data for subject
+A4 on day 7 of the study.
+
+
+
+\section{References}
+
+\noindent James, G., Witten, D., Hastie, T., Tibshirani, R. (2013) \textit{An
+  Introduction to Statistical Learning with Applications in R}. New
+York: Springer
+
+\noindent Metcalf, J. L., et al. (2016).  Microbial community assembly and
+metabolic function during mammalian corpse decomposition.
+\textit{Science}, Vol.~351, 158-162.
 
 
 \end{document}
