@@ -186,7 +186,7 @@ on the ranking of taxa influence, they generally tell the same story.
 \begin{figure}
   \centering
   \includegraphics[width=4in]{../revise_algorithm/only_families/all_time_steps/hit_1perc_twice/orig_units_all_data_families_PercIncMSE_barchart}
-  \caption{Most influential bacterial family-level taxa}
+  \caption{Most influential bacterial family-level taxa (all time steps)}
   \label{fig:infl_bac_family_taxa}
 \end{figure}
 
@@ -198,7 +198,7 @@ vertical axes differ among the taxa.
 \begin{figure}
   \centering
   \includegraphics[width=7.5in]{../revise_algorithm/only_families/all_time_steps/hit_1perc_twice/infl_bac_family_all_data_scatter}
-  \caption{Scatterplots for influential bacterial family-level taxa}
+  \caption{Scatterplots for influential bacterial family-level taxa (all time steps)}
   \label{fig:infl_bac_family_scatter}
 \end{figure}
 
@@ -297,14 +297,14 @@ the time period and across individual cadavers.
 \begin{figure}
   \centering
   \includegraphics{../eukaryote_data/only_families/all_time_steps/hit_1perc_twice/orig_units_all_data_families_PercIncMSE_barchart}
-  \caption{Most influential eukaryotic family-level taxa}
+  \caption{Most influential eukaryotic family-level taxa (all time steps)}
   \label{fig:infl_euk_family_taxa}
 \end{figure}
 
 \begin{figure}
   \centering
   \includegraphics[width=7.5in]{../eukaryote_data/only_families/all_time_steps/hit_1perc_twice/infl_euk_family_all_data_scatter}
-  \caption{Scatterplots for influential eukaryotic family-level taxa}
+  \caption{Scatterplots for influential eukaryotic family-level taxa (all time steps)}
   \label{fig:infl_euk_family_all_data_scatter}
 \end{figure}
 
@@ -320,6 +320,8 @@ substantially less than that for the bacterial ``real-life''
 cross-validation tests.
 
 
+
+
 \section{Models using only the first 15 days of the study period}
 
 \subsection{Using Shanes's original bacteria data}
@@ -330,6 +332,58 @@ cadavers on 10 observation days, minus the 3 missing cadaver-day
 combinations occurring during this period.  This includes the missing
 data for subject A1 on days 7 and 9 and the missing data for subject
 A4 on day 7 of the study.
+
+Figure \ref{fig:infl_bac_first_15_days_family_taxa} shows the taxa
+considered most important in the model fitting process.  We note that
+the top four taxa are different between the model using all the data
+(as shown in Figure \ref{fig:infl_bac_family_taxa}) and this model
+focused on the first couple of weeks.  The ``top four'' consist of
+Flavobacteriaceae, Lactobacillaceae, Pseudomonadaceae, and
+Dermabacteraceae, none of which entered the top eight of the model
+using all the time steps.  The scatterplots for these taxa, for the
+first 15 days of the time period, are shown in Figure
+\ref{fig:infl_bac_first_15_days_family_scatter}.
+\begin{figure}
+  \centering
+  \includegraphics[width=4in]{../revise_algorithm/only_families/first_two_weeks/hit_1perc_twice/orig_units_first_two_weeks_families_PercIncMSE_barchart}
+  \caption{Most influential bacterial family-level taxa (first 15 days)}
+  \label{fig:infl_bac_first_15_days_family_taxa}
+\end{figure}
+\begin{figure}
+  \centering
+  \includegraphics[width=7.5in]{../revise_algorithm/only_families/first_two_weeks/hit_1perc_twice/infl_bac_family_first_two_weeks_scatter}
+  \caption{Scatterplots for influential bacterial family-level taxa (first two weeks)}
+  \label{fig:infl_bac_first_15_days_family_scatter}
+\end{figure}
+
+
+\begin{table}
+  \centering
+\caption{\label{tbl:family_first_two_weeks_model_stats}Model statistics using family-level taxa, first 15 days}
+\begin{tabular}{ccccc}
+Source data & Level & RMSE (all data) & Explained variation & RMSE (as likely used)\\ \hline
+Bacteria  & Family-level & 64.3 & 82.4\% & 83.5\\
+Eukaryote & Family-level & 58.6 & 84.6\% & 93.1 %%\\
+\end{tabular}
+\end{table}
+
+
+
+\subsection{Using Luisa's eukaryote data}
+
+\begin{figure}
+  \centering
+  \includegraphics[width=4in]{../eukaryote_data/only_families/first_two_weeks/hit_1perc_twice/orig_units_first_two_weeks_families_PercIncMSE_barchart}
+  \caption{Most influential eukaryotic family-level taxa (first 15 days)}
+  \label{fig:infl_euk_first_15_days_family_taxa}
+\end{figure}
+\begin{figure}
+  \centering
+  \includegraphics[width=7.5in]{../eukaryote_data/only_families/first_two_weeks/hit_1perc_twice/infl_euk_family_first_two_weeks_scatter}
+  \caption{Scatterplots for influential eukaryotic family-level taxa (first two weeks)}
+  \label{fig:infl_euk_first_15_days_family_scatter}
+\end{figure}
+
 
 
 
