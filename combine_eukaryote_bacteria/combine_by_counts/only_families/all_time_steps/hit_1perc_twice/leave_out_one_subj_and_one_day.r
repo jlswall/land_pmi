@@ -89,7 +89,8 @@ origUnitsF <- function(x, mtry, ntree){
 set.seed(4109439)
 
 ## Try using lapply to fit the random forests.
-origFitL <- mclapply(crossvalidL, mc.cores=4, origUnitsF, mtry=numVarSplit, ntree=numBtSamps)
+## origFitL <- mclapply(crossvalidL, mc.cores=4, origUnitsF, mtry=numVarSplit, ntree=numBtSamps)
+origFitL <- lapply(crossvalidL, origUnitsF, mtry=numVarSplit, ntree=numBtSamps)
 
 
 ## Set up function for fitting random forest model using square root
@@ -163,11 +164,19 @@ ggplot(residDF %>%
   geom_point() +
   ## geom_point(aes(col=subjOmit)) +
   geom_hline(yintercept=0) +
-  labs(x="Actual degree days", y="Error (actual - estimated)")
-ggsave(filename="leave_out_one_subj_and_one_day_residuals.pdf", height=3.5, width=4, units="in")
+  labs(x="Actual accumulated degree days", y="Error (actual - estimated)")
+ggsave(filename="leave_out_one_subj_and_one_day_residuals.pdf", height=3.5, width=3.5, units="in")
 
 ggplot(residDF, aes(x=yactual, y=resid)) +
   facet_wrap(~subjOmit) +
   geom_point(aes(col=subjOmit)) +
   labs(x="Actual degree day", y="Residual")
 ## #########################################
+
+
+
+## Calculate RMSE based on how the model is likely used in practice,
+## when we would have no information about this subject or this day.
+myresids <- residDF %>% filter((subjactual==subjOmit) & (dayOmit==yactual)) %>% pull(resid)
+sqrt(mean(myresids^2))
+## RMSE as likely used: 241.4593
