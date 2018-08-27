@@ -28,7 +28,7 @@ wideT <- taxaT %>%
 ## look at the time correspondence.
 timeT <- taxaT %>% distinct(days, degdays)
 
-rm(taxaT)
+## rm(taxaT)  ## Use to make plot of influential taxa at finish.
 ## ##################################################
 
 
@@ -140,7 +140,7 @@ rf <- randomForest(degdays ~ . , data=wideT, mtry=numVarSplit,
                    ntree=numBtSamps, importance=T)
 
 init.fig.dimen(file=paste0("orig_units_all_data_families_imp_plot.pdf"), width=8, height=6)
-varImpPlot(rf, main="Importance of family taxa (orig. units, all time steps)")
+varImpPlot(rf, main="Importance of combined family taxa (all time steps)")
 dev.off()
 
 
@@ -162,6 +162,9 @@ sqrt( mean( resids^2 ) )
 ## ##################################################
 ## Make graph of just IncNodePurity alone.
 
+## Get the top "n" (whether 8, 10, whatever) influential taxa.
+n <- 8
+
 ## Turn importance measures into a tibble, sorted by IncNodePurity in
 ## increasing order.
 importanceT <- importance(rf) %>%
@@ -171,12 +174,67 @@ importanceT <- importance(rf) %>%
 ## Turn family names into factors, so that we can make the bar chart
 ## with the bars in decreasing order.
 importanceT$family <- factor(importanceT$family, levels=importanceT$family)
-ggplot(importanceT %>% top_n(10, wt=IncNodePurity),
+ggplot(importanceT %>% top_n(n, wt=IncNodePurity),
        aes(x=family, y=IncNodePurity)) +
   coord_flip() +
   geom_col() +
-  labs(x="Family", y="Decrease in node impurity")
-ggsave(filename="orig_units_all_data_families_barchart.pdf", height=2.5, width=4, units="in")
+  labs(x="Bac. and euk. family-level taxa", y="Decrease in node impurity") +
+  theme(axis.title=element_text(size=rel(0.8)), axis.text=element_text(size=rel(0.8))) 
+ggsave(filename="orig_units_all_data_families_barchart.pdf", height=2.5, width=4.5, units="in")
+## ##################################################
+
+
+
+## ##################################################
+## Make graph of just %IncMSE alone.
+
+## Get the top "n" (whether 8, 10, whatever) influential taxa.
+n <- 8
+
+## Turn importance measures into a tibble, sorted by IncNodePurity in
+## increasing order.
+importanceT <- importance(rf) %>%
+  as.data.frame() %>% as_tibble() %>%
+  rownames_to_column("family") %>%
+  arrange(`%IncMSE`)
+## Turn family names into factors, so that we can make the bar chart
+## with the bars in decreasing order.
+importanceT$family <- factor(importanceT$family, levels=importanceT$family)
+ggplot(importanceT %>% top_n(n, wt=`%IncMSE`),
+       aes(x=family, y=`%IncMSE`)) +
+  coord_flip() +
+  geom_col() +
+  labs(x="Bac. and euk. family-level taxa", y="Mean % decrease in MSE when excluded") +
+  theme(axis.title=element_text(size=rel(0.8)), axis.text=element_text(size=rel(0.8))) 
+ggsave(filename="orig_units_all_data_families_PercIncMSE_barchart.pdf", height=2.5, width=4.5, units="in")
+## ##################################################
+
+
+
+## ##################################################
+## Make scatter plots of the percentages over time (by taxa) for the
+## top n taxa in terms of %IncMSE.
+
+## Get the top "n" (whether 8, 10, whatever) influential taxa.
+n <- 8
+
+## Save the names of the families that are in the top 10 in
+## terms of %IncMSE.
+topChoices <- as.character(importanceT %>% arrange(desc(`%IncMSE`)) %>% pull(family))[1:n]
+
+## Find the percentages for these taxa.
+chooseT <- taxaT %>%
+  filter(taxa %in% topChoices)
+chooseT$taxa <- factor(chooseT$taxa, levels=topChoices)
+
+ggplot(chooseT, aes(degdays, fracBySubjDay)) +
+  geom_point(aes(color=subj)) +
+  labs(x="Degree days", y="Fraction", color="Cadaver") +
+  theme(legend.title=element_text(size=rel(0.8)), legend.text=element_text(size=rel(0.8))) + 
+  ## Allow diff. y-scales across panels.
+  facet_wrap(~taxa, ncol=4, scales="free_y") 
+  ## facet_wrap(~taxa)  ## Keep y-scales same across panels.
+ggsave("infl_comb_family_all_data_scatter.pdf", width=8, height=4, units="in")
 ## ##################################################
 
 
@@ -187,6 +245,6 @@ ggsave(filename="orig_units_all_data_families_barchart.pdf", height=2.5, width=4
 ggplot(residDF, aes(x=yactual, y=resid)) +
   geom_point() +
   geom_hline(yintercept=0) + 
-  labs(x="Actual degree days", y="Error (actual - estimated)")
-ggsave(filename="orig_units_all_data_families_residuals.pdf", height=3.5, width=4, units="in")
+  labs(x="Actual accumulated degree days", y="Error (actual - estimated)")
+ggsave(filename="orig_units_all_data_families_residuals.pdf", height=3.5, width=3.5, units="in")
 ## ##################################################

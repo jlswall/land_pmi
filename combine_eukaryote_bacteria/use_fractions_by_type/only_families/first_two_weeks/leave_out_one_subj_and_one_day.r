@@ -43,9 +43,9 @@ numBtSamps <- 3000
 
 ## Repeated cross-validation runs, leaving out 20% of the observations
 ## at a time, indicated that the number of variables to consider at
-## each split is about 15 (with 14, 16, and 13 close) for the response
+## each split is about 16 (with 14, 15, and 17 close) for the response
 ## variable in the original units.
-numVarSplit <- 15
+numVarSplit <- 16
 ## ##################################################
 
 
@@ -86,7 +86,7 @@ origUnitsF <- function(x, mtry, ntree){
 
 
 ## Set random seed for reproducibility.
-set.seed(597948)
+set.seed(593942)
 
 ## Try using lapply to fit the random forests.
 ## origFitL <- mclapply(crossvalidL, mc.cores=4, origUnitsF, mtry=numVarSplit, ntree=numBtSamps)
@@ -179,4 +179,4 @@ ggplot(residDF, aes(x=yactual, y=resid)) +
 ## when we would have no information about this subject or this day.
 myresids <- residDF %>% filter((subjactual==subjOmit) & (dayOmit==yactual)) %>% pull(resid)
 sqrt(mean(myresids^2))
-## RMSE as likely used: 79.68358
+## RMSE as likely used: 83.5617
