@@ -21,10 +21,12 @@ on the types and prevalences of bacterial and eukaryote organisms
 present on pig cadavers.  We made use of the order-level and
 family-level taxa which were obtained from 6 pig cadavers over the
 course of the study, for which data were collected at intervals during
-a period of 61 days.  We focused on the family and order levels, since
-our early results indicated that analyses at the phylum-level did not
-explain nearly as much of the variability as did models built on
-family-level and order-level taxa.
+a period of 61 days.  We decided to focus on the family and order
+levels because our early results indicated that analyses at the
+phylum-level did not explain nearly as much of the variability as did
+models built on family-level and order-level taxa.  At lower even
+finer levels (such as genus), we anticipate that an unreasonably large
+number of counts would remain unclassified.
 
 Samples were obtained from 6 pig cadavers on 16 different days over
 the course of the 61-day period.  Samples were taken more frequently
@@ -57,45 +59,48 @@ observation.
   \label{fig:degdays_vs_days}
 \end{figure}
 
-For the bacterial taxa (Shane's original data), we did have to account
-for missing data.  Taxa counts were unavailable for
-subject A1 on days 7 and 9, as well as for subject A4 on day 7.  In
-addition, the data collected from subject A3 on day 40 (degree day
-1130) is defective.  The total number of taxa (including unclassified
-taxa) counted for this cadaver and day was 54.  This is several orders
-of magnitude less than the counts for the other cadavers and days,
-which ranged from 18050 to 93665 (both orders and families).  For this
-reason, the taxa from subject A3 on day 40 were omitted from all the
-analyses.  (Note that the omission of the A3, day 40 data does not
-affect the analyses which only consider the first 15 days of the
-study.)
+For the bacterial taxa (Shane's original data), we had to account for
+missing data.  Taxa counts were unavailable for subject A1 on days 7
+and 9, as well as for subject A4 on day 7.  In addition, the data
+collected from subject A3 on day 40 (degree day 1130) is defective.
+The total number of taxa (including unclassified taxa) counted for
+this cadaver and day was 54.  This is several orders of magnitude less
+than the counts for the other cadavers and days, which ranged from
+18050 to 93665 (both orders and families).  For this reason, the taxa
+from subject A3 on day 40 were omitted.  (Note that the omission of
+the A3, day 40 data does not affect the analyses which only consider
+the first 15 days of the study.)
 
 Whether working with bacteria or eukaryote data, we did not directly
 utilize raw counts in our statistical models.  Exploratory analyses
 showed a great deal of variability in the raw counts between
-individual cadavers and between days.  Raw counts would likely to vary
-widely between experiments, also, which would make our model less
-applicable to future experiments.  Instead, we utilized fractions.
-First, we excluded all counts of unclassified taxa from the dataset.
-Then, for each taxon, we calculated the fraction of the counts
-corresponding to that taxon for that particular sample (i.e. for that
-day and for that cadaver).  To be included in our models, a taxon had
-to make up at least 1\% of the daily taxa counts for at least 2
-different cadavers, whether on the same day or on different days.  All
-taxa which did not meet this criterion were grouped together as
-``rare'' taxa.  This ``rare'' category was not included in our
-predictive models.
+individual cadavers and between days.  Raw counts would also be likely
+to vary widely between experiments, which would make our model less
+applicable to future experiments.  Instead, we used the proportion of
+the counts attributable to each taxa.  First, we excluded all counts
+of unclassified taxa from the dataset.  Then, for each taxon, we
+calculated the fraction of the counts corresponding to that taxon for
+that particular sample (i.e. for that day and for that cadaver).  To
+be included in our models, a taxon had to make up at least 1\% of the
+daily taxa counts for at least 2 different cadavers, whether on the
+same day or on different days.  All taxa which did not meet this
+criterion were grouped together as ``rare'' taxa.  This ``rare''
+category was not included in our predictive models.  All fractions
+attributable to non-rare taxa for individual cadaver and each day were
+used as the explanatory variables, while the ADD post mortem
+represented the response variable.
 
-While this requirement may seem strange, it prevents a rare taxon
-found on just one cadaver from adversely affecting the model.  In my
-earlier models using bacterial family-level taxa, it happened that a
-particular taxon, Listeriaceae, that made up more than 1\% of the taxa
-on only one cadaver for only one day had been included as an important
+While the requirements related to the determination of rare taxa may
+seem strange, the idea is to prevent a rare taxon found on just one
+cadaver from adversely affecting the model.  In my earlier models
+using bacterial family-level taxa, it happened that a particular
+taxon, Listeriaceae, that made up more than 1\% of the taxa on only
+one cadaver for only one day had been included as an important
 predictor in the final model.  My concern is that Listeriaceae may not
 be present on future observed cadavers, or, because it is at such low
 levels, it may not always be easily measured.  To obtain a more usable
 model, I wanted to avoid including taxa which appeared very
-infrequently in our samples, or were introduced purely through one
+infrequently in our samples, or were introduced solely through one
 unusual cadaver.
 
 
@@ -104,7 +109,7 @@ unusual cadaver.
 Inspired by Metcalf et al.~(2016), we made use of random forest
 models.  The random forest methodology is non-parametric, so it does
 not depend on distributional assumptions or on finding an mathematical
-expression to capture an apparent trend or pattern.  It is commonly
+function to describe an apparent trend or pattern.  It is commonly
 used in machine learning applications, since it can be utilized even
 when there are a large number of potential explanatory variables and
 even when there are dependencies/associations among these explanatory
@@ -112,15 +117,16 @@ variables.
 
 A good description of the random forest methodology can be found in
 James et al. (2013, Chp.~8).  The approach uses tree-based models to
-the split the observations into groups, such that at each binary
-split, we divide the observations in that tree branch into two groups
-in which the variability is minimized.  To reduce the error
-associated with this method, we fit multiple trees (i.e., a
-``forest'') using bootstrap samples of the dataset of interest, with
-the final model being an average of the ``forest'' of models.  To
-lower the correlation among the trees in the ``forest'', we consider
-only a random subset of the potential explanatory variables at each
-split.  This is the ``random'' aspect of the ``random forest'' approach.
+split the observations into groups, such that at each binary split, we
+divide the observations in that tree branch into two groups in which
+the variability among the response values in each group is minimized.
+To reduce the error associated with this method, we fit multiple trees
+(i.e., a ``forest'') using bootstrap samples of the dataset of
+interest, with the final model being an average of the ``forest'' of
+models.  To reduce the correlation among the trees in the ``forest'',
+we consider only a random subset of the potential explanatory
+variables at each split.  This is the ``random'' aspect of the
+``random forest'' approach.
 
 It is not immediately evident how many explanatory variables should be
 considered at each split of the tree, so this number is a parameter
@@ -175,14 +181,20 @@ considered as potential predictors, when doing analyses for the whole
 time period.
 
 Figure \ref{fig:infl_bac_family_taxa} shows measures of model
-importance for the most influential taxa.  The measure of
-importance is the mean percentage increase in the mean-square error of
-model predictions, when we consider models in which the variable in
-question is left out of the model.  It should be noted that this
-measure is one of the two commonly used methods for measuring the
-importance of the individual taxa; the other measure, of ``node
-purity'', is harder to explain.  While these meaures sometimes differ
-on the ranking of taxa influence, they generally tell the same story.
+importance for the eight most influential taxa.  (I have chosen eight,
+simply because it's easy to show a 2 by 4 panel of plots.  If we
+display more, it tends to be too much information to easily digest.)
+The measure of importance is the mean percentage increase in the
+mean-square error of model predictions, when we consider models in
+which the variable in question is left out of the model.  It should be
+noted that this measure is one of the two commonly used methods for
+measuring the importance of the individual taxa; the other measure, of
+``node purity'', is harder to explain.  These meaures do sometimes
+differ on the ranking of taxa influence, as there is more than one way
+to judge the relevance of a particular predictor.  However, in the
+course of doing these analyses, I've noticed that both measures
+generally feature the same important taxa, though their relative
+rankings may be different.
 \begin{figure}
   \centering
   \includegraphics[width=4in]{../revise_algorithm/only_families/all_time_steps/hit_1perc_twice/orig_units_all_data_families_PercIncMSE_barchart}
@@ -192,9 +204,9 @@ on the ranking of taxa influence, they generally tell the same story.
 
 Figure \ref{fig:infl_bac_family_scatter} provides scatterplots
 corresponding to these eight taxa.  Each point in the plots below
-corresponds to the fraction of classified bacteria belonging to the
-taxa observed on each of the degree days.  Note that the scales of the
-vertical axes differ among the taxa.
+corresponds to the measured fraction of classified bacteria belonging
+to the designated taxa on each of the degree days.  Note that the
+scales of the vertical axes differ among the taxa.
 \begin{figure}
   \centering
   \includegraphics[width=7.5in]{../revise_algorithm/only_families/all_time_steps/hit_1perc_twice/infl_bac_family_all_data_scatter}
@@ -206,7 +218,7 @@ vertical axes differ among the taxa.
   \centering
 \caption{\label{tbl:family_all_data_model_stats}Model statistics using family-level taxa, all time steps}
 \begin{tabular}{ccccc}
-Source data & Level & RMSE (all data) & Explained variation & RMSE (as likely used)\\ \hline
+Source data & Level & RMSE (using all data) & Explained variation & RMSE (cross-valid. mirroring real-life)\\ \hline
 Bacteria  & Family-level & 207.2 & 86.1\% & 274.8\\
 Eukaryote & Family-level & 178.1 & 89.5\% & 243.6 %%\\
 \end{tabular}
@@ -222,11 +234,15 @@ Then, the model (fitted on the remaining 80\%) is used to estimate the
 responses for the observations that were left out.  Figure
 \ref{fig:resids_cv_bac_family_taxa} illustrates the model errors
 (actual minus estimated) vs.~the actual values, taken across these
-1000 cross-validation runs.  For the beginning of the time period
-(lower degree days), the model is over-predicting, while the opposite
-is true at the end of the time period.  The model estimates are biased
-toward the average degree day.  This error pattern looks similar to
-that in Figure S9 in the Metcalf et al. (2015) supplementary material.
+1000 cross-validation runs.  \textbf{Next sentence not currently
+  true.}  The RMSE for these runs is given in the random
+cross-validation column in Table
+\ref{tbl:family_all_data_model_stats}.  For the beginning of the time
+period (lower degree days), the model is over-predicting, while the
+opposite is true at the end of the time period.  The model estimates
+are biased toward the average degree day.  This error pattern looks
+similar to that in Figure S9 in the Metcalf et al. (2015)
+supplementary material.
 
 \begin{figure}
   \centering
@@ -239,20 +255,20 @@ that in Figure S9 in the Metcalf et al. (2015) supplementary material.
 One of my concerns is that while the cross-validation described above
 is good way to assess a model's performance, this traditional approach
 does not quite reflect the particular issues involved in how we would
-use this model in the ``real-world''.  In practice, we would be using
-this model to predict the accumulated degree days based on the counts
-of family-level taxa from a never before observed cadaver.  The post
-mortem interval in such a case would not likely correspond with a
-number of accumulated degree days which we have previously observed in
-our sampling.  For instance, we might observe a cadaver at a time
-associated with 100 degree days or 500 degree days.  To get a better
-idea about how the model might be expected to perform in such a
-situation, we fit the model for 96 (16 days $\times$ 6 cadavers)
-particular cross-validation sets.  For each set, we leave out all the
-observations associated with one particular cadaver (on any day) and
-all the observations associated with one accumulated degree day (for
-any cadaver).  Then, we calculate the prediction errors for the
-left-out cadaver on the left-out day.
+realistically use this model.  In practice, we would be using this
+model to predict the ADD post mortem based on the counts of
+family-level taxa from a never-before-observed cadaver.  The actual
+post mortem interval in such a case would be unlikely to correspond
+with a number of accumulated degree days which we have previously
+observed in our experiments.  For instance, we might be dealing with a
+cadaver for which the interval post mortem is actually 100 or 500 ADD.
+To get a better idea about how the model might be expected to perform
+in such a situation, we fit the model for 96 (16 days $\times$ 6
+cadavers) particular cross-validation sets.  For each set, we leave
+out all the observations associated with one particular cadaver (on
+any day) and all the observations associated with one accumulated
+degree day (for any cadaver).  Then, we calculate the prediction
+errors for the left-out cadaver on the left-out day.
 
 Figure \ref{fig:leave_one_out_resids_bac_family_taxa} shows the
 residuals for all combinations of degree day and subject.  The RMSE
@@ -307,7 +323,6 @@ the time period and across individual cadavers.
   \caption{Scatterplots for influential eukaryotic family-level taxa (all time steps)}
   \label{fig:infl_euk_family_all_data_scatter}
 \end{figure}
-
 
 The final model using the eukaryote data is a better fit than that
 using the bacteria data, as shown in the model performance statistics
