@@ -136,7 +136,7 @@ this setting for the random forest model, which I called
 in random forest models is the number of bootstrapped trees sufficient
 for the error to converge to a minimum.  In our cross-validation
 studies, 3000 bootstrapped trees appeared to well exceed the number
-required, so I used 3000 trees for each model.
+required, so we used 3000 trees for each model.
 
 To estimate the \texttt{numVarSplit} parameter, I used
 cross-validation runs.  For each run, I randomly select a certain
@@ -168,6 +168,7 @@ cross-validation runs and to try additional models, compared to what I
 had done previously.
 
 
+
 \section{Models using all time steps (days 0-61)}
 
 
@@ -181,20 +182,20 @@ considered as potential predictors, when doing analyses for the whole
 time period.
 
 Figure \ref{fig:infl_bac_family_taxa} shows measures of model
-importance for the eight most influential taxa.  (I have chosen eight,
-simply because it's easy to show a 2 by 4 panel of plots.  If we
+importance for the eight most influential taxa.  (I have chosen six,
+simply because it's easy to show a 2 by 3 panel of plots.  If we
 display more, it tends to be too much information to easily digest.)
 The measure of importance is the mean percentage increase in the
 mean-square error of model predictions, when we consider models in
 which the variable in question is left out of the model.  It should be
 noted that this measure is one of the two commonly used methods for
-measuring the importance of the individual taxa; the other measure, of
-``node purity'', is harder to explain.  These meaures do sometimes
-differ on the ranking of taxa influence, as there is more than one way
-to judge the relevance of a particular predictor.  However, in the
-course of doing these analyses, I've noticed that both measures
-generally feature the same important taxa, though their relative
-rankings may be different.
+measuring the importance of the individual taxa; the other measure,
+called ``node purity'', is harder to explain.  These meaures do
+sometimes differ on the ranking of taxa influence, as there is more
+than one way to judge the relevance of a particular predictor.
+However, in the course of doing these analyses, I've noticed that both
+measures generally feature the same important taxa, though their
+relative rankings may be different.
 \begin{figure}
   \centering
   \includegraphics[width=4in]{../revise_algorithm/only_families/all_time_steps/hit_1perc_twice/orig_units_all_data_families_PercIncMSE_barchart}
@@ -203,7 +204,7 @@ rankings may be different.
 \end{figure}
 
 Figure \ref{fig:infl_bac_family_scatter} provides scatterplots
-corresponding to these eight taxa.  Each point in the plots below
+corresponding to these six taxa.  Each point in the plots below
 corresponds to the measured fraction of classified bacteria belonging
 to the designated taxa on each of the degree days.  Note that the
 scales of the vertical axes differ among the taxa.
@@ -216,11 +217,12 @@ scales of the vertical axes differ among the taxa.
 
 \begin{table}
   \centering
-\caption{\label{tbl:family_all_data_model_stats}Model statistics using family-level taxa, all time steps}
-\begin{tabular}{ccccc}
-Source data & Level & RMSE (using all data) & Explained variation & RMSE (cross-valid. mirroring real-life)\\ \hline
-Bacteria  & Family-level & 207.2 & 86.1\% & 274.8\\
-Eukaryote & Family-level & 178.1 & 89.5\% & 243.6 %%\\
+\caption{\label{tbl:family_all_data_model_stats}Final model statistics using family-level taxa, all time steps}
+\begin{tabular}{llrr}
+Source data & Level & RMSE (using all data) & Explained variation (using all data)\\ \hline %% & RMSE (cross-valid. mirroring real-life)\\ \hline
+Bacteria  & Family-level & 208 ($\pm$ 3) & 85.9\% ($\pm$ 0.4\%)\\ %%& 274.8\\
+%% Bacteria  & Family-level & 207.2 & 86.1\% & 274.8\\
+%% Eukaryote & Family-level & 178.1 & 89.5\% & 243.6 %%\\
 \end{tabular}
 \end{table}
 
