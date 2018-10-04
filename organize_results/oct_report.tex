@@ -151,6 +151,19 @@ days estimated by the model).  The setting for \texttt{numVarSplit}
 which produces the smallest error and the greatest fraction of
 variability explained is the one I use for the final model.
 
+As mentioned above, the model fitting procedure depends on the random
+selection of which variables to consider at each split of the decision
+tree.  Therefore, the final model, using the same data and paramters,
+will differ slightly from one to the next or one practitioner to
+another.  To get a sense of the variability associated with this
+necessary randomness, I fit the final model over and over again, and
+looked at how the root mean squared error (RMSE) and the percentage of
+explained variance vary.
+
+%%% NEED TO TALK ABOUT THE TWO DIFFERENT SORTS OF CROSS-VALIDATION WE
+%%% USED TO TRY TO GET AN IDEA OF LIKELY PERFORMANCE IN PREDICTION
+%%% MODE.
+
 I had some concerns about how well our model would perform in
 prediction mode.  We have only 6 cadavers, and we only have
 observations at certain time steps.  Since our earlier conversation
@@ -182,7 +195,7 @@ considered as potential predictors, when doing analyses for the whole
 time period.
 
 Figure \ref{fig:infl_bac_family_taxa} shows measures of model
-importance for the eight most influential taxa.  (I have chosen six,
+importance for the 6 most influential taxa.  (I have chosen 6
 simply because it's easy to show a 2 by 3 panel of plots.  If we
 display more, it tends to be too much information to easily digest.)
 The measure of importance is the mean percentage increase in the
@@ -217,7 +230,7 @@ scales of the vertical axes differ among the taxa.
 
 \begin{table}
   \centering
-\caption{\label{tbl:family_all_data_model_stats}Final model statistics using family-level taxa, all time steps}
+\caption{\label{tbl:final_model_stats_all_days}Final model statistics using family-level taxa, all time steps}
 \begin{tabular}{llrr}
 Source data & Level & RMSE (using all data) & Explained variation (using all data)\\ \hline %% & RMSE (cross-valid. mirroring real-life)\\ \hline
 Bacteria  & Family-level & 208 ($\pm$ 3) & 85.9\% ($\pm$ 0.4\%)\\ %%& 274.8\\
@@ -245,6 +258,18 @@ opposite is true at the end of the time period.  The model estimates
 are biased toward the average degree day.  This error pattern looks
 similar to that in Figure S9 in the Metcalf et al. (2015)
 supplementary material.
+
+\begin{table}
+  \centering
+\caption{\label{tbl:valid_model_stats_all_days}Cross-validation statistics using family-level taxa, all time steps}
+\begin{tabular}{llrr}
+Source data & Level & RMSE (random) & RMSE (leave out 1 subj., 1 day)\\ \hline
+Bacteria  & Family-level & 219 ($\pm$ 78) & 227 ($\pm$ 106)\\ %%& 274.8\\
+%% Bacteria  & Family-level & 207.2 & 86.1\% & 274.8\\
+%% Eukaryote & Family-level & 178.1 & 89.5\% & 243.6 %%\\
+\end{tabular}
+\end{table}
+
 
 \begin{figure}
   \centering

@@ -151,6 +151,21 @@ write.csv(residDF, file="resids_leave_out_one_subj_and_one_day.csv", row.names=F
 ## #########################################
 
 
+## #########################################
+## Find RMSE for each of the validation sets (for each combo of
+## leaving out 1 day and 1 subject).
+
+cvRMSE <- residDF %>% group_by(dayOmit, subjOmit) %>% summarize(rmse=sqrt(mean(resid^2))) %>% pull(rmse)
+
+## Find summary statistics for the RMSE over all leave 1 day, 1 subj
+## out combinations.
+mean(cvRMSE)
+## 227.3296
+1.96*sd(cvRMSE)
+## 105.9501
+## #########################################
+
+
 
 ## #########################################
 ## Make plot showing the residuals associated with days which were
