@@ -224,12 +224,12 @@ ggsave("infl_bac_family_all_data_scatter.pdf", width=8, height=4, units="in")
 
 
 
-## ##################################################
-## Make plot of residuals.
+## ## ##################################################
+## ## Make plot of residuals.
 
-ggplot(residDF, aes(x=yactual, y=resid)) +
-  geom_point() +
-  geom_hline(yintercept=0) + 
-  labs(x="Actual accumulated degree days", y="Error (actual - estimated)")
-ggsave(filename="orig_units_all_data_families_residuals.pdf", height=3.5, width=3.5, units="in")
-## ##################################################
+## ggplot(residDF, aes(x=yactual, y=resid)) +
+##   geom_point() +
+##   geom_hline(yintercept=0) + 
+##   labs(x="Actual accumulated degree days", y="Error (actual - estimated)")
+## ggsave(filename="orig_units_all_data_families_residuals.pdf", height=3.5, width=3.5, units="in")
+## ## ##################################################

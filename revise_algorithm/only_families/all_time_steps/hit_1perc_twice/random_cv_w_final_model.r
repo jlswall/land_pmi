@@ -59,7 +59,9 @@ numCVs <- 1000
 
 ## How many observations to reserve for testing each time.  This
 ## number is chosen to be same as the number that are used in leave
-## out one subject and day cross-validation.
+## out one subject and day cross-validation.  That is, we leave out chosen
+## subject on each each of 16 days, leave out the 5 other individuals
+## on the chosen day.
 numLeaveOut <- 21
 
 
