@@ -103,7 +103,7 @@ origFitL <- mclapply(crossvalidL, mc.cores=4, origUnitsF, mtry=numVarSplit, ntre
 
 
 ## #########################################
-## Collect the residusals, making a note about which day and
+## Collect the residuals, making a note about which day and
 ## individual were left out.
 
 ## Set up vectors to hold cross-validation results.
@@ -153,6 +153,22 @@ write.csv(residDF, file="resids_leave_out_one_subj_and_one_day.csv", row.names=F
 
 
 ## #########################################
+## Find RMSE for each of the validation sets (for each combo of
+## leaving out 1 day and 1 subject).
+
+cvRMSE <- residDF %>% group_by(dayOmit, subjOmit) %>% summarize(rmse=sqrt(mean(resid^2))) %>% pull(rmse)
+
+## Find summary statistics for the RMSE over all leave 1 day, 1 subj
+## out combinations.
+mean(cvRMSE)
+## 207.1584
+1.96*sd(cvRMSE)
+## 105.7592
+## #########################################
+
+
+
+## #########################################
 ## Make plot showing the residuals associated with days which were
 ## completely left out of the model.
 
@@ -164,8 +180,7 @@ ggplot(residDF %>%
   ## geom_point(aes(col=subjOmit)) +
   geom_hline(yintercept=0) +
   labs(x="Actual degree days", y="Error (actual - estimated)")
-ggsave(filename="leave_out_one_day_residuals.pdf", height=3.5, width=4, units="in")
-## RMSE for these: 252.4737
+ggsave(filename="leave_out_one_subj_and_one_day_residuals.pdf", height=3.5, width=3.5, units="in")
 
 
 ggplot(residDF, aes(x=yactual, y=resid)) +
