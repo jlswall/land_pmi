@@ -50,82 +50,77 @@ numVarSplit <- 15
 
 
 ## ##################################################
-## Run the cross-validation for this model, so that we can see what
-## the CV MSE looks like.
-
-set.seed(9830934)
-
-## Number of times to do cross-validation.
-numCVs <- 1000
-## How many observations to reserve for testing each time.
-numLeaveOut <- round(0.20 * nrow(wideT))
-
+## Fit the random forest using all the data (do not hold any back for
+## cross-validation).
 
 ## ###########################
-## Set up function for fitting random forest model using original
-## units.
-origUnitsF <- function(x, mtry, ntree){
-  rf <- randomForest(degdays ~ . , data=x$trainT, mtry=mtry, ntree=ntree, importance=T)
-  return(predict(rf, newdata=x$validT))
+## Set up function for fitting random forest model using full dataset.
+fitFullDataF <- function(x, mtry, ntree){
+
+  rf <- randomForest(degdays ~ . , data=x, mtry=mtry, ntree=ntree, importance=T)
+
+  ## Order the taxa according to decreasing values of the scaled
+  ## importance %IncMSE.  Return as a tibble, with %IncMSE column
+  ## renamed to PercIncMSE.
+  importanceT <- as.tibble(importance(rf), rownames="taxa") %>% rename(PercIncMSE=`%IncMSE`) %>% arrange(desc(PercIncMSE))
+
+  myresults <- list(predicted=rf[["predicted"]], y=rf[["y"]], importanceT=importanceT)
+
+  return(myresults)
 }
 ## ###########################
 
 
 ## ###########################
-## Get set up for cross-validation.
-crossvalidL <- vector("list", numCVs)
-for (i in 1:numCVs){
-  lvOut <- sample(1:nrow(wideT), size=numLeaveOut, replace=F)
-  trainT <- wideT[-lvOut,]
-  validT <- wideT[lvOut,]
-  crossvalidL[[i]] <- list(trainT=trainT, validT=validT)
-}
-rm(i, lvOut, trainT, validT)
-
-## Conduct cross-validation.
-origFitL <- mclapply(crossvalidL, mc.cores=4, origUnitsF, mtry=numVarSplit, ntree=numBtSamps)
+## Set up list as input for the function, which is just the original
+## dataset repeated over and over.
+numRepeat <- 1000
+repDataL <- vector("list", numRepeat)
+for (i in 1:numRepeat)
+  repDataL[[i]] <- wideT
 ## ###########################
 
 
 ## ###########################
-## For matrix to hold cross-validation results.
-cvMSE <- rep(NA, numCVs)
-cvErrFrac <- rep(NA, numCVs)
+## Now, fit random forests to the full dataset over and over.
 
-set.seed(4586079)
+set.seed(798063)
+fullResultsL <- mclapply(repDataL, mc.cores=6, fitFullDataF, mtry=numVarSplit, ntree=numBtSamps)
 
+## Calculate the RMSE and pseudo-Rsquared for these runs with the full
+## dataset.
+fullRMSE <- rep(NA, 1000)
+fullRsq <- rep(NA, 1000)
+fullImportanceT <- NULL
+for (i in 1:length(fullResultsL)){
 
-## Now, calculate the various summary statistics for each cross-validation.
-residDF <- NULL
-for (i in 1:numCVs){
+  ## Get results from run i.
+  iTmp <- fullResultsL[[i]]
 
-  ## Get the validation set for this run from the list.
-  validT <- crossvalidL[[i]][["validT"]]
+  ## Find residuals:
+  resids <- iTmp$predicted - iTmp$y
 
-  ## Calculate SSTotal for the cross-validation set.
-  SSTot <- sum( (validT$degdays-mean(validT$degdays))^2 )
+  ## Calculate the RMSE and pseudo-Rsquared:
+  fullRMSE[i] <- sqrt( mean( resids^2 ) )
+  fullRsq[i] <- 1.0 - ( sum(resids^2)/sum( (iTmp$y - mean(iTmp$y))^2 ) )
 
-  ## Calculate the residuals for this validation set.
-  resid <- validT$degdays - origFitL[[i]]
-
-  ## Build a data frame with the actual response and the estimated
-  ## response.
-  iCaseDF <- data.frame(yactual=validT$degdays, yhat=origFitL[[i]],
-                        resid=resid)
-  ## Add this data frame to what we've already collected.
-  residDF <- rbind(residDF, iCaseDF)
-  
-  ## Calculate the MSE and error fraction of the SS Total for the
-  ## validation data in the original units.
-  cvMSE[i] <- mean(resid^2)
-  cvErrFrac[i] <- sum(resid^2)/SSTot
-  rm(resid, iCaseDF)
+  ## Store measures of importance in a long tibble.
+  fullImportanceT <- rbind(fullImportanceT, iTmp$importanceT)
 }
-rm(i, validT, SSTot)
+rm(i, iTmp, resids)
 
-write_csv(residDF, path="final_rf_orig_units_residuals_all_data.csv")
-write_csv(data.frame(cvMSE, cvErrFrac), path="final_rf_orig_units_cvstats_all_data.csv")
-rm(cvMSE, cvErrFrac)
+## See summary of %IncMSE (measure of importance) over all model runs.
+fullImportanceT %>% group_by(taxa) %>% summarize(meanPercIncMSE=mean(PercIncMSE), lbPercIncMSE=quantile(PercIncMSE, 0.025), ubPercIncMSE=quantile(PercIncMSE, 0.975)) %>% arrange(desc(meanPercIncMSE))
+
+## Get summary statistics for report.
+c(mean(fullRMSE), 1.96*sd(fullRMSE))
+## RMSE: 174.183018 +/- 2.597912
+c(mean(fullRsq), 1.96*sd(fullRsq))
+## Rsq: 0.901586001 +/- 0.002934766
+
+write_csv(data.frame(fullRMSE, fullRsq), path="cvstats_w_full_dataset_final_params.csv")
+rm(fullRMSE, fullRsq)
+## ###########################
 ## ##################################################
 
 
@@ -139,9 +134,9 @@ set.seed(7820630)
 rf <- randomForest(degdays ~ . , data=wideT, mtry=numVarSplit,
                    ntree=numBtSamps, importance=T)
 
-init.fig.dimen(file=paste0("orig_units_all_data_families_imp_plot.pdf"), width=8, height=6)
-varImpPlot(rf, main="Importance of combined family taxa (all time steps)")
-dev.off()
+## init.fig.dimen(file=paste0("orig_units_all_data_families_imp_plot.pdf"), width=8, height=6)
+## varImpPlot(rf, main="Importance of combined family-level taxa (all time steps)")
+## dev.off()
 
 
 ## Find residuals:
@@ -159,29 +154,28 @@ sqrt( mean( resids^2 ) )
 
 
 
-## ##################################################
-## Make graph of just IncNodePurity alone.
+## ## ##################################################
+## ## Make graph of just IncNodePurity alone.
 
-## Get the top "n" (whether 8, 10, whatever) influential taxa.
-n <- 8
+## ## Get the top "n" (whether 8, 10, whatever) influential taxa.
+## n <- 8
 
-## Turn importance measures into a tibble, sorted by IncNodePurity in
-## increasing order.
-importanceT <- importance(rf) %>%
-  as.data.frame() %>% as_tibble() %>%
-  rownames_to_column("family") %>%
-  arrange(IncNodePurity)
-## Turn family names into factors, so that we can make the bar chart
-## with the bars in decreasing order.
-importanceT$family <- factor(importanceT$family, levels=importanceT$family)
-ggplot(importanceT %>% top_n(n, wt=IncNodePurity),
-       aes(x=family, y=IncNodePurity)) +
-  coord_flip() +
-  geom_col() +
-  labs(x="Bac. and euk. family-level taxa", y="Decrease in node impurity") +
-  theme(axis.title=element_text(size=rel(0.8)), axis.text=element_text(size=rel(0.8))) 
-ggsave(filename="orig_units_all_data_families_barchart.pdf", height=2.5, width=4.5, units="in")
-## ##################################################
+## ## Turn importance measures into a tibble, sorted by IncNodePurity in
+## ## increasing order.
+## importanceT <- importance(rf) %>%
+##   as.data.frame() %>% as_tibble() %>%
+##   rownames_to_column("family") %>%
+##   arrange(IncNodePurity)
+## ## Turn family names into factors, so that we can make the bar chart
+## ## with the bars in decreasing order.
+## importanceT$family <- factor(importanceT$family, levels=importanceT$family)
+## ggplot(importanceT %>% top_n(n, wt=IncNodePurity),
+##        aes(x=family, y=IncNodePurity)) +
+##   coord_flip() +
+##   geom_col() +
+##   labs(x="Bac. and euk. family-level taxa", y="Decrease in node impurity")
+## ggsave(filename="orig_units_all_data_families_IncNodePurity_barchart.pdf", height=2.5, width=4.5, units="in")
+## ## ##################################################
 
 
 
@@ -189,7 +183,7 @@ ggsave(filename="orig_units_all_data_families_barchart.pdf", height=2.5, width=4
 ## Make graph of just %IncMSE alone.
 
 ## Get the top "n" (whether 8, 10, whatever) influential taxa.
-n <- 8
+n <- 6
 
 ## Turn importance measures into a tibble, sorted by IncNodePurity in
 ## increasing order.
@@ -204,8 +198,7 @@ ggplot(importanceT %>% top_n(n, wt=`%IncMSE`),
        aes(x=family, y=`%IncMSE`)) +
   coord_flip() +
   geom_col() +
-  labs(x="Bac. and euk. family-level taxa", y="Mean % decrease in MSE when excluded") +
-  theme(axis.title=element_text(size=rel(0.8)), axis.text=element_text(size=rel(0.8))) 
+  labs(x="Bac. and euk. family-level taxa", y="Mean % decrease in MSE when excluded") 
 ggsave(filename="orig_units_all_data_families_PercIncMSE_barchart.pdf", height=2.5, width=4.5, units="in")
 ## ##################################################
 
@@ -216,7 +209,7 @@ ggsave(filename="orig_units_all_data_families_PercIncMSE_barchart.pdf", height=2
 ## top n taxa in terms of %IncMSE.
 
 ## Get the top "n" (whether 8, 10, whatever) influential taxa.
-n <- 8
+n <- 6
 
 ## Save the names of the families that are in the top 10 in
 ## terms of %IncMSE.
@@ -232,19 +225,19 @@ ggplot(chooseT, aes(degdays, fracBySubjDay)) +
   labs(x="Degree days", y="Fraction", color="Cadaver") +
   theme(legend.title=element_text(size=rel(0.8)), legend.text=element_text(size=rel(0.8))) + 
   ## Allow diff. y-scales across panels.
-  facet_wrap(~taxa, ncol=4, scales="free_y") 
+  facet_wrap(~taxa, ncol=3, scales="free_y") 
   ## facet_wrap(~taxa)  ## Keep y-scales same across panels.
 ggsave("infl_comb_family_all_data_scatter.pdf", width=8, height=4, units="in")
 ## ##################################################
 
 
 
-## ##################################################
-## Make plot of residuals.
+## ## ##################################################
+## ## Make plot of residuals.
 
-ggplot(residDF, aes(x=yactual, y=resid)) +
-  geom_point() +
-  geom_hline(yintercept=0) + 
-  labs(x="Actual accumulated degree days", y="Error (actual - estimated)")
-ggsave(filename="orig_units_all_data_families_residuals.pdf", height=3.5, width=3.5, units="in")
-## ##################################################
+## ggplot(residDF, aes(x=yactual, y=resid)) +
+##   geom_point() +
+##   geom_hline(yintercept=0) + 
+##   labs(x="Actual accumulated degree days", y="Error (actual - estimated)")
+## ggsave(filename="orig_units_all_data_families_residuals.pdf", height=3.5, width=3.5, units="in")
+## ## ##################################################
