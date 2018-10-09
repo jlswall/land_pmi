@@ -64,23 +64,26 @@ colnames(excludeMat) <- c("subj", "degdays")
 ## use an inner join to save only the combos that are included in our
 ## dataset.
 excludeMat <- excludeMat %>% inner_join(wideT %>% select(subj, degdays))
-numCVs <- nrow(excludeMat)
+numCombos <- nrow(excludeMat)
 
-
-## ##### I WAS WORKING HERE ON OCT. 8.
 
 
 ## Set up the training and validation datasets corresponding to each
 ## combo.
-crossvalidL <- vector("list", numCVs)
-for (i in 1:numCVs){
+numRunsEachCombo <- 10
+crossvalidL <- vector("list", numCombos*numRunsEachCombo)
+for (i in 1:numCombos){
   lvOut <- (wideT$subj==excludeMat[i,"subj"]) | (wideT$degdays==excludeMat[i,"degdays"])
   trainT <- wideT[!lvOut,] %>% select(-subj)
-  ## validT <- wideT[lvOut,] %>% select(-subj)
   validT <- wideT[lvOut,]
-  crossvalidL[[i]] <- list(trainT=trainT, validT=validT)
+  
+  for (j in 1:numRunsEachCombo)
+    crossvalidL[[(i-1)*numRunsEachCombo+j]] <- list(trainT=trainT, validT=validT)
 }
 rm(i, lvOut, trainT, validT)
+
+## ##### I WAS WORKING HERE ON OCT. 9.
+
 ## #########################################
 
 
