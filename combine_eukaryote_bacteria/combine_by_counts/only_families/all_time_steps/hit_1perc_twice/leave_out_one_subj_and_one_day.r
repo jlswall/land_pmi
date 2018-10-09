@@ -59,7 +59,16 @@ numVarSplit <- 15
 excludeMat <- expand.grid(unique(wideT$subj), unique(wideT$degdays),
                           stringsAsFactors=FALSE)
 colnames(excludeMat) <- c("subj", "degdays")
+
+## For the bacteria, there are some missing day/subj combinations.  We
+## use an inner join to save only the combos that are included in our
+## dataset.
+excludeMat <- excludeMat %>% inner_join(wideT %>% select(subj, degdays))
 numCVs <- nrow(excludeMat)
+
+
+## ##### I WAS WORKING HERE ON OCT. 8.
+
 
 ## Set up the training and validation datasets corresponding to each
 ## combo.
@@ -89,8 +98,7 @@ origUnitsF <- function(x, mtry, ntree){
 set.seed(4109439)
 
 ## Try using lapply to fit the random forests.
-## origFitL <- mclapply(crossvalidL, mc.cores=4, origUnitsF, mtry=numVarSplit, ntree=numBtSamps)
-origFitL <- lapply(crossvalidL, origUnitsF, mtry=numVarSplit, ntree=numBtSamps)
+origFitL <- mclapply(crossvalidL, mc.cores=4, origUnitsF, mtry=numVarSplit, ntree=numBtSamps)
 
 
 ## Set up function for fitting random forest model using square root
@@ -104,7 +112,7 @@ origFitL <- lapply(crossvalidL, origUnitsF, mtry=numVarSplit, ntree=numBtSamps)
 
 
 ## #########################################
-## Collect the residusals, making a note about which day and
+## Collect the residuals, making a note about which day and
 ## individual were left out.
 
 ## Set up vectors to hold cross-validation results.
@@ -154,6 +162,26 @@ write.csv(residDF, file="resids_leave_out_one_subj_and_one_day.csv", row.names=F
 
 
 ## #########################################
+## Find RMSE for each of the validation sets (for each combo of
+## leaving out 1 day and 1 subject).
+
+cvRMSE <- residDF %>%
+  filter((subjactual==subjOmit) & (dayOmit==yactual)) %>%
+  ## group_by(dayOmit, subjOmit) %>%
+  summarize(rmse=sqrt(mean(resid^2))) %>%
+  pull(rmse)
+
+## Find summary statistics for the RMSE over all leave 1 day, 1 subj
+## out combinations.
+mean(cvRMSE)
+## 193.8819
+1.96*sd(cvRMSE)
+## 98.19168
+## #########################################
+
+
+
+## #########################################
 ## Make plot showing the residuals associated with days which were
 ## completely left out of the model.
 
@@ -164,7 +192,7 @@ ggplot(residDF %>%
   geom_point() +
   ## geom_point(aes(col=subjOmit)) +
   geom_hline(yintercept=0) +
-  labs(x="Actual accumulated degree days", y="Error (actual - estimated)")
+  labs(x="Actual degree days", y="Error (actual - estimated)")
 ggsave(filename="leave_out_one_subj_and_one_day_residuals.pdf", height=3.5, width=3.5, units="in")
 
 ggplot(residDF, aes(x=yactual, y=resid)) +
