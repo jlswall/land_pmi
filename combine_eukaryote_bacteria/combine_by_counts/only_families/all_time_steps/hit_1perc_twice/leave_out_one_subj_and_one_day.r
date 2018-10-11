@@ -56,33 +56,43 @@ numVarSplit <- 15
 
 ## We exclude each combination of individual and degree day. This is
 ## 16 degree days x 6 individuals = 96 combos.
-excludeMat <- expand.grid(unique(wideT$subj), unique(wideT$degdays),
+excludeCombos <- expand.grid(unique(wideT$subj), unique(wideT$degdays),
                           stringsAsFactors=FALSE)
-colnames(excludeMat) <- c("subj", "degdays")
+colnames(excludeCombos) <- c("subj", "degdays")
 
 ## For the bacteria, there are some missing day/subj combinations.  We
 ## use an inner join to save only the combos that are included in our
 ## dataset.
-excludeMat <- excludeMat %>% inner_join(wideT %>% select(subj, degdays))
-numCombos <- nrow(excludeMat)
+excludeCombos <- as.tibble(excludeCombos %>% inner_join(wideT %>% select(subj, degdays)))
 
-
+## How many times do we want to run each exclusion combo?
+numRunsEachCombo <- 10
+excludeT <- NULL
+for (i in 1:numRunsEachCombo)
+    excludeT <- bind_rows(excludeT, excludeCombos)
+rm(excludeCombos)
+## Order by degdays.
+excludeT <- excludeT %>% arrange(degdays, subj)
 
 ## Set up the training and validation datasets corresponding to each
 ## combo.
-numRunsEachCombo <- 10
-crossvalidL <- vector("list", numCombos*numRunsEachCombo)
-for (i in 1:numCombos){
-  lvOut <- (wideT$subj==excludeMat[i,"subj"]) | (wideT$degdays==excludeMat[i,"degdays"])
+numCVs <- numCombos*numRunsEachCombo
+crossvalidL <- vector("list", numCVs)
+for (i in 1:numCVs){
+  lvOut <- (wideT$subj==excludeT[i,"subj"]) | (wideT$degdays==excludeT[i,"degdays"])
   trainT <- wideT[!lvOut,] %>% select(-subj)
   validT <- wideT[lvOut,]
-  
-  for (j in 1:numRunsEachCombo)
-    crossvalidL[[(i-1)*numRunsEachCombo+j]] <- list(trainT=trainT, validT=validT)
+  crossvalidL[[i]] <- list(trainT=trainT, validT=validT)
 }
 rm(i, lvOut, trainT, validT)
 
-## ##### I WAS WORKING HERE ON OCT. 9.
+## ##### I WAS WORKING HERE ON OCT. 10.
+> identical(crossvalidL[[1]], crossvalidL[[2]])
+[1] TRUE
+> identical(crossvalidL[[10]], crossvalidL[[11]])
+[1] TRUE
+> identical(crossvalidL[[10]], crossvalidL[[21]])
+[1] TRUE
 
 ## #########################################
 
@@ -101,15 +111,8 @@ origUnitsF <- function(x, mtry, ntree){
 set.seed(4109439)
 
 ## Try using lapply to fit the random forests.
-origFitL <- mclapply(crossvalidL, mc.cores=4, origUnitsF, mtry=numVarSplit, ntree=numBtSamps)
+origFitL <- mclapply(crossvalidL, mc.cores=6, origUnitsF, mtry=numVarSplit, ntree=numBtSamps)
 
-
-## Set up function for fitting random forest model using square root
-## units.
-## sqrtUnitsF <- function(x, jCombo){
-##   sqrtrf <- randomForest(sqrt(degdays) ~ . -subj, data=x$trainT, mtry=combos[jCombo, "numVarSplit"], ntree=combos[jCombo, "numBtSamps"], importance=T)
-##   return(predict(sqrtrf, newdata=x$validT))
-## }
 ## #########################################
 
 
