@@ -66,34 +66,25 @@ colnames(excludeCombos) <- c("subj", "degdays")
 excludeCombos <- as.tibble(excludeCombos %>% inner_join(wideT %>% select(subj, degdays)))
 
 ## How many times do we want to run each exclusion combo?
-numRunsEachCombo <- 10
+numRunsEachCombo <- 1
 excludeT <- NULL
 for (i in 1:numRunsEachCombo)
     excludeT <- bind_rows(excludeT, excludeCombos)
 rm(excludeCombos)
-## Order by degdays.
+## Order by degdays and then subj.
 excludeT <- excludeT %>% arrange(degdays, subj)
 
 ## Set up the training and validation datasets corresponding to each
 ## combo.
-numCVs <- numCombos*numRunsEachCombo
+numCVs <- nrow(excludeT)
 crossvalidL <- vector("list", numCVs)
 for (i in 1:numCVs){
-  lvOut <- (wideT$subj==excludeT[i,"subj"]) | (wideT$degdays==excludeT[i,"degdays"])
+  lvOut <- (wideT$subj==pull(excludeT[i,"subj"])) | (wideT$degdays==pull(excludeT[i,"degdays"]))
   trainT <- wideT[!lvOut,] %>% select(-subj)
   validT <- wideT[lvOut,]
   crossvalidL[[i]] <- list(trainT=trainT, validT=validT)
 }
 rm(i, lvOut, trainT, validT)
-
-## ##### I WAS WORKING HERE ON OCT. 10.
-> identical(crossvalidL[[1]], crossvalidL[[2]])
-[1] TRUE
-> identical(crossvalidL[[10]], crossvalidL[[11]])
-[1] TRUE
-> identical(crossvalidL[[10]], crossvalidL[[21]])
-[1] TRUE
-
 ## #########################################
 
 
@@ -112,7 +103,6 @@ set.seed(4109439)
 
 ## Try using lapply to fit the random forests.
 origFitL <- mclapply(crossvalidL, mc.cores=6, origUnitsF, mtry=numVarSplit, ntree=numBtSamps)
-
 ## #########################################
 
 
@@ -149,8 +139,8 @@ for (i in 1:numCVs){
 
   ## Build a data frame with these residuals, along with the day and
   ## individual that were left out in this validation.
-  iresidDF <- data.frame(dayOmit=excludeMat[i,"degdays"],
-                         subjOmit=excludeMat[i,"subj"],
+  iresidDF <- data.frame(dayOmit=pull(excludeT[i,"degdays"]),
+                         subjOmit=pull(excludeT[i,"subj"]),
                          subjactual=validT$subj,
                          yactual=validT$degdays,
                          yhat=origFitL[[i]],
@@ -168,21 +158,20 @@ write.csv(residDF, file="resids_leave_out_one_subj_and_one_day.csv", row.names=F
 
 
 ## #########################################
-## Find RMSE for each of the validation sets (for each combo of
-## leaving out 1 day and 1 subject).
+## We're interested in the error we're likely to get with the model in
+## "regular use".  That means that we are interested the prediction
+## the model makes for a subject and time slot that we're never
+## observed.  That's only ONE prediction of interest per model run.
+## So, we look at the root of the mean squared errors for the n
+## predictions of interest in these n runs.
 
-cvRMSE <- residDF %>%
+myresids <- residDF %>%
   filter((subjactual==subjOmit) & (dayOmit==yactual)) %>%
-  ## group_by(dayOmit, subjOmit) %>%
-  summarize(rmse=sqrt(mean(resid^2))) %>%
-  pull(rmse)
-
-## Find summary statistics for the RMSE over all leave 1 day, 1 subj
-## out combinations.
-mean(cvRMSE)
-## 193.8819
-1.96*sd(cvRMSE)
-## 98.19168
+  pull(resid)
+sqrt(mean(myresids^2))
+## 241.9385
+## This is about 241-242, whether I use 1, 10, or 100 runs per
+## combo.
 ## #########################################
 
 
@@ -206,11 +195,3 @@ ggplot(residDF, aes(x=yactual, y=resid)) +
   geom_point(aes(col=subjOmit)) +
   labs(x="Actual degree day", y="Residual")
 ## #########################################
-
-
-
-## Calculate RMSE based on how the model is likely used in practice,
-## when we would have no information about this subject or this day.
-myresids <- residDF %>% filter((subjactual==subjOmit) & (dayOmit==yactual)) %>% pull(resid)
-sqrt(mean(myresids^2))
-## RMSE as likely used: 241.4593
