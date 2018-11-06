@@ -128,6 +128,10 @@ for (i in 1:numCVs){
 }
 rm(i, validT, SSTot)
 
+## Get summary statistics for report.
+c(mean(cvRMSE), 1.96*sd(cvRMSE))
+## RMSE: 219.27636 +/- 78.74733
+
 ## write_csv(residDF, path="final_rf_orig_units_residuals_all_data.csv")
 write_csv(data.frame(cvRMSE, cvRsq), path="cvstats_random_w_final_params.csv")
 rm(cvRMSE, cvRsq)
