@@ -56,24 +56,37 @@ numVarSplit <- 9
 
 ## We exclude each combination of individual and degree day. This is
 ## 10 degree days x 6 individuals = 60 combos.
-excludeMat <- expand.grid(unique(wideT$subj), unique(wideT$degdays),
-                          stringsAsFactors=FALSE)
-colnames(excludeMat) <- c("subj", "degdays")
-numCVs <- nrow(excludeMat)
+excludeCombos <- expand.grid(unique(wideT$subj), unique(wideT$degdays),
+                             stringsAsFactors=FALSE)
+colnames(excludeCombos) <- c("subj", "degdays")
+
+## For the bacteria, there are some missing day/subj combinations.  We
+## use an inner join to save only the combos that are included in our
+## dataset.
+excludeCombos <- as.tibble(excludeCombos %>% inner_join(wideT %>% select(subj, degdays)))
+
+
+## How many times do we want to run each exclusion combo?
+numRunsEachCombo <- 1
+excludeT <- NULL
+for (i in 1:numRunsEachCombo)
+    excludeT <- bind_rows(excludeT, excludeCombos)
+rm(excludeCombos)
+## Order by degdays and then subj.
+excludeT <- excludeT %>% arrange(degdays, subj)
 
 ## Set up the training and validation datasets corresponding to each
 ## combo.
+numCVs <- nrow(excludeT)
 crossvalidL <- vector("list", numCVs)
 for (i in 1:numCVs){
-  lvOut <- (wideT$subj==excludeMat[i,"subj"]) | (wideT$degdays==excludeMat[i,"degdays"])
+  lvOut <- (wideT$subj==pull(excludeT[i,"subj"])) | (wideT$degdays==pull(excludeT[i,"degdays"]))
   trainT <- wideT[!lvOut,] %>% select(-subj)
-  ##  validT <- wideT[lvOut,] %>% select(-subj)
   validT <- wideT[lvOut,]
   crossvalidL[[i]] <- list(trainT=trainT, validT=validT)
 }
 rm(i, lvOut, trainT, validT)
 ## #########################################
-
 
 
 ## #########################################
@@ -84,26 +97,16 @@ origUnitsF <- function(x, mtry, ntree){
   return(predict(rf, newdata=x$validT))
 }
 
-
 ## Set random seed for reproducibility.
-set.seed(390948)
+set.seed(355247)
 
 ## Try using lapply to fit the random forests.
-origFitL <- mclapply(crossvalidL, mc.cores=4, origUnitsF, mtry=numVarSplit, ntree=numBtSamps)
-
-
-## Set up function for fitting random forest model using square root
-## units.
-## sqrtUnitsF <- function(x, jCombo){
-##   sqrtrf <- randomForest(sqrt(degdays) ~ . -subj, data=x$trainT, mtry=combos[jCombo, "numVarSplit"], ntree=combos[jCombo, "numBtSamps"], importance=T)
-##   return(predict(sqrtrf, newdata=x$validT))
-## }
+origFitL <- mclapply(crossvalidL, mc.cores=6, origUnitsF, mtry=numVarSplit, ntree=numBtSamps)
 ## #########################################
 
 
-
 ## #########################################
-## Collect the residusals, making a note about which day and
+## Collect the residuals, making a note about which day and
 ## individual were left out.
 
 ## Set up vectors to hold cross-validation results.
@@ -134,8 +137,8 @@ for (i in 1:numCVs){
 
   ## Build a data frame with these residuals, along with the day and
   ## individual that were left out in this validation.
-  iresidDF <- data.frame(dayOmit=excludeMat[i,"degdays"],
-                         subjOmit=excludeMat[i,"subj"],
+  iresidDF <- data.frame(dayOmit=pull(excludeT[i,"degdays"]),
+                         subjOmit=pull(excludeT[i,"subj"]),
                          subjactual=validT$subj,
                          yactual=validT$degdays,
                          yhat=origFitL[[i]],
@@ -145,9 +148,25 @@ for (i in 1:numCVs){
 }
 rm(i, validT, resid, iresidDF)
 
-
 ## Write this info out.
 write.csv(residDF, file="resids_leave_out_one_subj_and_one_day.csv", row.names=FALSE)
+## #########################################
+
+
+## #########################################
+## We're interested in the error we're likely to get with the model in
+## "regular use".  That means that we are interested the prediction
+## the model makes for a subject and time slot that we're never
+## observed.  That's only ONE prediction of interest per model run.
+## So, we look at the root of the mean squared errors for the n
+## predictions of interest in these n runs.
+
+myresids <- residDF %>%
+  filter((subjactual==subjOmit) & (dayOmit==yactual)) %>%
+  pull(resid)
+sqrt(mean(myresids^2))
+## This is about 84, whether I use 1, 10, or 100 runs per
+## combo.
 ## #########################################
 
 
@@ -163,19 +182,11 @@ ggplot(residDF %>%
   geom_point() +
   ## geom_point(aes(col=subjOmit)) +
   geom_hline(yintercept=0) +
-  labs(x="Actual accumulated degree days", y="Error (actual - estimated)")
+  labs(x="Actual degree days", y="Error (actual - estimated)")
 ggsave(filename="leave_out_one_subj_and_one_day_residuals.pdf", height=3.5, width=3.5, units="in")
-
 
 ggplot(residDF, aes(x=yactual, y=resid)) +
   facet_wrap(~subjOmit) +
   geom_point(aes(col=subjOmit)) +
-  labs(x="Actual accumulated degree day", y="Residual")
+  labs(x="Actual degree day", y="Residual")
 ## #########################################
-
-
-## Calculate RMSE based on how the model is likely used in practice,
-## when we would have no information about this subject or this day.
-## myresids <- residDF %>% filter((subjactual==subjOmit) & (dayOmit==yactual)) %>% pull(resid)
-## sqrt(mean(myresids^2))
-## RMSE as likely used: 83.49267
