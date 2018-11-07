@@ -7,7 +7,7 @@
 \usepackage{graphicx}
 \usepackage{caption}
 \usepackage{subcaption}
-
+\usepackage{hyperref}
 
 %% Gives the equivalent of one-and-a-half line spacing.
 \linespread{1.3}
@@ -17,15 +17,15 @@
 \section{Data description and organization}
 
 Our goal is to estimate the accumulated degree days post mortem based
-on the types and prevalences of bacterial and eukaryote organisms
+on the types and prevalences of bacterial and eukaryotic organisms
 present on pig cadavers.  We made use of the order-level and
 family-level taxa which were obtained from 6 pig cadavers over the
 course of the study, for which data were collected at intervals during
 a period of 61 days.  We decided to focus on the family and order
 levels because our early results indicated that analyses at the
 phylum-level did not explain nearly as much of the variability as did
-models built on family-level and order-level taxa.  At lower even
-finer levels (such as genus), we anticipate that an unreasonably large
+models built on family-level and order-level taxa.  At lower, finer
+levels (such as genus), we anticipate that an unreasonably large
 number of counts would remain unclassified.
 
 Samples were obtained from 6 pig cadavers on 16 different days over
@@ -50,8 +50,7 @@ Figure \ref{fig:degdays_vs_days} shows that the relationship between
 days and ADD is almost linear throughout the study time period.  The
 estimated correlation coefficient between calendar days post mortem
 and ADD post mortem exceeds 0.99.  This is true when accounting for
-the entire time period, or when including only the first 15 days of
-observation.
+the entire time period, or when examining only the first 15 days.
 \begin{figure}[hb]
   \centering
   \includegraphics[height=3.5in]{degdays_vs_days}
@@ -59,17 +58,17 @@ observation.
   \label{fig:degdays_vs_days}
 \end{figure}
 
-For the bacterial taxa (Shane's original data), we had to account for
+For the bacterial taxa (originally from Shane), we had to account for
 missing data.  Taxa counts were unavailable for subject A1 on days 7
 and 9, as well as for subject A4 on day 7.  In addition, the data
 collected from subject A3 on day 40 (degree day 1130) is defective.
-The total number of taxa (including unclassified taxa) counted for
+The total number of taxa (including unclassified taxa) recorded for
 this cadaver and day was 54.  This is several orders of magnitude less
-than the counts for the other cadavers and days, which ranged from
-18050 to 93665 (both orders and families).  For this reason, the taxa
-from subject A3 on day 40 were omitted.  (Note that the omission of
-the A3, day 40 data does not affect the analyses which only consider
-the first 15 days of the study.)
+than the counts observed on the other cadavers and during other days,
+which ranged from 18050 to 93665 (both orders and families).  For this
+reason, the taxa from subject A3 on day 40 were omitted.  (Note that
+the omission of the A3, day 40 data does not affect the analyses which
+only consider the first 15 days of the study.)
 
 Whether working with bacteria or eukaryote data, we did not directly
 utilize raw counts in our statistical models.  Exploratory analyses
@@ -77,7 +76,7 @@ showed a great deal of variability in the raw counts between
 individual cadavers and between days.  Raw counts would also be likely
 to vary widely between experiments, which would make our model less
 applicable to future experiments.  Instead, we used the proportion of
-the counts attributable to each taxa.  First, we excluded all counts
+the counts attributable to each taxon.  First, we excluded all counts
 of unclassified taxa from the dataset.  Then, for each taxon, we
 calculated the fraction of the counts corresponding to that taxon for
 that particular sample (i.e. for that day and for that cadaver).  To
@@ -87,98 +86,225 @@ same day or on different days.  All taxa which did not meet this
 criterion were grouped together as ``rare'' taxa.  This ``rare''
 category was not included in our predictive models.  All fractions
 attributable to non-rare taxa for individual cadaver and each day were
-used as the explanatory variables, while the ADD post mortem
+utilied as potential explanatory variables, while the ADD post mortem
 represented the response variable.
 
 While the requirements related to the determination of rare taxa may
 seem strange, the idea is to prevent a rare taxon found on just one
 cadaver from adversely affecting the model.  In my earlier models
 using bacterial family-level taxa, it happened that a particular
-taxon, Listeriaceae, that made up more than 1\% of the taxa on only
-one cadaver for only one day had been included as an important
+taxon, Listeriaceae, which made up more than 1\% of the taxa on only
+one cadaver for only one day was nevertheless selected as an important
 predictor in the final model.  My concern is that Listeriaceae may not
 be present on future observed cadavers, or, because it is at such low
 levels, it may not always be easily measured.  To obtain a more usable
 model, I wanted to avoid including taxa which appeared very
 infrequently in our samples, or were introduced solely through one
-unusual cadaver.
+unusual cadaver.  I believe the question of which taxa are ``common
+enough'' to be utilized in a predictive model is an important one, and
+these criteria may need to be examined in more detail.
 
 
 \section{Methods}
 
-Inspired by Metcalf et al.~(2016), we made use of random forest
-models.  The random forest methodology is non-parametric, so it does
-not depend on distributional assumptions or on finding an mathematical
-function to describe an apparent trend or pattern.  It is commonly
-used in machine learning applications, since it can be utilized even
-when there are a large number of potential explanatory variables and
-even when there are dependencies/associations among these explanatory
-variables.
+\subsection{Introduction to ``random forests''}
 
-A good description of the random forest methodology can be found in
-James et al. (2013, Chp.~8).  The approach uses tree-based models to
-split the observations into groups, such that at each binary split, we
-divide the observations in that tree branch into two groups in which
-the variability among the response values in each group is minimized.
-To reduce the error associated with this method, we fit multiple trees
-(i.e., a ``forest'') using bootstrap samples of the dataset of
-interest, with the final model being an average of the ``forest'' of
-models.  To reduce the correlation among the trees in the ``forest'',
-we consider only a random subset of the potential explanatory
-variables at each split.  This is the ``random'' aspect of the
-``random forest'' approach.
+Inspired by Metcalf et al.~(2016), I made use of random forest models.
+The random forest methodology is non-parametric, so it does not depend
+on distributional assumptions nor on identifying a mathematical
+function to match an apparent trend.  It is commonly employed in
+machine learning applications, since it can accomodate a large number
+of potential explanatory variables and can be used even when there are
+dependencies/associations among these explanatory variables.
+
+A good description of the random forest methodology is provided by
+James et al. (2013, Chp.~8), the text of which is freely available
+from the first author's website at 
+\href{https://www-bcf.usc.edu/~gareth/ISL/}{https://www-bcf.usc.edu/~gareth/ISL/}.  The
+approach uses tree-based models to split the observations into groups,
+step by step at each branch of the tree.  At each split, we divide the
+observations in into two groups in which the variability among the
+response values in each group is minimized.  The ``forest'' part of
+the ``random forest'' name comes from the fact that we fit multiple
+trees (i.e., a ``forest'') using bootstrap samples of the dataset of
+interest, rather than just one tree.  The final model can be viewed as
+an average of the ``forest'' of models.  To reduce the correlation
+among the trees in the ``forest'', we consider only a random subset of
+the potential explanatory variables at each split.  So, for the
+``random forest'' approach, there are two random aspects: the
+bootstrap samples are generated randomly and the a random subset of
+explanatory variables is considered at each split.  One consequence is
+that another analyst's result will typically not be exactly
+reproducible.
+
+\subsection{Choosing the number of variables to consider at each ``split''}
 
 It is not immediately evident how many explanatory variables should be
 considered at each split of the tree, so this number is a parameter
 that needs to be estimated.  We use cross-validation to help us choose
-this setting for the random forest model, which I called
+the best number for our random forest model, which I called
 \texttt{numVarSplit} in my R code.  Another parameter often considered
-in random forest models is the number of bootstrapped trees sufficient
-for the error to converge to a minimum.  In our cross-validation
-studies, 3000 bootstrapped trees appeared to well exceed the number
-required, so we used 3000 trees for each model.
+in such models is the number of bootstrapped trees sufficient for the
+error to converge to a minimum.  In the course of this work, as well
+as in the examples provided by James et al.\ (2013), 3000 bootstrapped
+trees appeared to well exceed the number required, so I used 3000
+trees for each model.
 
-To estimate the \texttt{numVarSplit} parameter, I used
-cross-validation runs.  For each run, I randomly select a certain
-subset (a minority) of the available observations to hold back as a
-``validation'' data set.  The rest of the observations make up the
-``training'' dataset.  We then fit a series of random forest models on
-the training dataset, using a variety of possible values for
-\texttt{numVarSplit}.  We then use the models to predict the values
-for the validation dataset, and calculate the errors (actual number of
-degree days from the validation dataset minus the number of degree
-days estimated by the model).  The setting for \texttt{numVarSplit}
-which produces the smallest error and the greatest fraction of
-variability explained is the one I use for the final model.
+To determine the best setting for the \texttt{numVarSplit} parameter,
+I used cross-validation, which involved fitting the random forest
+model multiple times (``runs'').  For each run, I randomly selected
+20\% of the available observations to hold back as a ``validation''
+data set.  The remaining 80\% of the observations then made up the
+``training'' dataset.  For each training/validation partition, I fit a
+series of random forest models on the training data, using a variety
+of possible values for \texttt{numVarSplit}, and making predictions
+for the values in the associated validation set.  Then, I calculate
+the errors, which are given by the difference between the actual ADD
+from the validation dataset and the number of degree days estimated by
+the model on the basis of the training data.  I then select the value
+for \texttt{numVarSplit} which produced the smallest mean square
+errors and the explained the largest fractions of variability.
 
-As mentioned above, the model fitting procedure depends on the random
-selection of which variables to consider at each split of the decision
-tree.  Therefore, the final model, using the same data and paramters,
-will differ slightly from one to the next or one practitioner to
-another.  To get a sense of the variability associated with this
-necessary randomness, I fit the final model over and over again, and
-looked at how the root mean squared error (RMSE) and the percentage of
-explained variance vary.
+Cross-validation procedures are critical tools for fitting random
+forest models and evaluating their performance.  If we used all our
+data to train the model, with no cross-validation or testing, we would
+be likely to ``overfit'' or ``overtune'' our model, so that it fits
+the training dataset well, but provided biased results when utilized
+in prediction mode for future datasets.  However, unlike many machine
+learning approaches, we have a very limited number of observations to
+work with.  We have only 6 cadavers, and we only have observations at
+certain time steps.  I was concerned about finding a reasonable
+balance of training vs.~validation percentages.
 
-%%% NEED TO TALK ABOUT THE TWO DIFFERENT SORTS OF CROSS-VALIDATION WE
-%%% USED TO TRY TO GET AN IDEA OF LIKELY PERFORMANCE IN PREDICTION
-%%% MODE.
+Since our earlier conversations about our original modeling attempts,
+for each cross-validation run, I've reduced the training set to 80\%
+of the data, with 20\% for validation.  (Previously, the split was
+90\% and 10\%.)  I used 1000 cross-validation runs, which means each
+observation is randomly assigned to the training or validation group
+1000 times.  When using the bacterial data for the whole study period
+(all time steps), this means training on a set of 74 observations, and
+testing on a size of 18.  When using just the first 15 days of
+bacterial data, this means training on a set of 46 observations, and
+testing on a size of 11.  The change from 90\% to 80\% made very
+little difference in the choice of models, which relieved some of my
+concern.  Also, since our earlier meetings, I figured out how to
+parallelize some of the computational work, which allowed me to do
+some additional cross-validation runs and try additional models,
+compared to what I had done previously.
 
-I had some concerns about how well our model would perform in
-prediction mode.  We have only 6 cadavers, and we only have
-observations at certain time steps.  Since our earlier conversation
-about our original models, I've reduced the training set to 80\% of
-the data, reserving 20\% to use as a test set.  (Previously, the split
-was 90\% and 10\%.)  So, when using the bacterial data for all time
-steps, this means training on a set of 74 observations, and testing on
-a size of 18.  When using just the first 15 days of bacterial data,
-this means training on a set of 46 observations, and testing on a size
-of 11.  The change from 90\% to 80\% made very little difference in
-the choice of models, which relieved some of my concern.  Also, since our
-earlier meetings, I figured out how to parallelize some of the
-computational work, which allowed me to use some additional
-cross-validation runs and to try additional models, compared to what I
-had done previously.
+
+\subsection{Understanding variability in the final fit}
+
+Using the cross-validation runs mentioned above, I was able to choose
+an appropriate value for the \texttt{numVarSplit}, the number of
+variables to consider at each tree ``split''.  Different values of
+\texttt{numVarSplit} were determined for the various models: bacteria
+vs.~ eukaryote, family-level vs.~order-level taxa, all time steps
+vs.~first 15 days.  Once this parameter was determined, I generated a
+``final'' random forest model using the entire dataset for the case
+under consideration.  I calculated the traditional model fit
+statistics, the root mean square error (RMSE) and a meausure sometimes
+called ``pseudo R squared''.  The pseudo R-squared is an approximation
+of the fraction of variation in the response variable which can be
+accounted for by the model, and is given by 1 - (mean square error /
+Variance of ADD).
+
+However, recall that the model fitting procedure depends on the random
+generation of bootstrapped samples from the training dataset and the
+random selection of which variables to consider at each split of the
+decision tree.  Therefore, the final model, using the same complete
+dataset and parameters, will differ slightly from one execution to the
+next or one practitioner to another.  To get a sense of the
+variability associated with this necessary randomness, I fit the final
+model over and over again, and looked at how the RMSE and the pseudo
+R-squared vary.  Table \ref{tbl:final_model_stats} shows
+these statistics for the various models.
+
+\begin{table}
+  \centering
+\caption{\label{tbl:final_model_stats}Model fit statistics using
+  complete datasets}
+\begin{tabular}{lllrr}
+Period considered & Source data & Level & RMSE & Pseudo R-squared\\ \hline \hline
+Entire study & Bacteria  & Family-level & 208 ($\pm$ 3) & 85.9\% ($\pm$ 0.4\%)\\
+Entire study & Eukaryote & Family-level & 178 ($\pm$ 2) & 89.6\% ($\pm$ 0.3\%)\\
+Entire study & Combined  & Family-level & 174 ($\pm$ 3) & 90.2\% ($\pm$ 0.3\%)\\ \hline
+Entire study & Bacteria  & Order-level & 232 ($\pm$ 2) & 82.5\% ($\pm$ 0.4\%)\\
+Entire study & Eukaryote & Order-level & 194 ($\pm$ 2) & 87.6\% ($\pm$ 0.3\%)\\
+Entire study & Combined  & Order-level & 197 ($\pm$ 3) & 87.4\% ($\pm$ 0.3\%)\\ \hline
+First 15 days & Bacteria  & Family-level &  64 ($\pm$ 1) & 82.3\% ($\pm$ 0.5\%)\\
+First 15 days & Eukaryote & Family-level &  59 ($\pm$ 1) & 84.5\% ($\pm$ 0.5\%)\\ \hline
+First 15 days & Bacteria  & Order-level  &  54 ($\pm$ 1) & 87.4\% ($\pm$ 0.3\%)\\
+First 15 days & Eukaryote & Order-level  &  64 ($\pm$ 1) & 81.6\% ($\pm$ 0.5\%)
+\end{tabular}
+\end{table}
+
+
+\subsection{Thinking about the likely error associated with using the models in ``real-life''}
+
+One of my concerns is that while the techniques described above are
+good ways to assess a model's fit and performance, these approaches do
+not reflect the particular issues involved in how we would
+realistically use this model.  In practice, we would be using this
+model to predict the ADD post mortem based on the counts of
+family-level or order-level taxa from a never-before-observed cadaver.
+The actual post mortem interval in such a case would be unlikely to
+correspond with a number of accumulated degree days which we have
+previously observed in our experiments.  For instance, we might be
+dealing with a cadaver for which the post mortem interval is actually
+100 or 500 ADD, while our dataset contains observations at 87 ADD and
+448 ADD.
+
+To get a better idea about how the model might be expected to perform
+in such a situation, we fit the model for using a series of carefully
+chosen cross-validation sets.  For each set, we leave out all the
+observations associated with one particular cadaver (for all days in
+the study period) and all the observations associated with one
+particular day (for all cadavers).  Then, we fit the model using the
+remaining days' and cadavers' observations, calculating the prediction
+error for the left-out cadaver on the left-out day.  This procedure is
+intended to mimic the real-life scenario in which the scientist is
+interested in making a prediction of ADD for a cadaver which has not
+been previously observed and for a number of accumulated degree days
+which has not been observed.  For example, when dealing with the
+eukaryotic taxa observed across the entire study period, we would have
+96 cross-validation sets for consideration(16 days $\times$ 6
+cadavers) .  In each case, the training set would consist of 75
+observations (15 days $\times$ 5 cadavers) and the validation set would
+contain the one observation corresponding to the omitted cadaver on
+the omitted day.
+
+For comparison purposes, I also performed traditional cross-validation
+runs, in which I randomly selected training datasets of the same size
+as that used in my ``real-life'' validation strategy above.  While
+this approach is more conventional, it does not reflect our greater
+realistic uncertainty, because it is unlikely that a random training
+set would be chosen which completely omits one day and one cadaver.
+However, I think these statistics are useful for comparision
+purposes.  
+
+Table \ref{tbl:valid_model_stats} shows 
+
+\begin{table}
+\centering
+\caption{\label{tbl:valid_model_stats}Cross-validation prediction
+  performance statistics, using random and ``real-life''
+  cross-validation strategies}
+\begin{tabular}{lllrr}
+Period considered & Source data & Level & RMSE (random) & RMSE (``real-life'')\\ \hline \hline
+Entire study & Bacteria  & Family-level & 219 ($\pm$ 79)  & 276\\
+Entire study & Eukaryote & Family-level & 187 ($\pm$ 78)  & 244\\
+Entire study & Combined  & Family-level & 183 ($\pm$ 72)  & 242\\ \hline
+Entire study & Bacteria  & Order-level  & 244 ($\pm$ 102) & 324\\
+Entire study & Eukaryote & Order-level  & 202 ($\pm$ 88)  & 252\\
+Entire study & Combined  & Order-level  & 204 ($\pm$ 84)  & 269\\ \hline
+First 15 days & Bacteria  & Family-level & 67 ($\pm$ 28) & 84\\
+First 15 days & Eukaryote & Family-level & 64 ($\pm$ 26) & 93\\ \hline
+First 15 days & Bacteria  & Order-level  & 56 ($\pm$ 29) & 83\\
+First 15 days & Eukaryote & Order-level  & 69 ($\pm$ 29) & 92
+\end{tabular}
+\end{table}
+
 
 
 
@@ -228,19 +354,6 @@ scales of the vertical axes differ among the taxa.
   \label{fig:infl_bac_family_scatter}
 \end{figure}
 
-\begin{table}
-  \centering
-\caption{\label{tbl:final_model_stats_all_days}Final model statistics using family-level taxa, all time steps}
-\begin{tabular}{llrr}
-Source data & Level & RMSE (using all data) & Explained variation (using all data)\\ \hline %% & RMSE (cross-valid. mirroring real-life)\\ \hline
-Bacteria  & Family-level & 208 ($\pm$ 3) & 85.9\% ($\pm$ 0.4\%)\\
-Eukaryote & Family-level & 178 ($\pm$ 2) & 89.6\% ($\pm$ 0.3\%)\\
-Combined  & Family-level & 174 ($\pm$ 3) & 90.2\% ($\pm$ 0.3\%)\\ \hline
-Bacteria  & Order-level & 232 ($\pm$ 2) & 82.5\% ($\pm$ 0.4\%)\\
-Eukaryote & Order-level & 194 ($\pm$ 2) & 87.6\% ($\pm$ 0.3\%)\\
-Combined  & Order-level & 197 ($\pm$ 3) & 87.4\% ($\pm$ 0.3\%)
-\end{tabular}
-\end{table}
 
 To get an idea of the errors (also called residuals) associated with
 the random forest model, I did 1000 additional cross-validation runs,
@@ -445,6 +558,9 @@ York: Springer
 metabolic function during mammalian corpse decomposition.
 \textit{Science}, Vol.~351, 158-162.
 
+\noindent R Core Team (2018). R: A language and environment for
+statistical computing. R Foundation for Statistical Computing, Vienna,
+Austria. URL: https://www.R-project.org/.
 
 \end{document}
 
