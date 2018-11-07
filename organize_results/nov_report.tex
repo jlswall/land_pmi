@@ -960,6 +960,25 @@ predictions in these cases is about 93.4.
 \end{figure}
 
 
+\begin{table}
+  \centering
+\caption{\label{tbl:final_model_stats_all_days}Final model statistics using first 15 days of data}
+\begin{tabular}{llrr}
+Source data & Level & RMSE (using all data) & Explained variation (using all data)\\ \hline %% & RMSE (cross-valid. mirroring real-life)\\ \hline
+Eukaryote & Family-level &  59 ($\pm$ 1) & 84.5\% ($\pm$ 0.5\%)
+\end{tabular}
+\end{table}
+
+
+\begin{table}
+  \centering
+\caption{\label{tbl:valid_model_stats_all_days}Cross-validation statistics using first 15 days of data}
+\begin{tabular}{llrr}
+Source data & Level & RMSE (random) & RMSE (leave out 1 subj., 1 day)\\ \hline
+Eukaryote & Family-level & 64 ($\pm$ 26)  & 93
+\end{tabular}
+\end{table}
+
 
 
 \section{References}
