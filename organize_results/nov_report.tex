@@ -58,18 +58,6 @@ the entire time period, or when examining only the first 15 days.
   \label{fig:degdays_vs_days}
 \end{figure}
 
-For the bacterial taxa (originally from Shane), we had to account for
-missing data.  Taxa counts were unavailable for subject A1 on days 7
-and 9, as well as for subject A4 on day 7.  In addition, the data
-collected from subject A3 on day 40 (degree day 1130) is defective.
-The total number of taxa (including unclassified taxa) recorded for
-this cadaver and day was 54.  This is several orders of magnitude less
-than the counts observed on the other cadavers and during other days,
-which ranged from 18050 to 93665 (both orders and families).  For this
-reason, the taxa from subject A3 on day 40 were omitted.  (Note that
-the omission of the A3, day 40 data does not affect the analyses which
-only consider the first 15 days of the study.)
-
 Whether working with bacteria or eukaryote data, we did not directly
 utilize raw counts in our statistical models.  Exploratory analyses
 showed a great deal of variability in the raw counts between
@@ -283,7 +271,23 @@ set would be chosen which completely omits one day and one cadaver.
 However, I think these statistics are useful for comparision
 purposes.  
 
-Table \ref{tbl:valid_model_stats} shows 
+Table \ref{tbl:valid_model_stats} shows the average RMSE for the
+random cross-validation sets and the real-life (leaving out all
+observations associated with a specific cadaver and day).  For the
+random cross-validation procedure, I did 1000 runs, with the training
+set selected randomly each time and the size of the training set
+matching the size of the training set for the ``real-life''
+cross-validation runs.  Because there are so many more runs, and
+because the make-up of the training sets can vary widely, there is
+much more variability associated with RMSE from run to run.  The
+``+/-'' portion in parentheses gives a margin of error, which is
+approximated by 1.96 $\times$ the standard deviation of the RMSEs from
+the 1000 runs.  For the cross-validation runs reflecting the
+``real-life'' scenarios, there are a limited number of
+cross-validation sets possible.  Although I tried fitting each of
+these cross-validation sets numerous times, the variation was
+negligible (on the order of $\pm 1$ or $\pm 2$) compared to that from
+the random cross-validation runs.
 
 \begin{table}
 \centering
@@ -308,17 +312,35 @@ First 15 days & Eukaryote & Order-level  & 69 ($\pm$ 29) & 92
 
 
 
-\section{Models using all time steps (days 0-61)}
+\section{Reviewing models for the entire study period (days 0-61)}
 
 
-\subsection{Using Shanes's original bacteria data}
+\subsection{Using Shanes's bacteria data}
 
-We have a total of 92 observations (16 days $\times$ 6 cadavers, minus
-the 4 missing cadaver-day combinations mentioned in the data
-description section).  Across all days and cadavers, about 29.3\% of
-the taxa were ``unclassified''.  There were 39 family-level taxa
-considered as potential predictors, when doing analyses for the whole
-time period.
+For the bacterial taxa (originally from Shane), we had to account for
+missing data.  Taxa counts were unavailable for subject A1 on days 7
+and 9, as well as for subject A4 on day 7.  In addition, the data
+collected from subject A3 on day 40 (degree day 1130) is defective.
+The total number of taxa (including unclassified taxa) recorded for
+this cadaver and day was 54.  This is several orders of magnitude less
+than the counts observed on the other cadavers and during other days,
+which ranged from 18050 to 93665 (both orders and families).  For this
+reason, the taxa from subject A3 on day 40 were omitted.  (Note that
+the omission of the A3, day 40 data does not affect the analyses which
+only consider the first 15 days of the study.)  This leaves us with a
+total of 92 observations (16 days $\times$ 6 cadavers, minus the 4
+missing cadaver-day combinations).  Across all days and cadavers,
+about 29.3\% of the taxa were ``unclassified''.  There were 39
+family-level taxa considered as potential predictors, when doing
+analyses for the whole time period.
+
+With reference to Tables \ref{tbl:final_model_stats} and
+\ref{tbl:valid_model_stats}, the family-level bacterial taxa seem to
+do a better job at prediction than the order-level bacterial taxa.
+The RMSE values are lower for the family-level taxa, whether looking
+at the model fit statistics or the prediction performance statistics.
+So, for the remainder of this sub-section, I'll focus on the
+family-level taxa.
 
 Figure \ref{fig:infl_bac_family_taxa} shows measures of model
 importance for the 6 most influential taxa.  (I have chosen 6
@@ -346,93 +368,30 @@ Figure \ref{fig:infl_bac_family_scatter} provides scatterplots
 corresponding to these six taxa.  Each point in the plots below
 corresponds to the measured fraction of classified bacteria belonging
 to the designated taxa on each of the degree days.  Note that the
-scales of the vertical axes differ among the taxa.
+scales of the vertical axes differ among the taxa.  From this figure,
+we can easily see how much variation there is from not just from
+day-to-day, but from one cadaver to another.
 \begin{figure}
   \centering
-  \includegraphics[width=7.5in]{../revise_algorithm/only_families/all_time_steps/hit_1perc_twice/infl_bac_family_all_data_scatter}
-  \caption{Scatterplots for influential bacterial family-level taxa (all time steps)}
+  \includegraphics[width=6.5in]{../revise_algorithm/only_families/all_time_steps/hit_1perc_twice/infl_bac_family_all_data_scatter}
+  \caption{Scatterplots for influential bacterial family-level taxa (entire study period)}
   \label{fig:infl_bac_family_scatter}
 \end{figure}
 
-
-To get an idea of the errors (also called residuals) associated with
-the random forest model, I did 1000 additional cross-validation runs,
-using a random forest model with the optimal value of the variable
-\texttt{numVarSplit} determined through the initial set of
-cross-validation runs.  The cross-validations are done by randomly
-choosing 20\% of the dataset to leave out the model-fitting procedure.
-Then, the model (fitted on the remaining 80\%) is used to estimate the
-responses for the observations that were left out.  Figure
-\ref{fig:resids_cv_bac_family_taxa} illustrates the model errors
-(actual minus estimated) vs.~the actual values, taken across these
-1000 cross-validation runs.  \textbf{Next sentence not currently
-  true.}  The RMSE for these runs is given in the random
-cross-validation column in Table
-\ref{tbl:family_all_data_model_stats}.  For the beginning of the time
-period (lower degree days), the model is over-predicting, while the
-opposite is true at the end of the time period.  The model estimates
-are biased toward the average degree day.  This error pattern looks
-similar to that in Figure S9 in the Metcalf et al. (2015)
-supplementary material.
-
-\begin{table}
-  \centering
-\caption{\label{tbl:valid_model_stats_all_days}Cross-validation statistics using family-level taxa, all time steps}
-\begin{tabular}{llrr}
-Source data & Level & RMSE (random) & RMSE (leave out 1 subj., 1 day)\\ \hline
-Bacteria  & Family-level & 219 ($\pm$ 79)  & 276\\
-Eukaryote & Family-level & 187 ($\pm$ 78)  & 244\\
-Combined  & Family-level & 183 ($\pm$ 72)  & 242\\ \hline
-Bacteria  & Order-level  & 244 ($\pm$ 102) & 324\\
-Eukaryote & Order-level  & 202 ($\pm$ 88)  & 252\\
-Combined  & Order-level  & 204 ($\pm$ 84)  & 269
-\end{tabular}
-\end{table}
-
-
-\begin{figure}
-  \centering
-  \includegraphics{../revise_algorithm/only_families/all_time_steps/hit_1perc_twice/orig_units_all_data_families_residuals}
-  \caption{Residuals from the cross-validation runs for the bacterial
-    family-level taxa model}
-  \label{fig:resids_cv_bac_family_taxa}
-\end{figure}
-
-One of my concerns is that while the cross-validation described above
-is good way to assess a model's performance, this traditional approach
-does not quite reflect the particular issues involved in how we would
-realistically use this model.  In practice, we would be using this
-model to predict the ADD post mortem based on the counts of
-family-level taxa from a never-before-observed cadaver.  The actual
-post mortem interval in such a case would be unlikely to correspond
-with a number of accumulated degree days which we have previously
-observed in our experiments.  For instance, we might be dealing with a
-cadaver for which the interval post mortem is actually 100 or 500 ADD.
-To get a better idea about how the model might be expected to perform
-in such a situation, we fit the model for 96 (16 days $\times$ 6
-cadavers) particular cross-validation sets.  For each set, we leave
-out all the observations associated with one particular cadaver (on
-any day) and all the observations associated with one accumulated
-degree day (for any cadaver).  Then, we calculate the prediction
-errors for the left-out cadaver on the left-out day.
-
 Figure \ref{fig:leave_one_out_resids_bac_family_taxa} shows the
-residuals for all combinations of degree day and subject.  The RMSE
-for these runs is about 274.8, which is higher than the RMSE for the
-model including all data, which is given in Table
-\ref{tbl:family_all_data_model_stats}.  This larger error stems from
-two sources.  First, Table \ref{tbl:family_all_data_model_stats} shows
-the model performance statistics based on fitting the model with all
-available data, while these runs purposefully left out all the data
-for a certain subject and for a certain day.  Second, by construction,
-these test runs were conducted while omitting all information about a
-particular degree day, so that there is a gap in the information
-available.  In contrast, the RMSE associated with estimates for
-left-out subjects on days that were not left out is only about 220.9.
-
+residuals for all combinations of degree day and subject.  The pattern
+seen here is typical of the pattern in all the residual plots I've
+examined.  Given uncertainty, most statistical models will tend to err
+on the side of an estimation closer to the mean response level.  At
+the two temporal extremes (near the start and end of the study
+period), this behavior is particularly obvious.  Early in the period,
+the residuals are negative because the model prediction is higher than
+the actual ADD.  The opposite is true near the end of the study
+period.  In the middle of the study period, the residuals are more
+equally distributed around zero.
 \begin{figure}
   \centering
-  \includegraphics{../revise_algorithm/only_families/all_time_steps/hit_1perc_twice/leave_out_one_subj_and_one_day_residuals}
+  \includegraphics[width=4in]{../revise_algorithm/only_families/all_time_steps/hit_1perc_twice/leave_out_one_subj_and_one_day_residuals}
   \caption{Residuals for model runs leaving out one subject and one day (bacterial family-level taxa)}
   \label{fig:leave_one_out_resids_bac_family_taxa}
 \end{figure}
@@ -443,44 +402,57 @@ left-out subjects on days that were not left out is only about 220.9.
 In the eukaryote data, we don't have missing data for any day-subject
 combinations.  Therefore, we have a total of 96 observations (16 days
 $\times$ 6 cadavers), which is 4 more observations than were available
-with the bacterial data.  Across all days and cadavers, about 32.76\%
-of the taxa were unclassified.  As before, ``unclassified'' counts
-were excluded from the analysis.  There were 39 family-level taxa
-considered as potential predictors when doing analyses for the entire
-time period.
+with the bacterial data.  The choice of whether to use order-level or
+family-level taxa is not as clear for the eukaryote data as it was for
+the bacterial data.  For brevity, I will focus on the family-level
+taxa, since the associated RMSEs are lower.  Across all days and
+cadavers, about 32.76\% of the family-level taxa were unclassified.
+There were 39 family-level taxa considered as potential predictors
+when doing analyses for the entire time period.
 
-Figure \ref{fig:infl_euk_family_taxa} shows measures of model
-importance for the most influential eukaryotic family-level taxa.  The
-measure of importance is the same used for the bacteria family-level
-taxa, as in Figure \ref{fig:infl_bac_family_taxa}.  These same taxa
-are featured in Figure \ref{fig:infl_euk_family_all_data_scatter},
-which shows how the fraction of counts attributed to them change over
-the time period and across individual cadavers.
+We used the same measure of taxa importance as that used for the
+bacteria family-model in the previous section, though we omit the
+graphic for brevity.  These taxa are featured in Figure
+\ref{fig:infl_euk_family_all_data_scatter}, which shows how the
+fraction of counts attributed to them change over the time period and
+across individual cadavers.  As before, note that the scales of the
+vertical axes are different among the six scatterplots.
 \begin{figure}
   \centering
-  \includegraphics{../eukaryote_data/only_families/all_time_steps/hit_1perc_twice/orig_units_all_data_families_PercIncMSE_barchart}
-  \caption{Most influential eukaryotic family-level taxa (all time steps)}
-  \label{fig:infl_euk_family_taxa}
-\end{figure}
-
-\begin{figure}
-  \centering
-  \includegraphics[width=7.5in]{../eukaryote_data/only_families/all_time_steps/hit_1perc_twice/infl_euk_family_all_data_scatter}
-  \caption{Scatterplots for influential eukaryotic family-level taxa (all time steps)}
+  \includegraphics[width=6.5in]{../eukaryote_data/only_families/all_time_steps/hit_1perc_twice/infl_euk_family_all_data_scatter}
+  \caption{Scatterplots for influential eukaryotic family-level taxa (entire study period)}
   \label{fig:infl_euk_family_all_data_scatter}
 \end{figure}
 
-The final model using the eukaryote data is a better fit than that
-using the bacteria data, as shown in the model performance statistics
-featured in Table \ref{tbl:family_all_data_model_stats}.  The RMSE is
-about 178.1, which is about 30 ADD less than that for the bacterial
-data.  When we look at the more ``real-life'' cross-validation study
-(leaving out all data associated with one combination of subject and
-day, in turn), the cross-validation RMSE is about 243.6, which is also
-substantially less than that for the bacterial ``real-life''
-cross-validation tests.
+The final model using the eukaryote data appears to be a better in
+terms of both fit and prediction than that using the bacteria data.
+This is indicated by the model performance statistics featured in
+Tables \ref{tbl:final_model_stats} and \ref{tbl:valid_model_stats}.
+Also, the residual plot associated with the ``real-life''
+cross-validation procedure in Figure
+\ref{fig:leave_one_out_resids_euk_family_taxa} shows that the
+residuals for the model utilizing the eukaryote data have a smaller
+range.  They also show somewhat less over- and under-prediction at the
+temporal extremes.
+\begin{figure}
+  \centering
+  \includegraphics[width=4in]{../eukaryote_data/only_families/all_time_steps/hit_1perc_twice/leave_out_one_subj_and_one_day_residuals}
+  \caption{Residuals for model runs leaving out one subject and one day (eukaryotic family-level taxa)}
+  \label{fig:leave_one_out_resids_euk_family_taxa}
+\end{figure}
 
-
+In addition, I did try combining both bacterial and eukaryotic taxa.
+This procedure was more complicated to implement, because there are
+different strategies for combining the datasets.  I tried one method
+that equally weighted bacterial and eukaryotic information sources,
+which was a bit tricky to implement and to interpret.  I also tried
+combining them without the constraint that the information from both
+sources be equally weighted, which is the method I used to provide the
+statistics found in Tables \ref{tbl:final_model_stats} and
+\ref{tbl:valid_model_stats}.  I found that regardless of which of
+these 2 methods I used, combining the two datasets did not give an
+improvement substantial enough, in my opinion, to justify the
+``costs'' associated with preparing and interpreting the analysis.
 
 
 \section{Models using only the first 15 days of the study period}
