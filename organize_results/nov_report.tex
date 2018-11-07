@@ -457,7 +457,7 @@ improvement substantial enough, in my opinion, to justify the
 
 \section{Models using only the first 15 days of the study period}
 
-\subsection{Using Shanes's original bacteria data}
+\subsection{Using Shanes's bacteria data}
 
 For the analyses considering the first 15 days (approximately two
 weeks), we have 57 observations.  These represent observations on 6
@@ -466,59 +466,72 @@ combinations occurring during this period.  This includes the missing
 data for subject A1 on days 7 and 9 and the missing data for subject
 A4 on day 7 of the study.
 
-Figure \ref{fig:infl_bac_first_15_days_family_taxa} shows the taxa
-considered most important in the model fitting process.  We note that
-the top four taxa are different between the model using all the data
-(as shown in Figure \ref{fig:infl_bac_family_taxa}) and this model
-focused on the first couple of weeks.  The ``top four'' consist of
-Flavobacteriaceae, Lactobacillaceae, Pseudomonadaceae, and
-Dermabacteraceae, none of which entered the top eight of the model
-using all the time steps.  The scatterplots for these taxa, for the
-first 15 days of the time period, are shown in Figure
-\ref{fig:infl_bac_first_15_days_family_scatter}.
+Somewhat surprisingly, for the bacteria data, the order-level taxa
+seem to provide a slightly better fit, though this advantage is quite
+slim when looking at the ``real-life'' RMSE in Table
+\ref{tbl:valid_model_stats}.  For the order-level taxa in just the
+first 15 days, 14 taxa serve as possible explanatory variables.  The
+scatterplots for the six most influential taxa, are shown in Figure
+\ref{fig:infl_bac_first_15_days_family_scatter} (once again with
+varying vertical scales among panels).  For comparison with the
+earlier models for the entire time period, the residual scatterplot is
+included in Figure \ref{fig:leave_one_out_resids_bac_order_taxa_first_15}.
 \begin{figure}
   \centering
-  \includegraphics[width=4in]{../revise_algorithm/only_families/first_two_weeks/hit_1perc_twice/orig_units_first_two_weeks_families_PercIncMSE_barchart}
-  \caption{Most influential bacterial family-level taxa (first 15 days)}
-  \label{fig:infl_bac_first_15_days_family_taxa}
-\end{figure}
-\begin{figure}
-  \centering
-  \includegraphics[width=7.5in]{../revise_algorithm/only_families/first_two_weeks/hit_1perc_twice/infl_bac_family_first_two_weeks_scatter}
-  \caption{Scatterplots for influential bacterial family-level taxa (first two weeks)}
+  \includegraphics[width=6.5in]{../revise_algorithm/only_orders/first_two_weeks/hit_1perc_twice/infl_bac_order_first_two_weeks_scatter}
+  \caption{Scatterplots for influential bacterial order-level taxa (first 15 days)}
   \label{fig:infl_bac_first_15_days_family_scatter}
 \end{figure}
-
-
-\begin{table}
+\begin{figure}
   \centering
-\caption{\label{tbl:family_first_two_weeks_model_stats}Model statistics using family-level taxa, first 15 days}
-\begin{tabular}{ccccc}
-Source data & Level & RMSE (all data) & Explained variation & RMSE (as likely used)\\ \hline
-Bacteria  & Family-level & 64.3 & 82.4\% & 83.5\\
-Eukaryote & Family-level & 58.6 & 84.6\% & 93.1 %%\\
-\end{tabular}
-\end{table}
+  \includegraphics[width=4in]{../revise_algorithm/only_orders/first_two_weeks/hit_1perc_twice/leave_out_one_subj_and_one_day_residuals}
+  \caption{Residuals for model runs leaving out one subject and one day (bacterial order-level taxa, first 15 days)}
+  \label{fig:leave_one_out_resids_bac_order_taxa_first_15}
+\end{figure}
 
 
 
 \subsection{Using Luisa's eukaryote data}
 
+Again, for the eukaryote taxa, we don't have missing observations, so
+we have a total of 60 observations.  The performance of the models
+based on family-level and order-level taxa are comparable.  While one
+could argue that there's a slight edge in going with the family-level
+taxa, the models really don't appear to be substantially different.  I
+will present the model for the family-level taxa, but I can provide
+similar plots for the order-level model.  There are 37 family-level
+taxa which can be used as explanatory variables in the model; the six
+most influential in our model are shown in Figure
+\ref{fig:infl_euk_family_scatter_first_15}.  Also for comparison, the
+residual plot for the ``real-life'' validation case is shown in Figure
+\ref{fig:leave_one_out_resids_euk_family_taxa_first_15}.
 \begin{figure}
   \centering
-  \includegraphics[width=4in]{../eukaryote_data/only_families/first_two_weeks/hit_1perc_twice/orig_units_first_two_weeks_families_PercIncMSE_barchart}
-  \caption{Most influential eukaryotic family-level taxa (first 15 days)}
-  \label{fig:infl_euk_first_15_days_family_taxa}
+  \includegraphics[width=6.5in]{../eukaryote_data/only_families/first_two_weeks/hit_1perc_twice/infl_euk_family_first_two_weeks_scatter}
+  \caption{Scatterplots for influential eukaryotic family-level taxa (first 15 days)}
+  \label{fig:infl_euk_family_scatter_first_15}
 \end{figure}
 \begin{figure}
   \centering
-  \includegraphics[width=7.5in]{../eukaryote_data/only_families/first_two_weeks/hit_1perc_twice/infl_euk_family_first_two_weeks_scatter}
-  \caption{Scatterplots for influential eukaryotic family-level taxa (first two weeks)}
-  \label{fig:infl_euk_first_15_days_family_scatter}
+  \includegraphics[width=4in]{../eukaryote_data/only_families/first_two_weeks/hit_1perc_twice/leave_out_one_subj_and_one_day_residuals}
+  \caption{Residuals for model runs leaving out one subject and one day (eukaryotic family-level taxa, first 15 days)}
+  \label{fig:leave_one_out_resids_euk_family_taxa_first_15}
 \end{figure}
 
+Because the analyses for the combined eukaryote and bacterial data for
+the entire study period did not seem to offer a large improvement over
+either by itself, I did not make a detailed analysis for the combined
+data limited to the first 15 days of observations.
 
 
+\section{Discussion}
+
+I think there are several topics here worthy of further discussion.
+The first question is one I mentioned in the data description section.
+How should we decide which taxa are prevalent enough to be included as
+possible explanatory variables in a random forest model?  Several of
+the taxa which were indicated to be influential in our models make up
+small percentages of the taxa count.
 
 \section{References}
 
