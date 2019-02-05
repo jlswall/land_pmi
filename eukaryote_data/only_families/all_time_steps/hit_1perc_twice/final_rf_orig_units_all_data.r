@@ -252,16 +252,30 @@ ggsave("infl_euk_family_all_data_scatter.pdf", width=8, height=4, units="in")
 ## Get these top 5 influential taxa.
 n <- 5
 
+## Turn importance measures into a tibble, sorted by IncNodePurity in
+## increasing order.
+importanceT <- importance(rf) %>%
+  as.data.frame() %>% as_tibble() %>%
+  rownames_to_column("family") %>%
+  arrange(`%IncMSE`)
+
+
 ## Save the names of the families that are in the top 10 in
 ## terms of %IncMSE.
 topChoices <- as.character(importanceT %>% arrange(desc(`%IncMSE`)) %>% pull(family))[1:n]
-
 
 ## Find the percentages for these taxa.
 chooseT <- taxaT %>%
   filter(taxon %in% topChoices)
 
 ## Average the value across cadavers for each taxa and each day.
-chooseT %>% group_by(taxon, days, degdays) %>% summarize(meanFracByDay=mean(fracBySubjDay), medianFracByDay=median(fracBySubjDay))
-ggplot(chooseT, aes(x=degdays, meanFracByDay)) + geom_line()
+summaryChoiceT <- chooseT %>% group_by(taxon, days, degdays) %>% summarize(meanFracByDay=mean(fracBySubjDay), medianFracByDay=median(fracBySubjDay))
+
+ggplot(summaryChoiceT, aes(x=degdays, meanFracByDay)) +
+  geom_line(aes(size=2, color=taxon)) +
+  theme_bw()
+
+ggplot(summaryChoiceT, aes(x=degdays, medianFracByDay)) +
+  geom_line(aes(color=taxon)) +
+  theme_bw()
 ## ##################################################
