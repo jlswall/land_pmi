@@ -269,10 +269,12 @@ chooseT <- taxaT %>%
   filter(taxon %in% topChoices)
 
 ## Average the value across cadavers for each taxa and each day.
-summaryChoiceT <- chooseT %>% group_by(taxon, days, degdays) %>% summarize(meanFracByDay=mean(fracBySubjDay), medianFracByDay=median(fracBySubjDay))
+summaryChoiceT <- chooseT %>% group_by(taxon, days, degdays) %>% summarize(meanPercByDay=100*mean(fracBySubjDay), medianPercByDay=100*median(fracBySubjDay))
 
-ggplot(summaryChoiceT, aes(x=degdays, meanFracByDay)) +
-  geom_line(aes(size=2, color=taxon)) +
+ggplot(summaryChoiceT, aes(x=degdays, y=meanPercByDay, group=taxon)) +
+  geom_line(size=1.25, aes(color=taxon)) +
+  labs(x="Accumulated degree days (ADD)", y="Average percentage composition", title="Family-level, all time steps", tag="A") +
+  scale_x_continuous(breaks=unique(summaryChoiceT$degdays)) + 
   theme_bw()
 
 ggplot(summaryChoiceT, aes(x=degdays, medianFracByDay)) +
