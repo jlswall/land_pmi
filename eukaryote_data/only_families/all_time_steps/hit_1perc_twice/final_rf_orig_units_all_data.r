@@ -269,15 +269,50 @@ chooseT <- taxaT %>%
   filter(taxon %in% topChoices)
 
 ## Average the value across cadavers for each taxa and each day.
-summaryChoiceT <- chooseT %>% group_by(taxon, days, degdays) %>% summarize(meanPercByDay=100*mean(fracBySubjDay), medianPercByDay=100*median(fracBySubjDay))
+summTopT <- chooseT %>% group_by(taxon, days, degdays) %>% summarize(meanPercByDay=100*mean(fracBySubjDay), medianPercByDay=100*median(fracBySubjDay))
 
-ggplot(summaryChoiceT, aes(x=degdays, y=meanPercByDay, group=taxon)) +
+## In Luisa's paper, she had a plot of average relative abundance
+## vs. time for 5 taxa that she identified as being present in large
+## numbers.  Her x-axis had the time steps evenly spaced (not
+## reflecting actual time passage, with each tick mark labeled with
+## the day/degreeday.  To do this, but yet keep days in order, we need
+## to build a new factor variable of the form day/degree day, with
+## ordered levels.
+orderedLevels <- with(timeT, paste(days, degdays, sep="/"))
+summTopT$dayADD <- factor(with(summTopT, paste(days, degdays, sep="/")), levels=orderedLevels)
+rm(orderedLevels)
+dev.new(width=4.5, height=4)
+leftPlot <- ggplot(summTopT, aes(x=dayADD, y=meanPercByDay, group=taxon)) +
   geom_line(size=1.25, aes(color=taxon)) +
-  labs(x="Accumulated degree days (ADD)", y="Average percentage composition", title="Family-level, all time steps", tag="A") +
-  scale_x_continuous(breaks=unique(summaryChoiceT$degdays)) + 
-  theme_bw()
+  scale_y_continuous(limits=c(0, 100), expand=c(0,0)) +
+  theme_minimal() +
+  theme(axis.text.x = element_text(angle=45, hjust=0.5, vjust=0.5),
+        legend.position=c(0.95, 0.98),
+        legend.justification=c("right", "top"),
+        legend.title=element_blank(),
+        legend.key.size=unit(0.5, 'lines'),
+        legend.background=element_rect(fill="white")) +
+  labs(x="Days/accumulated degree days", y="Relative abundance")## tag="A")
 
-ggplot(summaryChoiceT, aes(x=degdays, medianFracByDay)) +
-  geom_line(aes(color=taxon)) +
-  theme_bw()
+## The second panel is based on Fig. 1c from Pechal et al. (2015).  It
+## is predicted vs. actual ADD.
+## Make a tibble of actual and predicted values for each observation.
+predvactT <- as.tibble(data.frame(predicted=rf$predicted, actual=rf$y))
+## Linear regression to get RMSE and R-squared.
+mylm <- lm(predicted ~ actual, data=predvactT)
+Rsq <- round(summary(mylm)$r.squared, 2)
+RMSE <- round(summary(mylm)$sigma, 2)
+rightPlot <- ggplot(predvactT, aes(x=actual, y=predicted)) +
+  geom_point() +
+  geom_abline(slope=1, intercept=0) +
+  annotate("text", x=50, y=1700, hjust=0, label=paste("R^2  ==", Rsq), parse=T) +
+  annotate("text", x=50, y=1600, hjust=0, label=paste("RMSE = ", RMSE)) + 
+  coord_fixed(ratio=1) +
+  theme_bw() + 
+  lims(x=c(0, max(as.vector(predvactT))), y=c(0, max(as.vector(predvactT)))) +
+  labs(x="Actual accumulated degree days", y="Predicted accumulated degree days")##tag="B")
+
+library("cowplot")
+plot_grid(leftPlot, rightPlot, labels=c("a", "b"), rel_widths=c(1.125, 1), rel_heights=c(1, 1))
+ggsave(file="relative_abundance_Rsq_rmse.pdf", width=8.5, height=4, units="in")
 ## ##################################################
