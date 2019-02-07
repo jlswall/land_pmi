@@ -327,10 +327,11 @@ predvactT$logactual <- with(predvactT, ifelse(actual>0, log(actual), 0))
 predvactT$logpredicted <- with(predvactT, ifelse(predicted>0, log(predicted), 0))
 minAxisLmt <- min(c(predvactT$logactual, predvactT$logpredicted), na.rm=T)
 maxAxisLmt <- max(c(predvactT$logactual, predvactT$logpredicted), na.rm=T)
+Rsq <- with(predvactT, round(cor(logactual, logpredicted)^2, 2))
 ggplot(predvactT, aes(x=logactual, y=logpredicted)) +
   geom_point() +
   geom_abline(slope=1, intercept=0) +
-  ## annotate("text", x=50, y=1700, hjust=0, label=paste("R^2  ==", Rsq), parse=T) +
+  annotate("text", x=0.5, y=6.5, hjust=0, label=paste("R^2  ==", Rsq), parse=T) +
 ##  annotate("text", x=50, y=1600, hjust=0, label=paste("RMSE = ", RMSE)) + 
   coord_fixed(ratio=1) +
   theme_bw() + 
