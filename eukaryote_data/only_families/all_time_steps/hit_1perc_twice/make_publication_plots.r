@@ -195,19 +195,19 @@ predvactT$logpredicted <- with(predvactT, ifelse(predicted>0, log10(predicted), 
 minAxisLmt <- min(c(predvactT$logactual, predvactT$logpredicted), na.rm=T)
 maxAxisLmt <- max(c(predvactT$logactual, predvactT$logpredicted), na.rm=T)
 
-Rsq <- with(predvactT, round(cor(actual, predicted)^2, 2))
+Rsq <- with(predvactT %>% filter(actual>0), round(cor(logactual, logpredicted)^2, 2))
 ## RMSE around 1:1 line, not regression line.
 RMSE <- round(sqrt(mean(resids^2)), 2)  
 brPanel <- ggplot(predvactT, aes(x=logactual, y=logpredicted)) +
   geom_point() +
   geom_abline(slope=1, intercept=0) +
-  ## annotate("text", x=50, y=1700, hjust=0, label=paste("R^2  ==", Rsq), parse=T) +
-  ## annotate("text", x=50, y=1600, hjust=0, label=paste("RMSE = ", RMSE)) + 
+  annotate("text", x=1.5, y=3.2, hjust=0, label=paste("R^2  ==", Rsq), parse=T) +
+  annotate("text", x=1.5, y=3.07, hjust=0, label=paste("RMSE = ", RMSE)) + 
   coord_fixed(ratio=1) +
   theme_bw() +
   theme(plot.margin=unit(rep(0.15, 4), "in")) +
   lims(x=c(minAxisLmt, maxAxisLmt), y=c(minAxisLmt, maxAxisLmt)) +
-  labs(x="Log 10 of Actual Accumulated Degree Days", y="Log 10 of Predicted Accumulated Degree Days")
+  labs(x="Log 10 Actual Accumulated Degree Days", y="Log 10 Predicted Accumulated Degree Days")
 ## ########################
 
 
