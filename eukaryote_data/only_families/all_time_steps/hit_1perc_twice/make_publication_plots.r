@@ -100,7 +100,8 @@ tlPanel <- ggplot(importanceT %>% top_n(n, wt=`%IncMSE`),
   theme_minimal() +
   coord_flip() +
   geom_col() +
-  labs(x="Eukaryotic Family-level Taxa", y="Mean % Decrease in MSE When Taxa Excluded")
+  theme(plot.margin=unit(rep(0.15, 4), "in")) +
+  labs(x="Eukaryotic Family-level Taxa", y="% Increase in MSE When Excluded")
 ## ########################
 
 
@@ -141,7 +142,6 @@ summTopT <- chooseT %>% group_by(taxon, days, degdays) %>% summarize(meanPercByD
 orderedLevels <- with(timeT, paste(degdays, days, sep="/"))
 summTopT$dayADD <- factor(with(summTopT, paste(degdays, days, sep="/")), levels=orderedLevels)
 rm(orderedLevels)
-dev.new(width=4.5, height=4)
 trPanel <- ggplot(summTopT, aes(x=dayADD, y=meanPercByDay, group=taxon)) +
   geom_line(size=1.25, aes(color=taxon)) +
   scale_y_continuous(limits=c(0, 100), expand=c(0,0)) +
@@ -152,6 +152,7 @@ trPanel <- ggplot(summTopT, aes(x=dayADD, y=meanPercByDay, group=taxon)) +
         legend.title=element_blank(),
         legend.key.size=unit(0.5, 'lines'),
         legend.background=element_rect(fill="white")) +
+  theme(plot.margin=unit(rep(0.15, 4), "in")) +
   labs(x="Accumulated Degree Days/Days", y="Relative Abundance")## tag="A")
 ## ########################
 
@@ -162,6 +163,11 @@ trPanel <- ggplot(summTopT, aes(x=dayADD, y=meanPercByDay, group=taxon)) +
 
 ## Make a tibble of actual and predicted values for each observation.
 predvactT <- as.tibble(data.frame(predicted=rf$predicted, actual=rf$y))
+
+## Set axes for square plot with min of 0 and max(x, y).
+minAxisLmt <- 0
+maxAxisLmt <- max(c(predvactT$actual, predvactT$predicted), na.rm=T)
+
 Rsq <- with(predvactT, round(cor(actual, predicted)^2, 2))
 ## RMSE around 1:1 line, not regression line.
 RMSE <- round(sqrt(mean(resids^2)), 2)  
@@ -171,8 +177,9 @@ blPanel <- ggplot(predvactT, aes(x=actual, y=predicted)) +
   annotate("text", x=50, y=1700, hjust=0, label=paste("R^2  ==", Rsq), parse=T) +
   annotate("text", x=50, y=1600, hjust=0, label=paste("RMSE = ", RMSE)) + 
   coord_fixed(ratio=1) +
-  theme_bw() + 
-  lims(x=c(0, max(as.vector(predvactT))), y=c(0, max(as.vector(predvactT)))) +
+  theme_bw() +
+  theme(plot.margin=unit(rep(0.15, 4), "in")) +
+  lims(x=c(minAxisLmt, maxAxisLmt), y=c(minAxisLmt, maxAxisLmt)) +
   labs(x="Actual Accumulated Degree Days", y="Predicted Accumulated Degree Days")
 ## ########################
 
@@ -197,7 +204,8 @@ brPanel <- ggplot(predvactT, aes(x=logactual, y=logpredicted)) +
   ## annotate("text", x=50, y=1700, hjust=0, label=paste("R^2  ==", Rsq), parse=T) +
   ## annotate("text", x=50, y=1600, hjust=0, label=paste("RMSE = ", RMSE)) + 
   coord_fixed(ratio=1) +
-  theme_bw() + 
+  theme_bw() +
+  theme(plot.margin=unit(rep(0.15, 4), "in")) +
   lims(x=c(minAxisLmt, maxAxisLmt), y=c(minAxisLmt, maxAxisLmt)) +
   labs(x="Log 10 of Actual Accumulated Degree Days", y="Log 10 of Predicted Accumulated Degree Days")
 ## ########################
@@ -205,31 +213,12 @@ brPanel <- ggplot(predvactT, aes(x=logactual, y=logpredicted)) +
 
 ## ########################
 library("cowplot")
-## Try theme(plot.margin) when creating graphs to add some space.
-plot_grid(tlPanel, trPanel, blPanel, brPanel, labels=c("a", "b", "c", "d"))##, rel_widths=c(1.125, 1), rel_heights=c(1, 1))
-ggsave(file="relative_abundance_Rsq_rmse.pdf", width=8.5, height=8.5, units="in")
+## plot_grid(tlPanel, trPanel, blPanel, brPanel, labels=c("a", "b", "c", "d"), axis="t")##, rel_widths=c(1.125, 1), rel_heights=c(1, 1))
+topRow <- plot_grid(tlPanel, trPanel, labels=c("a", "b"), rel_widths=c(0.75, 1))
+bottomRow <- plot_grid(blPanel, brPanel, labels=c("c", "d"), align="v", rel_widths=c(1,1))##, rel_widths=c(1.125, 1), rel_heights=c(1, 1))
+
+
+plot_grid(topRow, bottomRow, nrow=2)##, rel_widths=c(1.125, 1), rel_heights=c(1, 1))
+ggsave(file="four_panels.pdf", height=8, width=8, units="in")
 ## ########################
 ## ##################################################
-
-
-
-## ##################################################
-## Tal also wanted to see the predicted vs. actual scatterplot in log mode.
-
-## Make new columns with natural log.  For values that are 0, the log
-## is undefined.  I make these values 0.
-predvactT$logactual <- with(predvactT, ifelse(actual>0, log(actual), 0))
-predvactT$logpredicted <- with(predvactT, ifelse(predicted>0, log(predicted), 0))
-minAxisLmt <- min(c(predvactT$logactual, predvactT$logpredicted), na.rm=T)
-maxAxisLmt <- max(c(predvactT$logactual, predvactT$logpredicted), na.rm=T)
-Rsq <- with(predvactT, round(cor(logactual, logpredicted)^2, 2))
-ggplot(predvactT, aes(x=logactual, y=logpredicted)) +
-  geom_point() +
-  geom_abline(slope=1, intercept=0) +
-  annotate("text", x=0.5, y=6.5, hjust=0, label=paste("R^2  ==", Rsq), parse=T) +
-##  annotate("text", x=50, y=1600, hjust=0, label=paste("RMSE = ", RMSE)) + 
-  coord_fixed(ratio=1) +
-  theme_bw() + 
-  lims(x=c(minAxisLmt, maxAxisLmt), y=c(minAxisLmt, maxAxisLmt)) +
-  labs(x="Natural log of actual accumulated degree days", y="Natural log of predicted accumulated degree days")##tag="B")
-ggsave(file="scatterplot_log_actual_predicted.pdf", width=4, height=4, units="in")
